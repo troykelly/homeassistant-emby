@@ -22,7 +22,7 @@ jobs:
           # version here to keep the dependency resolver deterministic.  The
           # static type-checking itself does not execute any code and is
           # therefore version-agnostic.
-          python-version: '3.11'
+          python-version: '3.13'
           cache: 'pip'
           cache-dependency-path: |
             requirements.txt
