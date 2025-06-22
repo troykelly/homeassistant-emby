@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from custom_components.emby.media_player import EmbyDevice
+from custom_components.embymedia.media_player import EmbyDevice
 
 
 class _FakeApi:  # pylint: disable=too-few-public-methods

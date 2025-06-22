@@ -1,4 +1,4 @@
-"""Extra coverage for :class:`custom_components.emby.api.EmbyAPI` – *search*, *get_item* and low-level error handling."""
+"""Extra coverage for :class:`custom_components.embymedia.api.EmbyAPI` – *search*, *get_item* and low-level error handling."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import pytest
 
 from aiohttp import ClientError, ClientResponseError
 
-from custom_components.emby.api import EmbyAPI, EmbyApiError
+from custom_components.embymedia.api import EmbyAPI, EmbyApiError
 
 
 # ---------------------------------------------------------------------------

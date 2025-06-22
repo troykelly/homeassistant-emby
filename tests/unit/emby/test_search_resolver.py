@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from custom_components.emby.search_resolver import (
+from custom_components.embymedia.search_resolver import (
     MediaLookupError,
     _looks_like_item_id,
     resolve_media_item,
@@ -98,7 +98,7 @@ async def test_resolve_no_results(fake_emby_api):
 async def test_resolve_api_error(fake_emby_api):
     """HTTP-layer failures are surfaced as *MediaLookupError*."""
 
-    from custom_components.emby.api import EmbyApiError
+    from custom_components.embymedia.api import EmbyApiError
 
     fake_emby_api._item_response = None
     fake_emby_api._search_response = EmbyApiError("boom")
