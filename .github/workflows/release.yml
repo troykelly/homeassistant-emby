@@ -50,15 +50,17 @@ jobs:
           CLEAN_TAG="${RAW_REF#v}"
           echo "::set-output name=version::${CLEAN_TAG}"
 
-      - name: 🛠️  Set manifest version to match tag
+      - name: 🛠️  Set manifest version to match tag (preserve formatting)
         run: |
           VERSION="${{ steps.vars.outputs.version }}"
           MANIFEST="custom_components/embymedia/manifest.json"
-          echo "Setting version in ${MANIFEST} to ${VERSION}"
-          # Use jq to update the JSON while preserving formatting as best as possible.
-          TMP=$(mktemp)
-          jq --arg v "$VERSION" '.version = $v' "$MANIFEST" > "$TMP"
-          mv "$TMP" "$MANIFEST"
+
+          echo "Updating version in ${MANIFEST} to ${VERSION} (formatting preserved)"
+
+          # Use sed to replace the version value in-place without reformatting the JSON.
+          # Matches a line that begins with optional spaces, then "version": "<digits>..." and replaces the value.
+          # Assumes the manifest keeps the `version` key on a single line (Home-Assistant convention).
+          sed -i -E "s/(\"version\"\s*:\s*\")([0-9]+(\.[0-9]+)*)(\")/\1${VERSION}\4/" "$MANIFEST"
 
       - name: 💾 Commit manifest bump (if any)
         uses: stefanzweifel/git-auto-commit-action@v5
