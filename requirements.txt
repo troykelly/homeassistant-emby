@@ -1,15 +1,17 @@
-# Core runtime dependencies
-aiohttp>=3.8
-voluptuous>=0.13
+# Auto-generated list of current (2025-06-22) stable releases
+# Use `pip install -r requirements.txt` in the devcontainer.
 
-# Home Assistant core (required for tests; heavy but confined to dev container)
-homeassistant==2024.6.0
+# Core runtime
+aiohttp==3.12.13
+voluptuous==0.15.2
+pyemby==1.10
 
-# Development & test utilities
-pytest>=7.4
-pytest-asyncio>=0.23
-pytest-httpx>=0.24
-pytest-homeassistant-custom-component>=0.12
+# Home Assistant core (for integration tests)
+homeassistant==2025.6.1
 
-# Mock async HTTP server used in tests
-aresponses>=2.1
+# Development & testing
+pytest==8.4.1
+pytest-asyncio==1.0.0
+pytest-httpx==0.35.0
+pytest-homeassistant-custom-component==0.13.252
+aresponses==3.0.0
