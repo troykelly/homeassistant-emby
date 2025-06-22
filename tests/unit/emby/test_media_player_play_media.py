@@ -16,7 +16,7 @@ import pytest
 
 
 class _StubAPI:  # pylint: disable=too-few-public-methods
-    """Fake replacement for :class:`components.emby.api.EmbyAPI`."""
+    """Fake replacement for :class:`custom_components.emby.api.EmbyAPI`."""
 
     def __init__(self) -> None:
         self.play_calls: List[dict] = []
@@ -90,7 +90,7 @@ class _Device(SimpleNamespace):
 def emby_device(monkeypatch):  # noqa: D401 – pytest naming convention
     """Return an *EmbyDevice* wired with fake dependencies suitable for unit-tests."""
 
-    from components.emby.media_player import EmbyDevice
+    from custom_components.emby.media_player import EmbyDevice
 
     dev = EmbyDevice.__new__(EmbyDevice)  # type: ignore[arg-type]
 
@@ -116,7 +116,7 @@ def emby_device(monkeypatch):  # noqa: D401 – pytest naming convention
     monkeypatch.setattr(dev, "_resolve_session_id", _fixed_session)  # success path by default
 
     # Patch resolver – always return a dummy item.
-    import components.emby.search_resolver as resolver_mod
+    import custom_components.emby.search_resolver as resolver_mod
 
     async def _fake_resolver(*_, **__):  # noqa: D401
         return {"Id": "item-1"}
@@ -167,10 +167,10 @@ async def test_async_play_media_enqueue_with_position(monkeypatch, emby_device):
 async def test_async_play_media_lookup_failure(monkeypatch, emby_device):
     """A *MediaLookupError* must be surfaced as *HomeAssistantError*."""
 
-    from components.emby.search_resolver import MediaLookupError
+    from custom_components.emby.search_resolver import MediaLookupError
     from homeassistant.exceptions import HomeAssistantError
 
-    import components.emby.search_resolver as resolver_mod
+    import custom_components.emby.search_resolver as resolver_mod
     monkeypatch.setattr(resolver_mod, "resolve_media_item", lambda *_, **__: (_ for _ in ()).throw(MediaLookupError("fail")))
 
     with pytest.raises(HomeAssistantError):
@@ -218,7 +218,12 @@ async def test_async_play_media_play_error(monkeypatch, emby_device):
 def test_media_player_properties(monkeypatch):
     """Exercise the various *EmbyDevice* properties that map to *device*."""
 
-    from components.emby.media_player import EmbyDevice, SUPPORT_EMBY, MediaPlayerEntityFeature, MediaType
+    from custom_components.emby.media_player import (
+        EmbyDevice,
+        SUPPORT_EMBY,
+        MediaPlayerEntityFeature,
+        MediaType,
+    )
 
     dev = EmbyDevice.__new__(EmbyDevice)  # type: ignore[arg-type]
     stub = _Device()

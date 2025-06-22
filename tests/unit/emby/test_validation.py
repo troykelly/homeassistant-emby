@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from components.emby.media_player import PLAY_MEDIA_SCHEMA
+from custom_components.emby.media_player import PLAY_MEDIA_SCHEMA
 
 
 def test_schema_accepts_minimal_payload():

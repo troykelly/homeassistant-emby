@@ -22,7 +22,7 @@ from urllib.parse import urlparse
 
 
 async def _amain() -> None:  # noqa: ANN201
-    from components.emby.api import EmbyAPI  # local import for editable repo
+from custom_components.emby.api import EmbyAPI  # local import for editable repo
 
     emby_url = os.getenv("EMBY_URL")
     api_key = os.getenv("EMBY_API_KEY")

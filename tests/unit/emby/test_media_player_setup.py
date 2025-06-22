@@ -78,7 +78,7 @@ class _FakeEmbyServer:  # pylint: disable=too-few-public-methods
 async def test_async_setup_platform(monkeypatch):  # noqa: D401 – pytest naming
     """Run the setup routine and verify device callbacks operate as intended."""
 
-    from components.emby import media_player as mp_mod
+    from custom_components.emby import media_player as mp_mod
 
     # Patch external dependency *pyemby.EmbyServer* with our stub.
     monkeypatch.setattr(mp_mod, "EmbyServer", _FakeEmbyServer)
@@ -143,7 +143,7 @@ async def test_async_setup_platform(monkeypatch):  # noqa: D401 – pytest namin
         def __init__(self, *_, **__):  # noqa: D401 – ignore params
             pass
 
-    import components.emby.api as api_mod
+    import custom_components.emby.api as api_mod
 
     # Swap the real helper with the stub then call the method.
     monkeypatch.setattr(api_mod, "EmbyAPI", _DummyApi)
