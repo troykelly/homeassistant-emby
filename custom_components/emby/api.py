@@ -16,7 +16,10 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import aiohttp
 
 from aiohttp import ClientError, ClientResponseError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -47,7 +50,7 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         ssl: bool = False,
         port: int | None = None,
         *,
-        session=None,
+        session: "aiohttp.ClientSession | None" = None,
     ) -> None:
         """Create a new minimal Emby API wrapper.
 

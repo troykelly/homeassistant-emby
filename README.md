@@ -177,6 +177,24 @@ Contributions are welcome!  Please open an issue or discussion before starting
 large pieces of work so we can coordinate.  Bug fixes and documentation
 improvements can be sent directly as pull-requests.
 
+### Development checks
+
+Every pull-request is validated by two CI jobs:
+
+1. **Tests & Coverage** – runs the full `pytest` suite and reports coverage.
+2. **Pyright** – performs **strict static type checking**.  The codebase must
+   pass with **zero** Pyright errors before a PR can be merged.  You can run
+   the check locally by installing the dev dependency and executing `pyright`:
+
+```bash
+pip install pyright
+pyright --stats
+```
+
+The configuration lives in `pyproject.toml` (`[tool.pyright]` section).  IDEs
+such as **Visual Studio Code** (with the *Pylance* extension) will pick this up
+automatically and surface type issues as you code.
+
 ---
 
 ## License

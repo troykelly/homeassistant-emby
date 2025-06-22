@@ -1,0 +1,47 @@
+name: CI - Pyright Static Type Checking
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  pyright:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          # Home Assistant currently supports Python ≥ 3.11.  We pin the
+          # version here to keep the dependency resolver deterministic.  The
+          # static type-checking itself does not execute any code and is
+          # therefore version-agnostic.
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            **/requirements.txt
+
+      - name: Install dependencies & Pyright
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          # Development dependency – not shipped with the integration itself.
+          pip install pyright
+
+      - name: Run Pyright (strict mode)
+        run: |
+          pyright --stats
+
+      - name: Annotate PR on failure
+        if: ${{ failure() && github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.setFailed('Pyright static type checking failed. Please review the errors above.')
