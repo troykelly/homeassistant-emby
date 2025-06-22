@@ -2,6 +2,5 @@
   "name": "Emby for Home Assistant",
   "content_in_root": false,
   "render_readme": true,
-  "domains": ["emby"],
   "homeassistant": "2024.5.0"
 }
