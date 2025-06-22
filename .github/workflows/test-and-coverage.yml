@@ -1,0 +1,76 @@
+name: CI - Tests & Coverage
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            **/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          # Test deps
+          pip install pytest pytest-asyncio coverage
+
+      - name: Run tests with coverage
+        run: |
+          coverage run -m pytest -q
+          coverage report -m > coverage.txt
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.txt
+
+      - name: Comment coverage on PR
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            const coverageTxt = fs.readFileSync('coverage.txt', 'utf8');
+
+            const body = [
+              '### Test Coverage Report',
+              '```text',
+              coverageTxt.trimEnd(),
+              '```',
+            ].join('\n');
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            // Look for an existing comment from the bot to update.
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+
+            const marker = '### Test Coverage Report';
+            const existing = comments.find(c => c.user.type === 'Bot' && c.body.startsWith(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }

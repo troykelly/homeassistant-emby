@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict
+from types import SimpleNamespace
 
 import pytest
 
@@ -42,7 +43,7 @@ async def test_get_sessions_caching(monkeypatch):
 
     recorder = _RequestRecorder()
 
-    api = EmbyAPI(None, host="emby", api_key="k")
+    api = EmbyAPI(None, host="emby", api_key="k", session=SimpleNamespace())
     monkeypatch.setattr(api, "_request", recorder)  # type: ignore[attr-defined]
 
     # First call -> hits the recorder.
@@ -71,7 +72,7 @@ async def test_play_sends_correct_request(monkeypatch):
     """`play()` must call the internal HTTP helper with the correct arguments."""
 
     recorder = _RequestRecorder()
-    api = EmbyAPI(None, host="emby", api_key="k")
+    api = EmbyAPI(None, host="emby", api_key="k", session=SimpleNamespace())
     monkeypatch.setattr(api, "_request", recorder)  # type: ignore[attr-defined]
 
     await api.play("sess-123", ["item-1", "item-2"], play_command="PlayNow", start_position_ticks=90)
