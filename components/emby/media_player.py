@@ -25,6 +25,59 @@ from homeassistant.const import (
     EVENT_HOMEASSISTANT_START,
     EVENT_HOMEASSISTANT_STOP,
 )
+# -----------------------------------------------------------------------------
+# Additional imports required for media browsing support (issue #24 / task #27)
+# -----------------------------------------------------------------------------
+
+from homeassistant.components.media_player.browse_media import (
+    BrowseMedia,
+    MediaClass,
+)
+
+from urllib.parse import urlparse, parse_qs, urlencode
+
+# Home Assistant helper error type
+from homeassistant.exceptions import HomeAssistantError
+
+# -----------------------------------------------------------------------------
+# Constants & small mappings used by the browsing helpers
+# -----------------------------------------------------------------------------
+
+_EMBY_URI_SCHEME = "emby"
+
+# Number of children fetched per request – kept deliberately small so that the
+# browse tree stays responsive on large libraries.  Users can navigate further
+# via the automatically generated "Next →" / "← Prev" nodes.
+_PAGE_SIZE = 100
+
+# Mapping Emby Item `Type` → Home Assistant `MediaClass` / content_type.  The
+# table is based on the design document attached to GitHub issue #25.
+
+_ITEM_TYPE_MAP: dict[str, tuple[MediaClass, str, bool, bool]] = {
+    # ItemType: (media_class, content_type, can_play, can_expand)
+    "Collection": (MediaClass.DIRECTORY, "directory", False, True),
+    "Folder": (MediaClass.DIRECTORY, "directory", False, True),
+    "Movie": (MediaClass.MOVIE, "movie", True, False),
+    "Episode": (MediaClass.EPISODE, "episode", True, False),
+    "Season": (MediaClass.SEASON, "season", False, True),
+    "Series": (MediaClass.TV_SHOW, "tvshow", False, True),
+    "MusicAlbum": (MediaClass.ALBUM, "album", False, True),
+    "Audio": (MediaClass.TRACK, "music", True, False),
+    "Playlist": (MediaClass.PLAYLIST, "playlist", True, True),
+    "TvChannel": (MediaClass.CHANNEL, "channel", True, False),
+    "Trailer": (MediaClass.VIDEO, "video", True, False),
+    "Video": (MediaClass.VIDEO, "video", True, False),
+}
+
+# Fallback mapping for library / root views where `CollectionType` is returned
+# instead of `Type`.
+_COLLECTION_TYPE_MAP: dict[str, tuple[MediaClass, str]] = {
+    "movies": (MediaClass.MOVIE, "movies"),
+    "tvshows": (MediaClass.TV_SHOW, "tvshow"),
+    "music": (MediaClass.MUSIC, "music"),
+    "livetv": (MediaClass.CHANNEL, "channel"),
+    "playlists": (MediaClass.PLAYLIST, "playlist"),
+}
 
 # -----------------------------------------------------------------------------
 # Service data validation – ``media_player.play_media``
@@ -242,6 +295,249 @@ class EmbyDevice(MediaPlayerEntity):
         if state == "Off":
             return MediaPlayerState.OFF
         return None
+
+    # ------------------------------------------------------------------
+    # Home Assistant media browsing implementation (issue #24 – task #27)
+    # ------------------------------------------------------------------
+
+    async def async_browse_media(
+        self,
+        media_content_type: str | None = None,
+        media_content_id: str | None = None,
+    ) -> BrowseMedia:  # noqa: D401 – verbatim HA signature
+        """Return a BrowseMedia tree for the requested path.
+
+        The method implements a minimal yet fully functional browsing
+        hierarchy that surfaces the user's Emby *views* (libraries) at the
+        root level and then delegates to `/Items/{id}/Children` for deeper
+        navigation.
+
+        * ``media_content_id`` ``None`` → root (libraries)
+        * ``emby://<item_id>[?start=N]`` → children or leaf depending on
+          whether the item can expand / play.
+
+        Pagination is handled by *synthetic* "Prev" / "Next" nodes which the
+        UI can follow to request subsequent slices of the list.  Each slice
+        returns up to ``_PAGE_SIZE`` items.
+        """
+
+        api = self._get_emby_api()
+
+        # Determine the Emby user id – we look it up from the current session
+        # object (preferred) falling back to a fresh sessions call when not
+        # available (e.g. player is idle on HA startup).
+        user_id: str | None = self.device.session_raw.get("UserId")
+        if not user_id:
+            sessions = await api.get_sessions(force_refresh=True)
+            for sess in sessions:
+                if sess.get("DeviceId") in (self.device_id, getattr(self.device, "unique_id", None)):
+                    user_id = sess.get("UserId")
+                    break
+
+        if not user_id:
+            raise HomeAssistantError("Unable to determine Emby user for media browsing")
+
+        # ------------------------------------------------------------------
+        # ROOT LEVEL – libraries / views
+        # ------------------------------------------------------------------
+
+        if not media_content_id:  # root browse
+            views = await api.get_user_views(user_id)
+            children: list[BrowseMedia] = [
+                self._emby_view_to_browse(item) for item in views
+            ]
+
+            # Assemble the root node
+            return BrowseMedia(
+                title="Emby Library",
+                media_class=MediaClass.DIRECTORY,
+                media_content_id="emby://root",
+                media_content_type="directory",
+                can_play=False,
+                can_expand=True,
+                children=children,
+            )
+
+        # ------------------------------------------------------------------
+        # CHILD LEVEL – parse URI and decide whether to return children or a
+        # playable leaf node.
+        # ------------------------------------------------------------------
+
+        item_id, start_idx = self._parse_emby_uri(media_content_id)
+
+        # Fetch metadata for the item to know whether it can expand.
+        item = await api.get_item(item_id)
+        if item is None:
+            raise HomeAssistantError("Emby item not found – the library may have changed")
+
+        media_class, content_type, can_play, can_expand = self._map_item_type(item)
+
+        # If the item is playable *and* cannot expand we simply return the leaf
+        # node – Home Assistant will subsequently call `async_play_media` when
+        # the user clicks it.
+        if not can_expand:
+            return BrowseMedia(
+                title=item.get("Name", "Unknown"),
+                media_class=media_class,
+                media_content_id=media_content_id,
+                media_content_type=content_type,
+                can_play=can_play,
+                can_expand=False,
+                children=None,
+                thumbnail=self._build_thumbnail_url(item),
+            )
+
+        # ------------------------------------------------------------------
+        # Expandable directory – fetch children slice.
+        # ------------------------------------------------------------------
+
+        slice_payload = await api.get_item_children(
+            item_id,
+            user_id=user_id,
+            start_index=start_idx,
+            limit=_PAGE_SIZE,
+        )
+
+        # Extract children & total count – defend against edge cases.
+        child_items: list[dict] = slice_payload.get("Items", []) if isinstance(slice_payload, dict) else []
+        total_count: int = slice_payload.get("TotalRecordCount", len(child_items)) if isinstance(slice_payload, dict) else len(child_items)
+
+        children: list[BrowseMedia] = [self._emby_item_to_browse(child) for child in child_items]
+
+        # Pagination – prepend/append prev/next nodes when applicable.
+        if start_idx > 0:
+            prev_start = max(0, start_idx - _PAGE_SIZE)
+            children.insert(
+                0,
+                self._make_pagination_node("← Prev", item_id, prev_start),
+            )
+
+        if (start_idx + _PAGE_SIZE) < total_count:
+            next_start = start_idx + _PAGE_SIZE
+            children.append(
+                self._make_pagination_node("Next →", item_id, next_start),
+            )
+
+        # Assemble directory node
+        return BrowseMedia(
+            title=item.get("Name", "Unknown"),
+            media_class=media_class,
+            media_content_id=media_content_id,
+            media_content_type=content_type,
+            can_play=can_play,
+            can_expand=True,
+            children=children,
+            thumbnail=self._build_thumbnail_url(item),
+        )
+
+    # ------------------------------------------------------------------
+    # Private helpers – browser building
+    # ------------------------------------------------------------------
+
+    def _parse_emby_uri(self, value: str) -> tuple[str, int]:
+        """Return (item_id, start_index) parsed from *value*.
+
+        Any `media_content_id` not conforming to the `emby://` scheme raises
+        a :class:`HomeAssistantError` because delegation to `media_source`
+        fallback is implemented in a separate task (issue #28).
+        """
+
+        parsed = urlparse(value)
+        if parsed.scheme != _EMBY_URI_SCHEME:
+            raise HomeAssistantError("Unsupported media_content_id – expected emby:// URI")
+
+        item_id = parsed.netloc or parsed.path.lstrip("/")  # netloc holds first segment when no // present
+        if not item_id:
+            raise HomeAssistantError("Invalid emby URI – missing item id")
+
+        qs = parse_qs(parsed.query)
+        start_idx = int(qs.get("start", [0])[0])
+        return item_id, start_idx
+
+    def _map_item_type(self, item: dict) -> tuple[MediaClass, str, bool, bool]:  # noqa: ANN401 – JSON in
+        """Return mapping tuple for an Emby item payload."""
+
+        item_type = item.get("Type") or item.get("CollectionType") or "Folder"
+
+        if item_type in _ITEM_TYPE_MAP:
+            return _ITEM_TYPE_MAP[item_type]
+
+        # Fallback for collection types when not in main map
+        if item_type in _COLLECTION_TYPE_MAP:
+            mc, ct = _COLLECTION_TYPE_MAP[item_type]
+            return (mc, ct, False, True)
+
+        # Unknown type – treat as generic directory
+        return (MediaClass.DIRECTORY, "directory", False, True)
+
+    def _emby_item_to_browse(self, item: dict) -> BrowseMedia:  # noqa: ANN401
+        """Convert a generic Emby item to a BrowseMedia node."""
+
+        media_class, content_type, can_play, can_expand = self._map_item_type(item)
+        item_id = str(item.get("Id"))
+        uri = f"{_EMBY_URI_SCHEME}://{item_id}"
+
+        return BrowseMedia(
+            title=item.get("Name", "Unknown"),
+            media_class=media_class,
+            media_content_id=uri,
+            media_content_type=content_type,
+            can_play=can_play,
+            can_expand=can_expand,
+            thumbnail=self._build_thumbnail_url(item),
+        )
+
+    def _emby_view_to_browse(self, item: dict) -> BrowseMedia:  # noqa: ANN401
+        """Convert a /Views item (library root) to a BrowseMedia node."""
+
+        # /Views entries provide `CollectionType` instead of `Type`
+        collection_type = item.get("CollectionType", "folder")
+        media_class, content_type = _COLLECTION_TYPE_MAP.get(
+            collection_type, (MediaClass.DIRECTORY, "directory")
+        )
+
+        item_id = str(item.get("Id"))
+        uri = f"{_EMBY_URI_SCHEME}://{item_id}"
+
+        return BrowseMedia(
+            title=item.get("Name", "Unknown"),
+            media_class=media_class,
+            media_content_id=uri,
+            media_content_type=content_type,
+            can_play=False,
+            can_expand=True,
+            thumbnail=self._build_thumbnail_url(item),
+        )
+
+    def _build_thumbnail_url(self, item: dict) -> str | None:  # noqa: ANN401 – JSON
+        """Return Emby image URL for *item* or *None* when not available."""
+
+        # Prefer Primary image tag.
+        image_tag = None
+        if isinstance(item.get("ImageTags"), dict):
+            image_tag = item["ImageTags"].get("Primary") or item["ImageTags"].get("Backdrop")
+
+        if not image_tag:
+            return None
+
+        api = self._get_emby_api()
+        # The EmbyAPI keeps the base URL without trailing slash.
+        return f"{api._base}/Items/{item.get('Id')}/Images/Primary?tag={image_tag}&maxWidth=500"  # pylint: disable=protected-access
+
+    def _make_pagination_node(self, title: str, parent_id: str, start: int) -> BrowseMedia:
+        """Return a synthetic Prev/Next BrowseMedia directory node."""
+
+        query = urlencode({"start": start})
+        uri = f"{_EMBY_URI_SCHEME}://{parent_id}?{query}"
+
+        return BrowseMedia(
+            title=title,
+            media_class=MediaClass.DIRECTORY,
+            media_content_id=uri,
+            media_content_type="directory",
+            can_play=False,
+            can_expand=True,
+        )
 
     @property
     def app_name(self):
