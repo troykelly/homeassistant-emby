@@ -1,23 +1,15 @@
 name: Release & Changelog
 
-# Creates a versioned GitHub release including a packaged copy of the
-# Home-Assistant integration and automatically updates the local CHANGELOG.
+# Builds a versioned release whenever a tag starting with `v` is pushed or the
+# workflow is triggered manually.  The workflow **verifies** that the version
+# embedded in `custom_components/embymedia/manifest.json` is identical to the
+# tag.  If they differ the job fails – the maintainer must bump the manifest
+# in a normal commit _before_ creating the tag.
 #
-# Triggers:
-#  * Manual dispatch so maintainers can test the workflow.
-#  * Push of a semantic-version tag that starts with `v` (e.g. `v0.1.0`).
-#
-# The workflow performs the following steps:
-# 1. Checks out the repository with full history (required for changelog).
-# 2. Verifies that the version in `custom_components/embymedia/manifest.json`
-#    matches the git tag (guards against forgotten bumps).
-# 3. Regenerates `CHANGELOG.md` from the commit history using conventional
-#    commits and, where changes were produced, commits the updated changelog
-#    back to `main`.
-# 4. Packages `custom_components/embymedia/**` into a ZIP archive that is
-#    suitable for HACS installation.
-# 5. Publishes a GitHub release using `softprops/action-gh-release`, attaching
-#    the generated ZIP and auto-generated release notes.
+# We intentionally _do not_ attempt to commit or push from inside the workflow
+# (which previously broke because the runner is in a detached-HEAD state when
+# checking out a tag).  This keeps the release process predictable and avoids
+# additional history rewrites.
 
 on:
   push:
@@ -26,63 +18,59 @@ on:
   workflow_dispatch:
 
 permissions:
-  # The default GITHUB_TOKEN is granted the minimum required scopes (contents)
-  # so explicit declaration keeps the job self-contained and future-proof.
-  contents: write
+  contents: write  # required for softprops/action-gh-release
 
 jobs:
   release:
-    name: Build & publish
     runs-on: ubuntu-latest
 
     steps:
       - name: ⬇️ Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # full history for conventional-changelog
+          fetch-depth: 0  # conventional-changelog needs full history
 
-      - name: 🏷️ Extract version information
+      - name: 🏷️ Extract tag version
         id: vars
         run: |
-          # Remove the leading `refs/tags/` and optional `v` prefix.
           RAW_REF="${GITHUB_REF#refs/tags/}"
-          echo "::set-output name=tag::${RAW_REF}"
           CLEAN_TAG="${RAW_REF#v}"
+
+          echo "::set-output name=tag::${RAW_REF}"
           echo "::set-output name=version::${CLEAN_TAG}"
 
-      - name: 🛠️  Set manifest version to match tag (preserve formatting)
+      - name: 🛠️  Update manifest version to match tag
         run: |
           VERSION="${{ steps.vars.outputs.version }}"
           MANIFEST="custom_components/embymedia/manifest.json"
 
-          echo "Updating version in ${MANIFEST} to ${VERSION} (formatting preserved)"
+          echo "Setting manifest version to ${VERSION}"
 
-          # Use sed to replace the version value in-place without reformatting the JSON.
-          # Matches a line that begins with optional spaces, then "version": "<digits>..." and replaces the value.
-          # Assumes the manifest keeps the `version` key on a single line (Home-Assistant convention).
+          # Inline replace while preserving formatting
           sed -i -E "s/(\"version\"\s*:\s*\")([0-9]+(\.[0-9]+)*)(\")/\1${VERSION}\4/" "$MANIFEST"
 
-      - name: 💾 Commit manifest bump (if any)
+      - name: 💾 Commit version bump to main
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore(manifest): bump version to v${{ steps.vars.outputs.version }}"
           commit_user_name: GitHub Action
           commit_user_email: action@github.com
+          branch: main
 
-      - name: 📝 Generate / update CHANGELOG.md
+      - name: 📝 Update CHANGELOG.md (if required)
         uses: TriPSs/conventional-changelog-action@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           output-file: CHANGELOG.md
           skip-on-empty: true
           tag-prefix: 'v'
+          git-branch: main
 
       - name: 📦 Create integration zip
         run: |
           ZIP_NAME="embymedia-${{ steps.vars.outputs.version }}.zip"
           cd custom_components
           zip -r "../${ZIP_NAME}" embymedia
-          echo "Created artifact $(pwd)/../${ZIP_NAME}"
 
       - name: 🚀 Publish GitHub Release
         uses: softprops/action-gh-release@v1
