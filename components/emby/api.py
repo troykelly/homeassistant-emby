@@ -164,6 +164,25 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         return payload.get("Items", []) if isinstance(payload, dict) else []
 
     # ------------------------------------------------------------------
+    # Convenience helpers – not part of the original minimal surface but
+    # required by the media search resolver and play_media support.
+    # ------------------------------------------------------------------
+
+    async def get_item(self, item_id: str | int) -> dict[str, Any] | None:  # noqa: ANN401 – wide JSON
+        """Return full metadata for *item_id* or *None* if it does not exist.
+
+        The call wraps the simple `/Items/{Id}` endpoint.  The method does **not**
+        raise when the item is not found – it returns *None* allowing callers
+        to fall back to alternative lookup strategies.
+        """
+
+        try:
+            return await self._request("GET", f"/Items/{item_id}")
+        except EmbyApiError:
+            # 404 or other errors -> treat as not-found
+            return None
+
+    # ------------------------------------------------------------------
     # Internal utilities
     # ------------------------------------------------------------------
 
