@@ -1,0 +1,82 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/typescript-node
+{
+  "name": "Home Assistant Emby",
+  // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+  "image": "mcr.microsoft.com/devcontainers/python:3.12-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true,
+      "installOhMyZsh": true,
+      "installOhMyZshConfig": true,
+      "upgradePackages": true,
+      "nonFreePackages": true,
+      "username": "vscode",
+      "userUid": "automatic",
+      "userGid": "automatic"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": true,
+      "version": "latest",
+      "mobyBuildxVersion": "latest",
+      "dockerDashComposeVersion": "latest",
+      "installDockerBuildx": true,
+      "installDockerComposeSwitch": true,
+      "disableIp6tables": false
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "installDirectlyFromGitHubRelease": true,
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers-extra/features/zsh-plugins:0": {
+      "plugins": "ssh-agent npm",
+      "omzPlugins": "https://github.com/zsh-users/zsh-autosuggestions",
+      "username": "vscode"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24",
+      "nodeGypDependencies": true,
+      "pnpmVersion": "latest",
+      "nvmVersion": "latest",
+      "installYarnUsingApt": true
+    },
+    "ghcr.io/devcontainers/features/ruby:1": {},
+    "ghcr.io/devcontainers/features/rust:1": {},
+    "ghcr.io/stuartleeks/dev-container-features/shell-history:0": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.vscode-typescript-next",
+        "GitHub.remotehub",
+        "GitHub.copilot",
+        "GitHub.vscode-pull-request-github",
+        "GitHub.github-vscode-theme",
+        "GitHub.vscode-github-actions",
+        "GitHub.copilot-chat",
+        "Supabase.vscode-supabase-extension",
+        "ms-ossdata.vscode-pgsql",
+        "yzhang.markdown-all-in-one"
+      ]
+    }
+  },
+  "runArgs": [
+    "--env-file",
+    "${localWorkspaceFolder}/.env"
+  ],
+  // Make sure Git inside the container never converts LF to CRLF.
+  "initializeCommand": "git config --global core.autocrlf input",
+  // "postCreateCommand": "mkdir -p ~/.codex && (test -f ~/.codex/config.json || echo '{}' > ~/.codex/config.json) && jq '. + {\"model\":\"codex-mini-latest\",\"approvalMode\":\"suggest\",\"fullAutoErrorMode\":\"ask-user\",\"notify\":true}' ~/.codex/config.json > ~/.codex/config.tmp && mv ~/.codex/config.tmp ~/.codex/config.json && sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql-client patch && npm install -g @openai/codex pg-mermaid; npm i",
+  "postCreateCommand": "test -f /tmp/expand-env.zsh || echo '__expand_env_refs() {\n  for k in ${(k)parameters}; do\n    if typeset -p \"$k\" 2>/dev/null | grep -q export && [[ ${(P)k} == *\\${* ]]; then\n      v=$(eval \"printf %s \\\"${(P)k}\\\"\")\n      [[ \"$v\" != \"${(P)k}\" ]] && export \"$k=$v\"\n    fi\n  done\n}\n__expand_env_refs' > /tmp/expand-env.zsh && grep -q '__expand_env_refs' ~/.zshrc || cat /tmp/expand-env.zsh >> ~/.zshrc; mkdir -p ~/.codex && (test -f ~/.codex/config.json || echo '{}' > ~/.codex/config.json) && jq '. + {\"model\":\"o3\",\"approvalMode\":\"full-auto\",\"fullAutoErrorMode\":\"ask-user\",\"notify\":true}' ~/.codex/config.json > ~/.codex/config.tmp && mv ~/.codex/config.tmp ~/.codex/config.json && sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql-client patch makepatch ripgrep; pip install --upgrade pip; pip install --user requests; npm i -g pg-mermaid @openai/codex@0.1.2504251709"
+  // Features to add to the dev container. More info: https://containers.dev/features.
+  // "features": {},
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [],
+  // Use 'postCreateCommand' to run commands after the container is created.
+  // "postCreateCommand": "yarn install",
+  // Configure tool-specific properties.
+  // "customizations": {},
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  // "remoteUser": "root"
+}
