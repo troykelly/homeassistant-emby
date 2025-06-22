@@ -74,7 +74,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           output-file: CHANGELOG.md
-          skip-on-no-changes: true
+          skip-on-empty: true
           tag-prefix: 'v'
 
       - name: 📦 Create integration zip
