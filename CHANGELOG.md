@@ -14,3 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   optional `enqueue`, `position`) to start playback or queue items on any Emby
   client.  See the updated README for usage examples.  *(epic #3 – closes
   issue #12)*
+
+* **Media browsing** – Navigate your Emby libraries directly inside Home
+  Assistant via the **Browse Media** dialog.  Libraries, collections, seasons
+  and items are represented with full artwork and metadata.  Delegates to the
+  built-in `media_source` integration for TTS and local files. *(epic #24 –
+  closes issues #25–#29)*
