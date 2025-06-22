@@ -50,6 +50,10 @@ The environment you're running in includes:
 
 You also have **full outbound internet access** and the ability to make HTTP(S) requests.
 
+### Documentation
+
+The Emby API definition is in `docs/emby/openapi.json`
+
 ---
 
 ## 🛠 Toolchain
