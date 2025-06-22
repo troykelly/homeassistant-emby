@@ -1,6 +1,6 @@
 """Light-weight async helper around the Emby HTTP API.
 
-This module purposefully avoids adding new runtime dependencies – it uses the
+This module purposefully avoids adding new runtime dependencies - it uses the
 `aiohttp` client session that Home Assistant already provides and implements
 only the handful of endpoints required for `media_player.play_media` support:
 
@@ -37,7 +37,7 @@ class EmbyApiError(RuntimeError):
 class EmbyAPI:  # pylint: disable=too-few-public-methods
     """Minimal async wrapper for a subset of the Emby REST API."""
 
-    _CACHE_TTL = 10  # seconds – sessions endpoint only.
+    _CACHE_TTL = 10  # seconds - sessions endpoint only.
 
     def __init__(
         self,
@@ -54,7 +54,7 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         Parameters
         ----------
         hass
-            Home Assistant instance – **optional**.  When provided the helper
+            Home Assistant instance - **optional**.  When provided the helper
             will reuse HA's shared aiohttp ClientSession.  When *None* a new
             standalone session (or the supplied *session*) is used which makes
             the class usable outside of Home Assistant e.g. in unit tests or
@@ -76,14 +76,14 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         if hass is not None:
             self._session = async_get_clientsession(hass)
         else:
-            # Stand-alone mode – use provided session or create a new one.
+            # Stand-alone mode - use provided session or create a new one.
             if session is None:
                 import aiohttp
 
                 session = aiohttp.ClientSession()
             self._session = session
 
-        # Very small in-memory cache for the sessions list – refreshed at most
+        # Very small in-memory cache for the sessions list - refreshed at most
         # every `_CACHE_TTL` seconds to reduce HTTP round-trips during rapid
         # play_media service calls.
         self._sessions_cache: list[dict[str, Any]] = []
@@ -93,10 +93,10 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         # Simple in-memory caches for library & children helpers
         # --------------------------------------------------------------
 
-        # Keyed by `(user_id,)` – stores a tuple of (timestamp, data)
+        # Keyed by `(user_id,)` - stores a tuple of (timestamp, data)
         self._views_cache: dict[tuple[str], tuple[float, list[dict[str, Any]]]] = {}
 
-        # Keyed by `(item_id, start_index, limit, user_id)` – stores a tuple
+        # Keyed by `(item_id, start_index, limit, user_id)` - stores a tuple
         # of (timestamp, payload).  The query parameters are part of the key
         # because pagination may request overlapping but distinct slices.
         self._children_cache: dict[
@@ -120,7 +120,7 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
             return self._sessions_cache
 
         data = await self._request("GET", "/Sessions")
-        # Basic validation – ensure it's a list
+        # Basic validation - ensure it's a list
         if not isinstance(data, list):
             raise EmbyApiError("/Sessions did not return a list as expected")
 
@@ -173,20 +173,20 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
             params["UserId"] = user_id
 
         payload = await self._request("GET", "/Items", params=params)
-        # payload is expected to be a dict with an "Items" list – fallback to
+        # payload is expected to be a dict with an "Items" list - fallback to
         # empty list for defensive coding.
         return payload.get("Items", []) if isinstance(payload, dict) else []
 
     # ------------------------------------------------------------------
-    # Convenience helpers – not part of the original minimal surface but
+    # Convenience helpers - not part of the original minimal surface but
     # required by the media search resolver and play_media support.
     # ------------------------------------------------------------------
 
-    async def get_item(self, item_id: str | int) -> dict[str, Any] | None:  # noqa: ANN401 – wide JSON
+    async def get_item(self, item_id: str | int) -> dict[str, Any] | None:  # noqa: ANN401 - wide JSON
         """Return full metadata for *item_id* or *None* if it does not exist.
 
         The call wraps the simple `/Items/{Id}` endpoint.  The method does **not**
-        raise when the item is not found – it returns *None* allowing callers
+        raise when the item is not found - it returns *None* allowing callers
         to fall back to alternative lookup strategies.
         """
 
@@ -197,7 +197,7 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
             return None
 
     # ------------------------------------------------------------------
-    # New helpers – used by media browsing implementation (issue #26)
+    # New helpers - used by media browsing implementation (issue #26)
     # ------------------------------------------------------------------
 
     async def get_user_views(
@@ -205,7 +205,7 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         user_id: str,
         *,
         force_refresh: bool = False,
-    ) -> list[dict[str, Any]]:  # noqa: ANN401 – JSON payload
+    ) -> list[dict[str, Any]]:  # noqa: ANN401 - JSON payload
         """Return the list of libraries / *views* for *user_id*.
 
         The Emby endpoint returns either a plain list or an object wrapping
@@ -241,8 +241,8 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         start_index: int = 0,
         limit: int = 100,
         force_refresh: bool = False,
-    ) -> dict[str, Any]:  # noqa: ANN401 – JSON payload
-        """Return children for an item – wrapper around `/Items/{Id}/Children`.
+    ) -> dict[str, Any]:  # noqa: ANN401 - JSON payload
+        """Return children for an item - wrapper around `/Items/{Id}/Children`.
 
         The helper exposes simple pagination parameters mirroring the Emby API
         (`StartIndex`, `Limit`).  Callers can iterate by adjusting these
@@ -265,7 +265,7 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         payload = await self._request("GET", f"/Items/{item_id}/Children", params=params)
 
         if not isinstance(payload, dict):
-            raise EmbyApiError("Unexpected payload from /Children endpoint – expected JSON object")
+            raise EmbyApiError("Unexpected payload from /Children endpoint - expected JSON object")
 
         # Cache & return
         self._children_cache[cache_key] = (time.time(), payload)
@@ -275,7 +275,7 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
     # Internal utilities
     # ------------------------------------------------------------------
 
-    async def _request(self, method: str, path: str, **kwargs: Any) -> Any:  # noqa: ANN401 – wide type for JSON
+    async def _request(self, method: str, path: str, **kwargs: Any) -> Any:  # noqa: ANN401 - wide type for JSON
         url = f"{self._base}{path}"
         headers = kwargs.pop("headers", {})
         headers.update(self._headers)
