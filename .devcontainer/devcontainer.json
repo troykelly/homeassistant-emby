@@ -55,8 +55,6 @@
         "GitHub.github-vscode-theme",
         "GitHub.vscode-github-actions",
         "GitHub.copilot-chat",
-        "Supabase.vscode-supabase-extension",
-        "ms-ossdata.vscode-pgsql",
         "yzhang.markdown-all-in-one"
       ]
     }
