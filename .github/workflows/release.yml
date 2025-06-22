@@ -39,18 +39,23 @@ jobs:
           echo "::set-output name=tag::${RAW_REF}"
           echo "::set-output name=version::${CLEAN_TAG}"
 
-      - name: ✅ Verify manifest version matches tag
+      - name: 🛠️  Update manifest version to match tag
         run: |
-          MANIFEST_VERSION=$(jq -r '.version' custom_components/embymedia/manifest.json)
-          TAG_VERSION="${{ steps.vars.outputs.version }}"
+          VERSION="${{ steps.vars.outputs.version }}"
+          MANIFEST="custom_components/embymedia/manifest.json"
 
-          echo "Manifest version: ${MANIFEST_VERSION}"
-          echo "Tag version:      ${TAG_VERSION}"
+          echo "Setting manifest version to ${VERSION}"
 
-          if [ "$MANIFEST_VERSION" != "$TAG_VERSION" ]; then
-            echo "::error::Version mismatch – bump manifest version to ${TAG_VERSION} before creating the tag."
-            exit 1
-          fi
+          # Inline replace while preserving formatting
+          sed -i -E "s/(\"version\"\s*:\s*\")([0-9]+(\.[0-9]+)*)(\")/\1${VERSION}\4/" "$MANIFEST"
+
+      - name: 💾 Commit version bump to main
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(manifest): bump version to v${{ steps.vars.outputs.version }}"
+          commit_user_name: GitHub Action
+          commit_user_email: action@github.com
+          branch: main
 
       - name: 📝 Update CHANGELOG.md (if required)
         uses: TriPSs/conventional-changelog-action@v3
