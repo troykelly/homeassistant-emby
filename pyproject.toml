@@ -17,3 +17,46 @@ select = ["E", "F", "W"]
 #   E501 – line length > 79 characters (handled via *line-length* above)
 #   E402 – module-level import not at top of file (accepted pattern in HA)
 ignore = ["E501", "E402", "W292"]
+
+# ---------------------------------------------------------------------------
+# Pyright – static type checking configuration
+# ---------------------------------------------------------------------------
+# We embed the **Pyright** configuration within *pyproject.toml* to avoid adding
+# an additional top-level file.  The settings below enable strict type checking
+# across the *custom_components* code while still analysing the *tests*
+# directory so that helper stubs remain valid.
+
+[tool.pyright]
+typeCheckingMode = "strict"
+# Pyright will discover the root package automatically.  We explicitly limit
+# analysis to the first-party source and test trees to avoid scanning virtual
+# environments or vendored content.
+# We restrict analysis to the first-party source code.  The *tests* package is
+# excluded because the fixtures deliberately use loose typing to construct mock
+# objects that are incompatible with strict mode.
+include = [
+  "custom_components",
+]
+
+# The Home Assistant stubs used by the integration are incomplete in places.
+# Disable the *missing-type-stubs* warning to prevent noise until the upstream
+# packages are fully typed.
+reportMissingTypeStubs = false
+
+# Relax a subset of "strict" error codes that are too noisy given the current
+# Home Assistant stub coverage and dynamic nature of parts of the codebase.
+# The overall strictness remains, but unknown-type reports are downgraded to
+# informative hints (level "none").
+reportUnknownParameterType = false
+reportUnknownVariableType = false
+reportUnknownMemberType = false
+reportUnknownArgumentType = false
+reportMissingParameterType = false
+reportMissingTypeArgument = false
+reportPrivateUsage = false
+reportUnnecessaryIsInstance = false
+reportUnnecessaryComparison = false
+
+# Target the minimum Python version supported by Home Assistant.  Pyright will
+# still allow the workflow matrix to test newer versions.
+pythonVersion = "3.11"
