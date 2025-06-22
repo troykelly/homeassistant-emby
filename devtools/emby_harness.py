@@ -37,7 +37,7 @@ async def _amain() -> None:  # noqa: ANN201
 
     parsed = urlparse(emby_url)
     host = parsed.hostname or "localhost"
-    port = parsed.port or (8920 if parsed.scheme == "https" else 8096)
+    port = parsed.port  # can be None
     ssl = parsed.scheme == "https"
 
     api = EmbyAPI(None, host, api_key, port, ssl)
