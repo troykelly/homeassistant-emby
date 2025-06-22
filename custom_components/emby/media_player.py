@@ -46,7 +46,7 @@ from homeassistant.components.media_player.browse_media import (
 # tests may inject a stub implementation via *sys.modules* before importing
 # this integration module.
 
-from homeassistant.components import media_source as ha_media_source  # noqa: WPS433 – runtime import is acceptable
+from homeassistant.components import media_source as ha_media_source  # noqa: WPS433 - runtime import is acceptable
 
 from urllib.parse import urlparse, parse_qs, urlencode
 
@@ -59,7 +59,7 @@ from homeassistant.exceptions import HomeAssistantError
 
 _EMBY_URI_SCHEME = "emby"
 
-# Number of children fetched per request – kept deliberately small so that the
+# Number of children fetched per request - kept deliberately small so that the
 # browse tree stays responsive on large libraries.  Users can navigate further
 # via the automatically generated "Next →" / "← Prev" nodes.
 _PAGE_SIZE = 100
@@ -94,7 +94,7 @@ _COLLECTION_TYPE_MAP: dict[str, tuple[MediaClass, str]] = {
 }
 
 # -----------------------------------------------------------------------------
-# Service data validation – ``media_player.play_media``
+# Service data validation - ``media_player.play_media``
 # -----------------------------------------------------------------------------
 
 # Home Assistant passes the *media_type* and *media_id* parameters explicitly
@@ -109,7 +109,7 @@ PLAY_MEDIA_SCHEMA = vol.Schema(
         # When *enqueue* is true the item will be queued *after* the current
         # one rather than interrupting playback immediately.
         vol.Optional("enqueue", default=False): cv.boolean,
-        # Optional start position in **seconds** – will be converted to Emby
+        # Optional start position in **seconds** - will be converted to Emby
         # ticks (100 ns units) internally.
         vol.Optional("position"): vol.All(cv.positive_int, vol.Range(min=0)),
     },
@@ -270,7 +270,7 @@ class EmbyDevice(MediaPlayerEntity):
         self.async_write_ha_state()
 
     # ---------------------------------------------------------------------
-    # Public helper – session id mapping (used by play_media helper)
+    # Public helper - session id mapping (used by play_media helper)
     # ---------------------------------------------------------------------
 
     def get_current_session_id(self) -> str | None:
@@ -310,15 +310,20 @@ class EmbyDevice(MediaPlayerEntity):
             return MediaPlayerState.OFF
         return None
 
+
+
+
+
+
     # ------------------------------------------------------------------
-    # Home Assistant media browsing implementation (issue #24 – task #27)
+    # Home Assistant media browsing implementation (issue #24 - task #27)
     # ------------------------------------------------------------------
 
     async def async_browse_media(
         self,
         media_content_type: str | None = None,
         media_content_id: str | None = None,
-    ) -> BrowseMedia:  # noqa: D401 – verbatim HA signature
+    ) -> BrowseMedia:  # noqa: D401 - verbatim HA signature
         """Return a BrowseMedia tree for the requested path.
 
         The method implements a minimal yet fully functional browsing
@@ -341,7 +346,7 @@ class EmbyDevice(MediaPlayerEntity):
         # --------------------------------------------------------------
 
         if media_content_id and media_content_id.startswith("media-source://"):
-            # Delegate the request – Home Assistant core handles all built-in
+            # Delegate the request - Home Assistant core handles all built-in
             # libraries (TTS, local media, etc.).  We purposefully pass *None*
             # for the *entity_id* parameter because the current integration
             # does not expose one.  The helper accepts *None* which instructs
@@ -356,7 +361,7 @@ class EmbyDevice(MediaPlayerEntity):
                 media_content_id,
             )
 
-            # The helper returns *None* when the path is invalid – convert to
+            # The helper returns *None* when the path is invalid - convert to
             # a standard Home Assistant error so the frontend can display a
             # proper message to the user instead of crashing.
             if browse_result is None:
@@ -370,7 +375,7 @@ class EmbyDevice(MediaPlayerEntity):
 
         api = self._get_emby_api()
 
-        # Determine the Emby user id – we look it up from the current session
+        # Determine the Emby user id - we look it up from the current session
         # object (preferred) falling back to a fresh sessions call when not
         # available (e.g. player is idle on HA startup).
         user_id: str | None = self.device.session_raw.get("UserId")
@@ -385,7 +390,7 @@ class EmbyDevice(MediaPlayerEntity):
             raise HomeAssistantError("Unable to determine Emby user for media browsing")
 
         # ------------------------------------------------------------------
-        # ROOT LEVEL – libraries / views
+        # ROOT LEVEL - libraries / views
         # ------------------------------------------------------------------
 
         if not media_content_id:  # root browse
@@ -406,7 +411,7 @@ class EmbyDevice(MediaPlayerEntity):
             )
 
         # ------------------------------------------------------------------
-        # CHILD LEVEL – parse URI and decide whether to return children or a
+        # CHILD LEVEL - parse URI and decide whether to return children or a
         # playable leaf node.
         # ------------------------------------------------------------------
 
@@ -415,12 +420,12 @@ class EmbyDevice(MediaPlayerEntity):
         # Fetch metadata for the item to know whether it can expand.
         item = await api.get_item(item_id)
         if item is None:
-            raise HomeAssistantError("Emby item not found – the library may have changed")
+            raise HomeAssistantError("Emby item not found - the library may have changed")
 
         media_class, content_type, can_play, can_expand = self._map_item_type(item)
 
         # If the item is playable *and* cannot expand we simply return the leaf
-        # node – Home Assistant will subsequently call `async_play_media` when
+        # node - Home Assistant will subsequently call `async_play_media` when
         # the user clicks it.
         if not can_expand:
             return BrowseMedia(
@@ -435,7 +440,7 @@ class EmbyDevice(MediaPlayerEntity):
             )
 
         # ------------------------------------------------------------------
-        # Expandable directory – fetch children slice.
+        # Expandable directory - fetch children slice.
         # ------------------------------------------------------------------
 
         slice_payload = await api.get_item_children(
@@ -445,13 +450,13 @@ class EmbyDevice(MediaPlayerEntity):
             limit=_PAGE_SIZE,
         )
 
-        # Extract children & total count – defend against edge cases.
+        # Extract children & total count - defend against edge cases.
         child_items: list[dict] = slice_payload.get("Items", []) if isinstance(slice_payload, dict) else []
         total_count: int = slice_payload.get("TotalRecordCount", len(child_items)) if isinstance(slice_payload, dict) else len(child_items)
 
         children: list[BrowseMedia] = [self._emby_item_to_browse(child) for child in child_items]
 
-        # Pagination – prepend/append prev/next nodes when applicable.
+        # Pagination - prepend/append prev/next nodes when applicable.
         if start_idx > 0:
             prev_start = max(0, start_idx - _PAGE_SIZE)
             children.insert(
@@ -478,7 +483,7 @@ class EmbyDevice(MediaPlayerEntity):
         )
 
     # ------------------------------------------------------------------
-    # Private helpers – browser building
+    # Private helpers - browser building
     # ------------------------------------------------------------------
 
     def _parse_emby_uri(self, value: str) -> tuple[str, int]:
@@ -493,17 +498,17 @@ class EmbyDevice(MediaPlayerEntity):
 
         parsed = urlparse(value)
         if parsed.scheme != _EMBY_URI_SCHEME:
-            raise HomeAssistantError("Unsupported media_content_id – expected emby:// URI")
+            raise HomeAssistantError("Unsupported media_content_id - expected emby:// URI")
 
         item_id = parsed.netloc or parsed.path.lstrip("/")  # netloc holds first segment when no // present
         if not item_id:
-            raise HomeAssistantError("Invalid emby URI – missing item id")
+            raise HomeAssistantError("Invalid emby URI - missing item id")
 
         qs = parse_qs(parsed.query)
         start_idx = int(qs.get("start", [0])[0])
         return item_id, start_idx
 
-    def _map_item_type(self, item: dict) -> tuple[MediaClass, str, bool, bool]:  # noqa: ANN401 – JSON in
+    def _map_item_type(self, item: dict) -> tuple[MediaClass, str, bool, bool]:  # noqa: ANN401 - JSON in
         """Return mapping tuple for an Emby item payload."""
 
         item_type = item.get("Type") or item.get("CollectionType") or "Folder"
@@ -516,7 +521,7 @@ class EmbyDevice(MediaPlayerEntity):
             mc, ct = _COLLECTION_TYPE_MAP[item_type]
             return (mc, ct, False, True)
 
-        # Unknown type – treat as generic directory
+        # Unknown type - treat as generic directory
         return (MediaClass.DIRECTORY, "directory", False, True)
 
     def _emby_item_to_browse(self, item: dict) -> BrowseMedia:  # noqa: ANN401
@@ -558,7 +563,7 @@ class EmbyDevice(MediaPlayerEntity):
             thumbnail=self._build_thumbnail_url(item),
         )
 
-    def _build_thumbnail_url(self, item: dict) -> str | None:  # noqa: ANN401 – JSON
+    def _build_thumbnail_url(self, item: dict) -> str | None:  # noqa: ANN401 - JSON
         """Return Emby image URL for *item* or *None* when not available."""
 
         # Prefer Primary image tag.
@@ -686,7 +691,7 @@ class EmbyDevice(MediaPlayerEntity):
 
     @property
     def extra_state_attributes(self):
-        """Expose additional attributes – mainly the live Emby session id."""
+        """Expose additional attributes - mainly the live Emby session id."""
         return {
             "emby_session_id": self._current_session_id,
         }
@@ -716,7 +721,7 @@ class EmbyDevice(MediaPlayerEntity):
         await self.device.media_seek(position)
 
     # ------------------------------------------------------------------
-    # Home Assistant service handler – play_media
+    # Home Assistant service handler - play_media
     # ------------------------------------------------------------------
 
     async def async_play_media(
@@ -724,7 +729,7 @@ class EmbyDevice(MediaPlayerEntity):
         media_type: str | None,
         media_id: str,
         **kwargs,
-    ) -> None:  # noqa: D401 – verbatim HA signature
+    ) -> None:  # noqa: D401 - verbatim HA signature
         """Handle the *play_media* service call for this entity.
 
         The implementation follows these steps:
@@ -732,7 +737,7 @@ class EmbyDevice(MediaPlayerEntity):
         1. Validate + normalise arguments via ``PLAY_MEDIA_SCHEMA``.
         2. Resolve the payload to a concrete Emby ``ItemId`` using
            :pyfunc:`components.emby.search_resolver.resolve_media_item`.
-        3. Determine the current Emby ``SessionId`` for the target device –
+        3. Determine the current Emby ``SessionId`` for the target device -
            refreshes the sessions list when necessary.
         4. Trigger remote playback through :class:`components.emby.api.EmbyAPI`.
         """
@@ -758,7 +763,7 @@ class EmbyDevice(MediaPlayerEntity):
         # 2. Resolve to a concrete Emby item.
         # ------------------------------------------------------------------
 
-        # Lazily instantiate the minimal API helper – we reuse it across calls
+        # Lazily instantiate the minimal API helper - we reuse it across calls
         # so that session caching etc. remains effective.
         api = self._get_emby_api()
 
@@ -832,14 +837,14 @@ class EmbyDevice(MediaPlayerEntity):
     async def _resolve_session_id(self, api):
         """Return a fresh session id for this player (refreshing if needed)."""
 
-        # Fast-path – existing mapping.
+        # Fast-path - existing mapping.
         if self._current_session_id:
             return self._current_session_id
 
         # Poll the Sessions endpoint to find a matching device when idle / new.
         try:
             sessions = await api.get_sessions(force_refresh=True)
-        except Exception as exc:  # noqa: BLE001 – wrap as generic
+        except Exception as exc:  # noqa: BLE001 - wrap as generic
             _LOGGER.warning("Could not refresh Emby sessions: %s", exc)
             return None
 

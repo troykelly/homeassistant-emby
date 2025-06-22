@@ -221,7 +221,6 @@ def test_media_player_properties(monkeypatch):
     from custom_components.emby.media_player import (
         EmbyDevice,
         SUPPORT_EMBY,
-        MediaPlayerEntityFeature,
         MediaType,
     )
 
