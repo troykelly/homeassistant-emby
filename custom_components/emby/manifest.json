@@ -1,5 +1,5 @@
 {
-  "domain": "emby",
+  "domain": "embymedia",
   "name": "Emby",
   "codeowners": ["@troykelly"],
   "documentation": "https://github.com/troykelly/homeassistant-emby",
