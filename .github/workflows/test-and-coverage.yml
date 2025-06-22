@@ -1,0 +1,62 @@
+name: CI – Tests & Coverage
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          # Test deps
+          pip install pytest pytest-asyncio coverage
+
+      - name: Run tests with coverage
+        run: |
+          coverage run -m pytest -q
+          coverage report -m > coverage.txt
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.txt
+
+      - name: Comment coverage on PR
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const coverage = fs.readFileSync('coverage.txt', 'utf8');
+            const body = `### Test Coverage Report\n\n\`
+            + coverage +
+            `\n\``;
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            // Retrieve existing bot comments to update instead of spamming.
+            const comments = await github.rest.issues.listComments({ owner, repo, issue_number });
+            const bot = github.actor;
+            const marker = '### Test Coverage Report';
+            const existing = comments.data.find(c => c.user.login === bot && c.body.startsWith(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
