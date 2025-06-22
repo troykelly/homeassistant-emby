@@ -44,8 +44,8 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         hass: HomeAssistant | None,
         host: str,
         api_key: str,
+        ssl: bool = False,
         port: int | None = None,
-        ssl: bool,
         *,
         session=None,
     ) -> None:

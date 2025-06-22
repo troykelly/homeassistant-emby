@@ -40,7 +40,7 @@ async def _amain() -> None:  # noqa: ANN201
     port = parsed.port  # can be None
     ssl = parsed.scheme == "https"
 
-    api = EmbyAPI(None, host, api_key, port, ssl)
+    api = EmbyAPI(None, host, api_key, ssl=ssl, port=port)
 
     sessions = await api.get_sessions(force_refresh=True)
     print(f"Active sessions: {len(sessions)}")
