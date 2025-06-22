@@ -1,0 +1,15 @@
+# Core runtime dependencies
+aiohttp>=3.8
+voluptuous>=0.13
+
+# Home Assistant core (required for tests; heavy but confined to dev container)
+homeassistant==2024.6.0
+
+# Development & test utilities
+pytest>=7.4
+pytest-asyncio>=0.23
+pytest-httpx>=0.24
+pytest-homeassistant-custom-component>=0.12
+
+# Mock async HTTP server used in tests
+aresponses>=2.1
