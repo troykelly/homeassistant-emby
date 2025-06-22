@@ -45,19 +45,24 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const coverage = fs.readFileSync('coverage.txt', 'utf8');
-            const body = `### Test Coverage Report\n\n\`
-            + coverage +
-            `\n\``;
+
+            const coverageTxt = fs.readFileSync('coverage.txt', 'utf8');
+
+            const body = [
+              '### Test Coverage Report',
+              '```text',
+              coverageTxt.trimEnd(),
+              '```',
+            ].join('\n');
 
             const { owner, repo } = context.repo;
             const issue_number = context.issue.number;
 
-            // Retrieve existing bot comments to update instead of spamming.
-            const comments = await github.rest.issues.listComments({ owner, repo, issue_number });
-            const bot = github.actor;
+            // Look for an existing comment from the bot to update.
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+
             const marker = '### Test Coverage Report';
-            const existing = comments.data.find(c => c.user.login === bot && c.body.startsWith(marker));
+            const existing = comments.find(c => c.user.type === 'Bot' && c.body.startsWith(marker));
 
             if (existing) {
               await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
