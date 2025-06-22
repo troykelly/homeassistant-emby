@@ -29,10 +29,24 @@ from homeassistant.const import (
 # Additional imports required for media browsing support (issue #24 / task #27)
 # -----------------------------------------------------------------------------
 
+# Media browsing helpers from Home Assistant core.
+# NOTE: ``media_source`` fallback support (GitHub issue #28) relies on the
+# *async_browse_media* helper which lives in the *media_source* component.  We
+# import it lazily via the package namespace so that test-suites which stub
+# Home Assistant can inject a lightweight replacement before this module is
+# imported.
 from homeassistant.components.media_player.browse_media import (
     BrowseMedia,
     MediaClass,
 )
+
+# Alias the *media_source* component so our code can delegate browsing requests
+# for paths outside the Emby namespace (i.e. ``media-source://``).  The import
+# is intentionally placed **after** the standard library ones so that unit
+# tests may inject a stub implementation via *sys.modules* before importing
+# this integration module.
+
+from homeassistant.components import media_source as ha_media_source  # noqa: WPS433 – runtime import is acceptable
 
 from urllib.parse import urlparse, parse_qs, urlencode
 
@@ -321,6 +335,39 @@ class EmbyDevice(MediaPlayerEntity):
         returns up to ``_PAGE_SIZE`` items.
         """
 
+
+        # --------------------------------------------------------------
+        # Home Assistant *media_source* fallback (issue #28)
+        # --------------------------------------------------------------
+
+        if media_content_id and media_content_id.startswith("media-source://"):
+            # Delegate the request – Home Assistant core handles all built-in
+            # libraries (TTS, local media, etc.).  We purposefully pass *None*
+            # for the *entity_id* parameter because the current integration
+            # does not expose one.  The helper accepts *None* which instructs
+            # it to return a generic browse tree detached from a specific
+            # media_player entity.
+
+            if self.hass is None:
+                raise HomeAssistantError("media_source browsing requires Home Assistant context")
+
+            browse_result = await ha_media_source.async_browse_media(
+                self.hass,
+                media_content_id,
+            )
+
+            # The helper returns *None* when the path is invalid – convert to
+            # a standard Home Assistant error so the frontend can display a
+            # proper message to the user instead of crashing.
+            if browse_result is None:
+                raise HomeAssistantError("media_source path not found")
+
+            return browse_result
+
+        # --------------------------------------------------------------
+        # Emby library browsing (default path)
+        # --------------------------------------------------------------
+
         api = self._get_emby_api()
 
         # Determine the Emby user id – we look it up from the current session
@@ -438,8 +485,10 @@ class EmbyDevice(MediaPlayerEntity):
         """Return (item_id, start_index) parsed from *value*.
 
         Any `media_content_id` not conforming to the `emby://` scheme raises
-        a :class:`HomeAssistantError` because delegation to `media_source`
-        fallback is implemented in a separate task (issue #28).
+        a :class:`HomeAssistantError`.  The only exception is the
+        ``media-source://`` scheme which is intercepted *before* this helper
+        is called so the request can be delegated to Home Assistant’s
+        *media_source* component.
         """
 
         parsed = urlparse(value)
