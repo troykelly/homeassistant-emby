@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from components.emby.api import EmbyAPI
+from custom_components.emby.api import EmbyAPI
 
 
 class _RequestRecorder:

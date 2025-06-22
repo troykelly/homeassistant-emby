@@ -1,4 +1,4 @@
-"""Extra coverage for :class:`components.emby.api.EmbyAPI` – *search*, *get_item* and low-level error handling."""
+"""Extra coverage for :class:`custom_components.emby.api.EmbyAPI` – *search*, *get_item* and low-level error handling."""
 
 from __future__ import annotations
 
@@ -6,8 +6,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from aiohttp import ClientResponseError, ClientError
-from types import SimpleNamespace
+from aiohttp import ClientError, ClientResponseError
+
+from custom_components.emby.api import EmbyAPI, EmbyApiError
 
 
 # ---------------------------------------------------------------------------
@@ -79,8 +80,6 @@ class _FakeSession:  # pylint: disable=too-few-public-methods
 async def test_search_happy_path(monkeypatch):
     """`search()` must return the ``Items`` list from the API response."""
 
-    from components.emby.api import EmbyAPI
-
     fake_session = _FakeSession()
     monkeypatch.setattr(EmbyAPI, "_CACHE_TTL", 0)  # disable caching for isolation
 
@@ -97,8 +96,6 @@ async def test_search_happy_path(monkeypatch):
 async def test_search_missing_items_key(monkeypatch):
     """When the server returns a dict **without** ``Items`` the helper must return an empty list."""
 
-    from components.emby.api import EmbyAPI
-
     fake_session = _FakeSession()
     api = EmbyAPI(None, host="h", api_key="k", session=fake_session)
 
@@ -111,8 +108,6 @@ async def test_search_missing_items_key(monkeypatch):
 @pytest.mark.asyncio
 async def test_get_item_not_found(monkeypatch):
     """404 from the server must be translated into *None* result by `get_item`."""
-
-    from components.emby.api import EmbyAPI, EmbyApiError
 
     fake_session = _FakeSession()
 
@@ -130,8 +125,6 @@ async def test_get_item_not_found(monkeypatch):
 @pytest.mark.asyncio
 async def test_request_error_handling():
     """Low-level `_request` must translate network & HTTP errors to EmbyApiError."""
-
-    from components.emby.api import EmbyAPI, EmbyApiError
 
     fake_session = _FakeSession()
     api = EmbyAPI(None, host="h", api_key="k", session=fake_session)
