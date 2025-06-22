@@ -19,7 +19,8 @@ from typing import Any, Dict, List
 
 import pytest
 
-from homeassistant.components.media_player.browse_media import BrowseMedia, MediaClass
+from homeassistant.components.media_player.browse_media import BrowseMedia
+from homeassistant.components.media_player.const import MediaClass
 
 
 # ---------------------------------------------------------------------------
@@ -98,7 +99,7 @@ def emby_device(monkeypatch):  # noqa: D401 – pytest naming convention
     dev.device = stub_inner
     dev.device_id = "device-x"
     dev._current_session_id = None  # pylint: disable=protected-access
-    dev.hass = object()  # not used by code under test here
+    dev.hass = object()  # not used by code under test here  # pyright: ignore[reportAttributeAccessIssue]
 
     # Prepare a fresh API stub and monkey-patch the resolver *for this
     # specific instance* – the same pattern is used by other unit tests in

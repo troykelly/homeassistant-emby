@@ -99,7 +99,7 @@ def emby_device(monkeypatch):  # noqa: D401 – pytest naming convention
     dev.device = stub_device
     dev.device_id = "dev1"
     dev.emby = SimpleNamespace(_host="h", _api_key="k", _port=8096, _ssl=False)
-    dev.hass = None  # hass not required for these unit-tests
+    dev.hass = None  # hass not required for these unit-tests  # pyright: ignore[reportAttributeAccessIssue]
     dev._current_session_id = None  # pylint: disable=protected-access
 
     # Home Assistant's Entity base-class expects a *hass* instance when state
@@ -221,8 +221,8 @@ def test_media_player_properties(monkeypatch):
     from custom_components.emby.media_player import (
         EmbyDevice,
         SUPPORT_EMBY,
-        MediaType,
     )
+    from homeassistant.components.media_player.const import MediaType
 
     dev = EmbyDevice.__new__(EmbyDevice)  # type: ignore[arg-type]
     stub = _Device()
@@ -236,7 +236,10 @@ def test_media_player_properties(monkeypatch):
     assert dev.name == "Emby Living Room"
 
     # State mapping
-    assert dev.state.name == "PLAYING"
+    # *dev.state* can be *None* for certain stub configurations which confuses
+    # Pyright’s optional chaining analysis.  We know the helper returns a
+    # concrete enum instance in this test scenario – silence the warning.
+    assert dev.state is not None and dev.state.name == "PLAYING"  # pyright: ignore[reportOptionalMemberAccess]
 
     # Media type translation
     mapping = {

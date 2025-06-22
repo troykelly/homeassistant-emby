@@ -36,7 +36,16 @@ class _FakeResp:
             # Provide *request_info* with minimal attributes expected by
             # aiohttp when the exception is stringified.
             req_info = SimpleNamespace(real_url="http://fake")
-            raise ClientResponseError(request_info=req_info, history=None, status=self.status, message="fail", headers=None)
+            # Constructing *ClientResponseError* with minimal stubs intentionally skips
+            # several optional aiohttp internals – tell Pyright to relax
+            # the strict type checks for this test helper.
+            raise ClientResponseError(
+                request_info=req_info,  # pyright: ignore[reportArgumentType]
+                history=None,  # pyright: ignore[reportArgumentType]
+                status=self.status,
+                message="fail",
+                headers=None,
+            )
 
     async def json(self):  # noqa: D401
         return self._json_data

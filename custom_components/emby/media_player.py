@@ -1,5 +1,16 @@
 """Support to interface with the Emby API."""
 
+# Pyright settings – this module intentionally overrides several
+# ``cached_property`` descriptors from Home Assistant core with *regular*
+# ``@property`` getters because the underlying values need to update on every
+# read (they are **not** static).  This triggers
+# *reportIncompatibleVariableOverride* diagnostics as the descriptor types do
+# not match.  Suppress the noise for the whole file so we can keep the code
+# concise without sprinkling `# pyright: ignore[override]` on dozens of
+# properties.
+
+# pyright: reportIncompatibleVariableOverride=false
+
 from __future__ import annotations
 
 import logging
@@ -9,9 +20,18 @@ import voluptuous as vol
 
 from homeassistant.helpers import config_validation as cv
 
+# NOTE: Home Assistant exports most *MediaPlayer* helper enums/constants via
+# *homeassistant.components.media_player.const*.  Importing from the package
+# root works at runtime because the module re-exports the names, however the
+# public typing stubs mark these symbols as *private* re-exports which causes
+# Pyright to raise *reportPrivateImportUsage*.  Import directly from the
+# canonical public location instead so static analysis is happy.
+
 from homeassistant.components.media_player import (
     PLATFORM_SCHEMA as MEDIA_PLAYER_PLATFORM_SCHEMA,
     MediaPlayerEntity,
+)
+from homeassistant.components.media_player.const import (
     MediaPlayerEntityFeature,
     MediaPlayerState,
     MediaType,
@@ -35,10 +55,12 @@ from homeassistant.const import (
 # import it lazily via the package namespace so that test-suites which stub
 # Home Assistant can inject a lightweight replacement before this module is
 # imported.
-from homeassistant.components.media_player.browse_media import (
-    BrowseMedia,
-    MediaClass,
-)
+# *BrowseMedia* lives in *browse_media* sub-module but the *MediaClass* enum
+# was moved to the public *const* module in Home Assistant core.  Importing it
+# from the old location triggers a Pyright *reportPrivateImportUsage* error.
+
+from homeassistant.components.media_player.browse_media import BrowseMedia
+from homeassistant.components.media_player.const import MediaClass
 
 # Alias the *media_source* component so our code can delegate browsing requests
 # for paths outside the Emby namespace (i.e. ``media-source://``).  The import
@@ -312,7 +334,7 @@ class EmbyDevice(MediaPlayerEntity):
         """Return control ability."""
         return self.device.supports_remote_control
 
-    @property
+    @property  # pyright: ignore[override]
     def state(self) -> MediaPlayerState | None:
         """Return the state of the device."""
         state = self.device.state
@@ -609,18 +631,18 @@ class EmbyDevice(MediaPlayerEntity):
             can_expand=True,
         )
 
-    @property
+    @property  # pyright: ignore[override]
     def app_name(self):
         """Return current user as app_name."""
         # Ideally the media_player object would have a user property.
         return self.device.username
 
-    @property
+    @property  # pyright: ignore[override]
     def media_content_id(self):
         """Content ID of current playing media."""
         return self.device.media_id
 
-    @property
+    @property  # pyright: ignore[override]
     def media_content_type(self) -> MediaType | str | None:
         """Content type of current playing media."""
         media_type = self.device.media_type
@@ -640,17 +662,17 @@ class EmbyDevice(MediaPlayerEntity):
             return MediaType.CHANNEL
         return None
 
-    @property
+    @property  # pyright: ignore[override]
     def media_duration(self):
         """Return the duration of current playing media in seconds."""
         return self.device.media_runtime
 
-    @property
+    @property  # pyright: ignore[override]
     def media_position(self):
         """Return the position of current playing media in seconds."""
         return self.media_status_last_position
 
-    @property
+    @property  # pyright: ignore[override]
     def media_position_updated_at(self):
         """When was the position of the current playing media valid.
 
@@ -658,42 +680,42 @@ class EmbyDevice(MediaPlayerEntity):
         """
         return self.media_status_received
 
-    @property
+    @property  # pyright: ignore[override]
     def media_image_url(self):
         """Return the image URL of current playing media."""
         return self.device.media_image_url
 
-    @property
+    @property  # pyright: ignore[override]
     def media_title(self):
         """Return the title of current playing media."""
         return self.device.media_title
 
-    @property
+    @property  # pyright: ignore[override]
     def media_season(self):
         """Season of current playing media (TV Show only)."""
         return self.device.media_season
 
-    @property
+    @property  # pyright: ignore[override]
     def media_series_title(self):
         """Return the title of the series of current playing media (TV)."""
         return self.device.media_series_title
 
-    @property
+    @property  # pyright: ignore[override]
     def media_episode(self):
         """Return the episode of current playing media (TV only)."""
         return self.device.media_episode
 
-    @property
+    @property  # pyright: ignore[override]
     def media_album_name(self):
         """Return the album name of current playing media (Music only)."""
         return self.device.media_album_name
 
-    @property
+    @property  # pyright: ignore[override]
     def media_artist(self):
         """Return the artist of current playing media (Music track only)."""
         return self.device.media_artist
 
-    @property
+    @property  # pyright: ignore[override]
     def media_album_artist(self):
         """Return the album artist of current playing media (Music only)."""
         return self.device.media_album_artist
@@ -759,7 +781,7 @@ class EmbyDevice(MediaPlayerEntity):
 
         return DEVICE_DEFAULT_NAME
 
-    @property
+    @property  # pyright: ignore[override]
     def extra_state_attributes(self):
         """Expose additional attributes - mainly the live Emby session id."""
         return {

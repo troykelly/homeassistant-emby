@@ -138,7 +138,7 @@ def emby_device(monkeypatch):  # noqa: D401 – pytest naming
     dev.device = stub_device
     dev.device_id = "dev1"
     dev.emby = SimpleNamespace(_host="h", _api_key="k", _port=8096, _ssl=False)
-    dev.hass = None  # not needed for these integration tests
+    dev.hass = None  # not needed for these integration tests  # pyright: ignore[reportAttributeAccessIssue]
     dev._current_session_id = None  # pylint: disable=protected-access
 
     # Ensure Home Assistant's entity method does not fail when called.

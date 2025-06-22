@@ -99,7 +99,7 @@ async def test_async_setup_platform(monkeypatch):  # noqa: D401 – pytest namin
     }
 
     # Run the coroutine under test.
-    await mp_mod.async_setup_platform(hass, config, _add_entities)
+    await mp_mod.async_setup_platform(hass, config, _add_entities)  # pyright: ignore[reportArgumentType]
 
     # The stub Emby server instance should now be available.
     server = _FakeEmbyServer.last_instance
