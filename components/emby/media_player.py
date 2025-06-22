@@ -145,6 +145,12 @@ class EmbyDevice(MediaPlayerEntity):
         self.media_status_last_position = None
         self.media_status_received = None
 
+        # Keep track of the most recent Emby *session id* for this device so
+        # that play_media and other remote-control helpers can reliably target
+        # the correct websocket session even though Emby regenerates ids at
+        # every new playback.
+        self._current_session_id: str | None = self.device.session_id
+
         self._attr_unique_id = device_id
 
     async def async_added_to_hass(self) -> None:
@@ -154,6 +160,9 @@ class EmbyDevice(MediaPlayerEntity):
     @callback
     def async_update_callback(self, msg):
         """Handle device updates."""
+        # Always capture the latest session id provided by pyemby so external
+        # helpers can request it on-demand.
+        self._current_session_id = self.device.session_id
         # Check if we should update progress
         if self.device.media_position:
             if self.device.media_position != self.media_status_last_position:
@@ -165,6 +174,19 @@ class EmbyDevice(MediaPlayerEntity):
             self.media_status_received = None
 
         self.async_write_ha_state()
+
+    # ---------------------------------------------------------------------
+    # Public helper – session id mapping (used by play_media helper)
+    # ---------------------------------------------------------------------
+
+    def get_current_session_id(self) -> str | None:
+        """Return the most recent Emby `SessionId` for this device.
+
+        The value updates every time a playstate websocket event is received.
+        If the device is idle (no active session) the method returns *None*.
+        """
+
+        return self._current_session_id
 
     def set_available(self, value: bool) -> None:
         """Set available property."""
@@ -289,6 +311,13 @@ class EmbyDevice(MediaPlayerEntity):
         if self.supports_remote_control:
             return SUPPORT_EMBY
         return MediaPlayerEntityFeature(0)
+
+    @property
+    def extra_state_attributes(self):
+        """Expose additional attributes – mainly the live Emby session id."""
+        return {
+            "emby_session_id": self._current_session_id,
+        }
 
     async def async_media_play(self) -> None:
         """Play media."""
