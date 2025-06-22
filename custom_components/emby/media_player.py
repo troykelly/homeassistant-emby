@@ -245,6 +245,27 @@ class EmbyDevice(MediaPlayerEntity):
         # every new playback.
         self._current_session_id: str | None = self.device.session_id
 
+        # Home Assistant modern entity model – use the *_attr_* pattern so we
+        # avoid overriding a long list of simple ``@property`` helpers.  This
+        # dramatically reduces boilerplate and aligns with the current best
+        # practices enforced by Pyright / HA dev-tools (see GitHub issue #61).
+
+        # * Display name shown in the UI never changes after construction so
+        #   we can set it once.
+        self._attr_name = f"Emby {self.device.name}" if self.device.name else DEVICE_DEFAULT_NAME
+
+        # * Feature flags only depend on whether the target device supports
+        #   Emby's remote-control API which is a static capability.  Capture
+        #   the information up-front so we do not need a dedicated property
+        #   override anymore.
+        self._attr_supported_features = (
+            SUPPORT_EMBY if self.device.supports_remote_control else MediaPlayerEntityFeature(0)
+        )
+
+        # Expose availability via the standard dynamic attribute so callers
+        # can still toggle it through *set_available()*.
+        self._attr_available = True
+
         self._attr_unique_id = device_id
 
     async def async_added_to_hass(self) -> None:
@@ -290,11 +311,6 @@ class EmbyDevice(MediaPlayerEntity):
     def supports_remote_control(self):
         """Return control ability."""
         return self.device.supports_remote_control
-
-    @property
-    def name(self):
-        """Return the name of the device."""
-        return f"Emby {self.device.name}" or DEVICE_DEFAULT_NAME
 
     @property
     def state(self) -> MediaPlayerState | None:
@@ -682,12 +698,66 @@ class EmbyDevice(MediaPlayerEntity):
         """Return the album artist of current playing media (Music only)."""
         return self.device.media_album_artist
 
-    @property
-    def supported_features(self) -> MediaPlayerEntityFeature:
-        """Flag media player features that are supported."""
-        if self.supports_remote_control:
+
+    # ------------------------------------------------------------------
+    # Compatibility wrappers – allow unit-tests / external callers that
+    # instantiate the class via ``__new__`` (bypassing ``__init__``) to still
+    # receive meaningful default values.  This pattern is common in the test
+    # suite which wires in stub *device* instances directly.
+    # ------------------------------------------------------------------
+
+    @property  # type: ignore[override]
+    def supported_features(self) -> MediaPlayerEntityFeature:  # noqa: D401 – HA signature
+        """Return feature flags taking *_attr_supported_features* into account.
+
+        When the instance was created through the regular constructor the
+        attribute is pre-computed and simply returned.  Should the attribute
+        be missing (e.g. because the test-suite bypassed ``__init__``) we
+        fall back to the legacy behaviour and derive the flags from the stub
+        *device* object so assertions remain valid.
+        """
+
+        attr_val = getattr(self, "_attr_supported_features", None)
+        # When the instance was created via ``__init__`` the value is an
+        # *int*-backed ``MediaPlayerEntityFeature`` flag enum.  For raw
+        # ``__new__`` constructions (as done by several unit-tests) the class
+        # attribute inherited from Home Assistant is still a *property*
+        # descriptor which we must ignore.
+
+        from types import MemberDescriptorType, FunctionType  # local import avoid cost
+
+        if (
+            attr_val is not None
+            and not isinstance(attr_val, (property, MemberDescriptorType, FunctionType))
+            and attr_val != MediaPlayerEntityFeature(0)
+        ):
+            return attr_val  # type: ignore[return-value]
+
+        # Legacy / test path – determine on demand.
+        if getattr(self.device, "supports_remote_control", False):
             return SUPPORT_EMBY
         return MediaPlayerEntityFeature(0)
+
+    # NOTE: The *name* property does not require a compatibility wrapper –
+    # Home Assistant’s *Entity* base-class already returns ``_attr_name`` when
+    # defined.  However, some unit-tests bypass ``__init__`` entirely which
+    # means the attribute is never initialised.  Provide a small compatibility
+    # shim so those tests continue to see the expected value without requiring
+    # intrusive refactors.
+
+    @property
+    def name(self):  # type: ignore[override]
+        """Return the display name handling both old & new attribute styles."""
+
+        if hasattr(self, "_attr_name") and self._attr_name is not None:
+            return self._attr_name
+
+        # Legacy path – fabricate the value from the underlying *device*.
+        dev_name = getattr(self.device, "name", None)
+        if dev_name:
+            return f"Emby {dev_name}"
+
+        return DEVICE_DEFAULT_NAME
 
     @property
     def extra_state_attributes(self):
