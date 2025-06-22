@@ -1,5 +1,8 @@
 # Home Assistant Emby Integration
 
+[![hacs-badge](https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge&logo=home-assistant&logoColor=white)](https://hacs.xyz/)
+
+
 **Home Assistant Emby** is a custom integration that exposes your Emby media
 server – movies, TV, music and more – to Home Assistant.  Once configured you
 can browse your library, trigger playback on Emby clients, build automation
@@ -24,11 +27,31 @@ installation & configuration details see the sections below.
 
 ## Installation
 
-1. Copy/clone the `components/emby` directory into your Home Assistant
-   `custom_components` folder.
-2. Restart Home Assistant.
-3. Configure the platform via `configuration.yaml` (see below) **or** use the
-   UI “Add integration” flow if published on HACS/Blueprints.
+### Via HACS  *(recommended)*
+
+1.  Make sure the [Home Assistant Community Store – **HACS**](https://hacs.xyz/) is installed and set-up in your Home Assistant instance.
+2.  Until this integration is accepted into the default HACS store you need to **add it as a custom repository**:
+    • Navigate to **HACS → Integrations → ⋮ → Custom repositories**.  
+    • Paste the GitHub URL `https://github.com/troykelly/homeassistant-emby` and choose **Integration** as the category.  
+    • Click **Add** – the repository will now appear like any other integration.
+3.  Search for **“Emby for Home Assistant”** in the HACS integrations list and click **Install**.
+4.  Reboot Home Assistant when prompted.
+5.  Go to **Settings → Devices & Services → + Add Integration** and search for **Emby** to configure the server connection.
+
+Once the integration is included in the default HACS store (tracked in issue #55) step&nbsp;2 will no longer be required – you can simply search and install.
+
+### Manual installation
+
+If you would rather install manually (or are unable to use HACS):
+
+1.  Copy/clone the `custom_components/embymedia` directory from this repository into `<config>/custom_components/` on your Home Assistant host.
+2.  Reboot Home Assistant.
+3.  Configure the integration via the UI or `configuration.yaml` as shown below.
+
+### Upgrading
+
+When installed via HACS you will be notified of new releases automatically – simply click **Upgrade** in the HACS UI and reboot when finished.  If you are using the manual method, repeat the copy/clone step with the latest release archive from GitHub and restart Home Assistant.
+
 
 ## Configuration
 
@@ -36,7 +59,7 @@ Example minimal YAML configuration:
 
 ```yaml
 media_player:
-  - platform: emby
+  - platform: embymedia
     host: 192.168.1.50        # IP / hostname of your Emby server
     api_key: ABCDEF123456789  # Create under Emby → Settings → API keys
     # Optional
