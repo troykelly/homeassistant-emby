@@ -5,13 +5,11 @@ The test-suite uses *pytest-asyncio* for coroutine support.  A trivial helper
 loop handling which adds extra indirection that is irrelevant for these unit
 tests.
 """
+# pylint: disable=missing-module-docstring
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any, Dict, List
-
-import pytest
 
 # Ensure the repository root (which contains the *components/* package) is the
 # first entry on *sys.path* so that test-modules can perform absolute imports
@@ -28,21 +26,22 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 
-@pytest.fixture(scope="session")  # type: ignore[misc] – declared once for all tests
-def event_loop() -> asyncio.AbstractEventLoop:  # noqa: D401 – pytest naming convention
-    """Return an *asyncio* event-loop for the test-session.
-
-    Pytest’s default behaviour creates a fresh loop per test-function when
-    *pytest-asyncio* is installed.  Home Assistant’s helpers expect the loop
-    to be reused, therefore we create a **single** session-scoped loop which
-    mirrors HA’s runtime behaviour while still isolating the unit tests from
-    the actual Home Assistant test harness.
-    """
-
-    policy = asyncio.get_event_loop_policy()
-    loop = policy.new_event_loop()
-    yield loop
-    loop.close()
+# NOTE:
+# ``pytest-asyncio`` already provides a built-in *event_loop* fixture.  Redefining
+# it is now deprecated (as of *pytest-asyncio* ≥ 0.26) and triggers a
+# *DeprecationWarning* that surfaces during the test-run.  The previous
+# implementation created a **session-scoped** loop to better mimic Home
+# Assistant’s runtime behaviour, however none of the current tests rely on a
+# persistent loop between test functions.  Therefore we simply drop the custom
+# implementation and fall back to the default fixture supplied by the plugin.
+#
+# If future tests legitimately require a different loop scope this can be
+# requested on a per-test basis via::
+#
+#     @pytest.mark.asyncio(loop_scope="session")
+#
+# or controlled globally through *pytest.ini* (see that file in the project
+# root).
 
 
 # ---------------------------------------------------------------------------

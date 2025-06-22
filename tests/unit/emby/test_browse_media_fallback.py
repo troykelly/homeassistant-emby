@@ -7,7 +7,6 @@ attempting to resolve the path through the Emby API.
 
 from __future__ import annotations
 
-import asyncio
 import types
 import sys
 from typing import Any

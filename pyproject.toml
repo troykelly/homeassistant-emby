@@ -1,0 +1,19 @@
+[tool.ruff]
+# Apply Ruff (https://docs.astral.sh/ruff/) linting across the repository.
+#
+# The existing code-base predates strict Ruff compliance and deliberately
+# deviates from a handful of default *pycodestyle* conventions (for instance
+# long explanatory comments often exceed 79 characters, and certain Home
+# Assistant helper imports are intentionally placed further down in the module
+# after *voluptuous* schema definitions).  To avoid an invasive re-formatting
+# churn we opt-out of the relevant error codes for now.
+#
+# The CI workflow can be tightened in future once the offending sections have
+# been refactored.
+line-length = 120
+# Enable the full *pycodestyle* and *pyflakes* rule sets.
+select = ["E", "F", "W"]
+# Temporarily silence:
+#   E501 – line length > 79 characters (handled via *line-length* above)
+#   E402 – module-level import not at top of file (accepted pattern in HA)
+ignore = ["E501", "E402", "W292"]

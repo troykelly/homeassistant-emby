@@ -310,6 +310,11 @@ class EmbyDevice(MediaPlayerEntity):
             return MediaPlayerState.OFF
         return None
 
+
+
+
+
+
     # ------------------------------------------------------------------
     # Home Assistant media browsing implementation (issue #24 – task #27)
     # ------------------------------------------------------------------
