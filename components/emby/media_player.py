@@ -7,6 +7,8 @@ import logging
 from pyemby import EmbyServer
 import voluptuous as vol
 
+from homeassistant.helpers import config_validation as cv
+
 from homeassistant.components.media_player import (
     PLATFORM_SCHEMA as MEDIA_PLAYER_PLATFORM_SCHEMA,
     MediaPlayerEntity,
@@ -23,8 +25,32 @@ from homeassistant.const import (
     EVENT_HOMEASSISTANT_START,
     EVENT_HOMEASSISTANT_STOP,
 )
+
+# -----------------------------------------------------------------------------
+# Service data validation – ``media_player.play_media``
+# -----------------------------------------------------------------------------
+
+# Home Assistant passes the *media_type* and *media_id* parameters explicitly
+# to :py:meth:`async_play_media`, while any additional fields are forwarded via
+# **kwargs.  We build a small voluptuous schema so the integration fails fast
+# and with useful error messages when mis-used.
+
+PLAY_MEDIA_SCHEMA = vol.Schema(
+    {
+        vol.Required("media_type"): cv.string,
+        vol.Required("media_id"): cv.string,
+        # When *enqueue* is true the item will be queued *after* the current
+        # one rather than interrupting playback immediately.
+        vol.Optional("enqueue", default=False): cv.boolean,
+        # Optional start position in **seconds** – will be converted to Emby
+        # ticks (100 ns units) internally.
+        vol.Optional("position"): vol.All(cv.positive_int, vol.Range(min=0)),
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import config_validation as cv
+# The `cv` alias already imported above.
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.util import dt as dt_util
@@ -45,6 +71,7 @@ SUPPORT_EMBY = (
     | MediaPlayerEntityFeature.STOP
     | MediaPlayerEntityFeature.SEEK
     | MediaPlayerEntityFeature.PLAY
+    | MediaPlayerEntityFeature.PLAY_MEDIA
 )
 
 PLATFORM_SCHEMA = MEDIA_PLAYER_PLATFORM_SCHEMA.extend(
@@ -342,3 +369,140 @@ class EmbyDevice(MediaPlayerEntity):
     async def async_media_seek(self, position: float) -> None:
         """Send seek command."""
         await self.device.media_seek(position)
+
+    # ------------------------------------------------------------------
+    # Home Assistant service handler – play_media
+    # ------------------------------------------------------------------
+
+    async def async_play_media(
+        self,
+        media_type: str | None,
+        media_id: str,
+        **kwargs,
+    ) -> None:  # noqa: D401 – verbatim HA signature
+        """Handle the *play_media* service call for this entity.
+
+        The implementation follows these steps:
+
+        1. Validate + normalise arguments via ``PLAY_MEDIA_SCHEMA``.
+        2. Resolve the payload to a concrete Emby ``ItemId`` using
+           :pyfunc:`components.emby.search_resolver.resolve_media_item`.
+        3. Determine the current Emby ``SessionId`` for the target device –
+           refreshes the sessions list when necessary.
+        4. Trigger remote playback through :class:`components.emby.api.EmbyAPI`.
+        """
+
+        from homeassistant.exceptions import HomeAssistantError
+
+        # ------------------------------------------------------------------
+        # 1. Merge fixed params with **kwargs and validate.
+        # ------------------------------------------------------------------
+
+        payload = {"media_type": media_type, "media_id": media_id}
+        payload.update(kwargs or {})
+
+        try:
+            validated = PLAY_MEDIA_SCHEMA(payload)
+        except vol.Invalid as exc:
+            raise HomeAssistantError(f"Invalid play_media payload: {exc}") from exc
+
+        enqueue: bool = validated["enqueue"]
+        position: int | None = validated.get("position")
+
+        # ------------------------------------------------------------------
+        # 2. Resolve to a concrete Emby item.
+        # ------------------------------------------------------------------
+
+        # Lazily instantiate the minimal API helper – we reuse it across calls
+        # so that session caching etc. remains effective.
+        api = self._get_emby_api()
+
+        from .search_resolver import resolve_media_item, MediaLookupError
+
+        try:
+            item = await resolve_media_item(
+                api,
+                media_type=media_type,
+                media_id=media_id,
+                user_id=None,  # TODO: expose user choice in a future update
+            )
+        except MediaLookupError as exc:
+            raise HomeAssistantError(str(exc)) from exc
+
+        item_id = item.get("Id") or item.get("id")
+        if not item_id:
+            raise HomeAssistantError("Emby item did not contain an 'Id' key")
+
+        # ------------------------------------------------------------------
+        # 3. Determine / refresh session id mapping.
+        # ------------------------------------------------------------------
+
+        session_id = await self._resolve_session_id(api)
+        if not session_id:
+            raise HomeAssistantError("Unable to determine active Emby session for device")
+
+        # ------------------------------------------------------------------
+        # 4. Trigger playback.
+        # ------------------------------------------------------------------
+
+        play_command = "PlayNext" if enqueue else "PlayNow"
+        start_ticks: int | None = None
+        if position is not None:
+            start_ticks = position * 10_000_000  # seconds -> 100 ns ticks
+
+        try:
+            await api.play(session_id, [item_id], play_command=play_command, start_position_ticks=start_ticks)
+        except Exception as exc:  # broad catch -> wrap as HA error
+            raise HomeAssistantError(f"Emby playback failed: {exc}") from exc
+
+        # Optimistically update entity state; full state will come via websocket.
+        # Record the session id so future calls can skip the lookup step.  The
+        # websocket listener will soon deliver a play_state update which will
+        # refresh entity attributes, but we trigger a state write now for a
+        # snappier UI.
+        self._current_session_id = session_id
+        self.async_write_ha_state()
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _get_emby_api(self):
+        """Return (and cache) a lazily-instantiated :class:`EmbyAPI`."""
+
+        if not hasattr(self, "_emby_api"):
+            from .api import EmbyAPI  # local import to avoid cycles
+
+            server = self.emby  # pyemby.EmbyServer instance
+            self._emby_api = EmbyAPI(
+                self.hass,
+                host=server._host,  # pylint: disable=protected-access
+                api_key=server._api_key,  # pylint: disable=protected-access
+                port=server._port,  # pylint: disable=protected-access
+                ssl=server._ssl,  # pylint: disable=protected-access
+            )
+
+        return self._emby_api
+
+    async def _resolve_session_id(self, api):
+        """Return a fresh session id for this player (refreshing if needed)."""
+
+        # Fast-path – existing mapping.
+        if self._current_session_id:
+            return self._current_session_id
+
+        # Poll the Sessions endpoint to find a matching device when idle / new.
+        try:
+            sessions = await api.get_sessions(force_refresh=True)
+        except Exception as exc:  # noqa: BLE001 – wrap as generic
+            _LOGGER.warning("Could not refresh Emby sessions: %s", exc)
+            return None
+
+        # Each session payload includes a DeviceId we can correlate with the
+        # stable id used by pyemby (self.device.id / self.device.unique_id).
+        for sess in sessions:
+            if sess.get("DeviceId") in (self.device_id, getattr(self.device, "unique_id", None)):
+                self._current_session_id = sess.get("Id")
+                return self._current_session_id
+
+        return None
