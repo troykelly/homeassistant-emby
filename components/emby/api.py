@@ -44,8 +44,8 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         hass: HomeAssistant | None,
         host: str,
         api_key: str,
-        port: int,
-        ssl: bool,
+        ssl: bool = False,
+        port: int | None = None,
         *,
         session=None,
     ) -> None:
@@ -66,7 +66,11 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         """
 
         self._hass = hass
-        self._base = f"{'https' if ssl else 'http'}://{host}:{port}"
+        scheme = 'https' if ssl else 'http'
+        if port is None:
+            self._base = f"{scheme}://{host}"
+        else:
+            self._base = f"{scheme}://{host}:{port}"
         self._headers = {"X-Emby-Token": api_key}
 
         if hass is not None:
