@@ -5,9 +5,20 @@ server – movies, TV, music and more – to Home Assistant.  Once configured yo
 can browse your library, trigger playback on Emby clients, build automation
 around play state changes and combine everything with the rich HA ecosystem.
 
+Key features:
+
+• 💿 **Browse Media** – visually navigate your Emby libraries from Home
+  Assistant and start playback with a click.
+• ▶️ **Play Media** – powerful resolver that supports titles, seasons, exact
+  Emby IDs and more.
+• 🔄 **Automations ready** – every browse item works seamlessly with
+  `media_player.play_media`, making automations trivial.
+
 This README focuses on the `media_player.play_media` functionality added in
-version `0.5.0` (see CHANGELOG).  For full installation & configuration details
-see the sections below.
+version `0.6.0` (see CHANGELOG).  The latest release also introduces **native
+media browsing** – letting you navigate your Emby libraries directly inside the
+Home Assistant UI and start playback with a single click.  For full
+installation & configuration details see the sections below.
 
 ---
 
@@ -106,6 +117,57 @@ The internal resolver is quite smart – it will try exact Emby Item IDs first,
 then fall back to title search across libraries, seasons/episodes, artists &
 tracks.  Ambiguous searches raise a clear error so your automations never hang
 silently.
+
+---
+
+## Browsing your Emby library in the UI  _(new in v0.6.0)_
+
+From Home Assistant 2023.5 the **Browse Media** dialog became the preferred way
+for users to explore their libraries and enqueue content.  The Emby
+integration now implements `async_browse_media`, which means:
+
+1. Click **Media → Browse media** (or the ✚ icon in Automations/Scenes).
+2. Choose one of your connected Emby players.
+3. Navigate through Libraries → Collections/Seasons → Items.
+4. Tap a playable leaf item (movie, episode, track, playlist) to start
+   playback instantly.
+
+The navigation hierarchy matches what you see in the Emby web dashboard:
+
+• **Libraries** – eg. *Movies*, *TV Shows*, *Music*\
+• **Collections / Folders** – box-sets, TV seasons, artist albums\
+• **Items** – individual movies, episodes, songs, channels…
+
+Each tile is enriched with artwork and the correct media class so Home
+Assistant can display appropriate icons and actions.  Pagination is handled
+transparently – large libraries still load quickly and expose *Next / Previous*
+folders for efficient navigation when required.
+
+### Mixing local media & TTS
+
+If you browse to **Media Source** paths such as `media-source://tts` the
+integration automatically delegates to the built-in `media_source`
+integration.  This keeps text-to-speech and local file playback working exactly
+as before.
+
+### Automations & scripts
+
+The browse dialog is the fastest way to visually pick an item – but you can
+also feed the resulting `media_content_id` straight back into the
+`media_player.play_media` service (for example in a script).  Under the hood
+the ID uses an `emby://` schema followed by the Emby ItemId so look-ups are
+reliable and language-agnostic.
+
+```yaml
+service: media_player.play_media
+target:
+  entity_id: media_player.emby_lounge_tv
+data:
+  media_type: movie
+  media_id: "emby://item/123456789abcdef"  # generated from the browse dialog
+```
+
+---
 
 ---
 
