@@ -25,7 +25,12 @@ import logging
 import re
 from typing import Any, Dict, List, Sequence
 
-from homeassistant.components.media_player import MediaType
+# Importing *MediaType* directly from the root module triggers a
+# *reportPrivateImportUsage* warning in Pyright because the symbol is formally
+# re-exported from the public *const* sub-module.  Import from the canonical
+# location to keep static analysis clean.
+
+from homeassistant.components.media_player.const import MediaType
 
 from .api import EmbyAPI, EmbyApiError
 

@@ -109,7 +109,7 @@ def emby_device(monkeypatch):  # noqa: D401 – pytest naming
 
     # The Home Assistant *hass* object is not used by the logic besides being
     # forwarded to the stub; we can pass any truthy object.
-    dev.hass = object()
+    dev.hass = object()  # pyright: ignore[reportAttributeAccessIssue]
 
     # Defensive – ensure the Emby API helper is **not** invoked during the
     # fallback path.  If it is, the test will fail with *RuntimeError*.
