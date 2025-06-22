@@ -54,6 +54,10 @@ You also have **full outbound internet access** and the ability to make HTTP(S) 
 
 The Emby API definition is in `docs/emby/openapi.json`
 
+### Test Harnesses
+
+There are tools in `devtools/` to help with live testing. Make use of them. Use the values in the environment to speak with real servers.
+
 ---
 
 ## 🛠 Toolchain
