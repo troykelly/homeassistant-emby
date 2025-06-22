@@ -41,16 +41,47 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
 
     def __init__(
         self,
-        hass: HomeAssistant,
+        hass: HomeAssistant | None,
         host: str,
         api_key: str,
-        port: int,
+        port: int | None = None,
         ssl: bool,
+        *,
+        session=None,
     ) -> None:
+        """Create a new minimal Emby API wrapper.
+
+        Parameters
+        ----------
+        hass
+            Home Assistant instance – **optional**.  When provided the helper
+            will reuse HA's shared aiohttp ClientSession.  When *None* a new
+            standalone session (or the supplied *session*) is used which makes
+            the class usable outside of Home Assistant e.g. in unit tests or
+            simple scripts.
+        session
+            Pre-created aiohttp `ClientSession` (optional).  Ignored when
+            *hass* is supplied because we must use HA's managed session in that
+            context.
+        """
+
         self._hass = hass
-        self._base = f"{'https' if ssl else 'http'}://{host}:{port}"
+        scheme = 'https' if ssl else 'http'
+        if port is None:
+            self._base = f"{scheme}://{host}"
+        else:
+            self._base = f"{scheme}://{host}:{port}"
         self._headers = {"X-Emby-Token": api_key}
-        self._session = async_get_clientsession(hass)
+
+        if hass is not None:
+            self._session = async_get_clientsession(hass)
+        else:
+            # Stand-alone mode – use provided session or create a new one.
+            if session is None:
+                import aiohttp
+
+                session = aiohttp.ClientSession()
+            self._session = session
 
         # Very small in-memory cache for the sessions list – refreshed at most
         # every `_CACHE_TTL` seconds to reduce HTTP round-trips during rapid
