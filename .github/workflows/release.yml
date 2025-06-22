@@ -1,0 +1,93 @@
+name: Release & Changelog
+
+# Creates a versioned GitHub release including a packaged copy of the
+# Home-Assistant integration and automatically updates the local CHANGELOG.
+#
+# Triggers:
+#  * Manual dispatch so maintainers can test the workflow.
+#  * Push of a semantic-version tag that starts with `v` (e.g. `v0.1.0`).
+#
+# The workflow performs the following steps:
+# 1. Checks out the repository with full history (required for changelog).
+# 2. Verifies that the version in `custom_components/embymedia/manifest.json`
+#    matches the git tag (guards against forgotten bumps).
+# 3. Regenerates `CHANGELOG.md` from the commit history using conventional
+#    commits and, where changes were produced, commits the updated changelog
+#    back to `main`.
+# 4. Packages `custom_components/embymedia/**` into a ZIP archive that is
+#    suitable for HACS installation.
+# 5. Publishes a GitHub release using `softprops/action-gh-release`, attaching
+#    the generated ZIP and auto-generated release notes.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  # The default GITHUB_TOKEN is granted the minimum required scopes (contents)
+  # so explicit declaration keeps the job self-contained and future-proof.
+  contents: write
+
+jobs:
+  release:
+    name: Build & publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # full history for conventional-changelog
+
+      - name: 🏷️ Extract version information
+        id: vars
+        run: |
+          # Remove the leading `refs/tags/` and optional `v` prefix.
+          RAW_REF="${GITHUB_REF#refs/tags/}"
+          echo "::set-output name=tag::${RAW_REF}"
+          CLEAN_TAG="${RAW_REF#v}"
+          echo "::set-output name=version::${CLEAN_TAG}"
+
+      - name: 🛠️  Set manifest version to match tag (preserve formatting)
+        run: |
+          VERSION="${{ steps.vars.outputs.version }}"
+          MANIFEST="custom_components/embymedia/manifest.json"
+
+          echo "Updating version in ${MANIFEST} to ${VERSION} (formatting preserved)"
+
+          # Use sed to replace the version value in-place without reformatting the JSON.
+          # Matches a line that begins with optional spaces, then "version": "<digits>..." and replaces the value.
+          # Assumes the manifest keeps the `version` key on a single line (Home-Assistant convention).
+          sed -i -E "s/(\"version\"\s*:\s*\")([0-9]+(\.[0-9]+)*)(\")/\1${VERSION}\4/" "$MANIFEST"
+
+      - name: 💾 Commit manifest bump (if any)
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(manifest): bump version to v${{ steps.vars.outputs.version }}"
+          commit_user_name: GitHub Action
+          commit_user_email: action@github.com
+
+      - name: 📝 Generate / update CHANGELOG.md
+        uses: TriPSs/conventional-changelog-action@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          output-file: CHANGELOG.md
+          skip-on-no-changes: true
+          tag-prefix: 'v'
+
+      - name: 📦 Create integration zip
+        run: |
+          ZIP_NAME="embymedia-${{ steps.vars.outputs.version }}.zip"
+          cd custom_components
+          zip -r "../${ZIP_NAME}" embymedia
+          echo "Created artifact $(pwd)/../${ZIP_NAME}"
+
+      - name: 🚀 Publish GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: Emby for Home Assistant ${{ steps.vars.outputs.version }}
+          generate_release_notes: true
+          files: embymedia-${{ steps.vars.outputs.version }}.zip
