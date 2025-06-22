@@ -24,7 +24,7 @@ from urllib.parse import urlparse
 async def _amain() -> None:  # noqa: ANN201
     # Local import so that developers can run the harness against an *editable*
     # checkout without installing the integration as a package.
-    from custom_components.emby.api import EmbyAPI  # local import for editable repo
+    from custom_components.embymedia.api import EmbyAPI  # local import for editable repo
 
     emby_url = os.getenv("EMBY_URL")
     api_key = os.getenv("EMBY_API_KEY")

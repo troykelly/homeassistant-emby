@@ -84,7 +84,7 @@ async def _amain() -> None:  # noqa: ANN201 – script entrypoint
     if port:
         platform_config[CONF_PORT] = port
 
-    from custom_components.emby.media_player import async_setup_platform  # local import
+    from custom_components.embymedia.media_player import async_setup_platform  # local import
 
     entities = []
 

@@ -68,7 +68,7 @@ def media_source_stub(monkeypatch):  # noqa: D401 – pytest naming convention
     # to our stub implementation.
     # ------------------------------------------------------------------
 
-    import custom_components.emby.media_player as mp_mod  # local import – already loaded during tests
+    import custom_components.embymedia.media_player as mp_mod  # local import – already loaded during tests
 
     setattr(mp_mod, "ha_media_source", ms_mod)
 
@@ -94,7 +94,7 @@ def emby_device(monkeypatch):  # noqa: D401 – pytest naming
     with a function that throws.
     """
 
-    from custom_components.emby.media_player import EmbyDevice
+    from custom_components.embymedia.media_player import EmbyDevice
 
     dev = EmbyDevice.__new__(EmbyDevice)  # type: ignore[arg-type]
 

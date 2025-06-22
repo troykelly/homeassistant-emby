@@ -24,7 +24,7 @@ from homeassistant.components.media_player.const import MediaClass
 
 
 # ---------------------------------------------------------------------------
-# Lightweight stub for *custom_components.emby.api.EmbyAPI*
+# Lightweight stub for *custom_components.embymedia.api.EmbyAPI*
 # ---------------------------------------------------------------------------
 
 
@@ -86,7 +86,7 @@ class _StubEmbyAPI:  # pylint: disable=too-few-public-methods
 def emby_device(monkeypatch):  # noqa: D401 – pytest naming convention
     """Return an :class:`EmbyDevice` with *async_browse_media* ready to use."""
 
-    from custom_components.emby.media_player import EmbyDevice as _EmbyDevice
+    from custom_components.embymedia.media_player import EmbyDevice as _EmbyDevice
 
     dev = _EmbyDevice.__new__(_EmbyDevice)  # type: ignore[arg-type]
 

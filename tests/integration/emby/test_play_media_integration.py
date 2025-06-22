@@ -111,7 +111,7 @@ class _Device(SimpleNamespace):
 def http_stub(monkeypatch):
     """Patch :pymeth:`EmbyAPI._request` so no real HTTP is executed."""
 
-    from custom_components.emby import api as api_mod
+    from custom_components.embymedia import api as api_mod
 
     stub = _StubHTTP()
 
@@ -129,7 +129,7 @@ def http_stub(monkeypatch):
 def emby_device(monkeypatch):  # noqa: D401 – pytest naming
     """Return an :class:`components.emby.media_player.EmbyDevice` wired with stubs."""
 
-    from custom_components.emby.media_player import EmbyDevice
+    from custom_components.embymedia.media_player import EmbyDevice
 
     dev = EmbyDevice.__new__(EmbyDevice)  # type: ignore[arg-type]
 
