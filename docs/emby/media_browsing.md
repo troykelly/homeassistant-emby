@@ -40,6 +40,37 @@ Assistant `media_class` so the frontend can decorate each tile appropriately.
 
 ---
 
+## Supported play commands
+
+When you tap **Play** on a leaf node the UI triggers `media_player.play_media`
+with an **enqueue** mode that follows the new Home Assistant 2024.11 API:
+
+* **Play now** – `enqueue: play` (default)
+* **Play next** – `enqueue: next`
+* **Add to queue** – `enqueue: add`
+
+Under the hood the Emby backend translates these modes to the corresponding
+queue operations so behaviour is identical to the Emby web client.  If your
+Home Assistant version predates 2024.11 the integration silently falls back to
+legacy boolean semantics (`enqueue: true / false`) so existing automations
+keep working.
+
+---
+
+## Pagination
+
+To keep the Browse dialog responsive the integration fetches library children
+in **pages of 100 items**.  When a folder contains more entries a virtual
+`Next ▸` tile appears at the bottom (and a `◂ Prev` tile when you are not on
+the first page).  This pattern mirrors the Plex and Jellyfin integrations and
+ensures large collections – for example a 50,000-track music library – load in
+milliseconds.
+
+Pagination is completely transparent to service calls: the `media_content_id`
+for a given item is **stable** regardless of which page it was found on.
+
+---
+
 ## Deep linking & automations
 
 Every tile in the browse tree exposes a stable `media_content_id` that starts
