@@ -963,7 +963,12 @@ class EmbyDevice(MediaPlayerEntity):
         # ------------------------------------------------------------------
 
         if media_image_id and "://" in media_image_id:
-            from homeassistant.exceptions import HomeAssistantError
+            # Raising the error directly is safe because *HomeAssistantError*
+            # is imported at module level.  Importing the symbol inside this
+            # conditional would shadow the global binding and confuse static
+            # analysis (Pyright would flag it as potentially unbound on code
+            # paths that do **not** execute the branch).  Rely on the global
+            # import instead.
 
             raise HomeAssistantError("media_image_id must not be a URL")
 
@@ -980,7 +985,14 @@ class EmbyDevice(MediaPlayerEntity):
             if self.hass is None:  # pragma: no cover – defensive path
                 raise HomeAssistantError("media_source browsing requires Home Assistant context")
 
-            return await ha_media_source.async_get_browse_image(
+            # *async_get_browse_image* is available starting with Home
+            # Assistant 2024.6.  The typing stubs shipped with older Core
+            # versions do not expose the helper which trips up Pyright’s
+            # *reportAttributeAccessIssue* check.  The runtime implementation
+            # is present in all supported versions, therefore we silence the
+            # warning for static analysis.
+
+            return await ha_media_source.async_get_browse_image(  # type: ignore[attr-defined]
                 self.hass,
                 media_content_id,
                 media_image_id,
@@ -1009,8 +1021,6 @@ class EmbyDevice(MediaPlayerEntity):
         # propagate a standard Home Assistant error so the frontend can show
         # a placeholder icon instead of breaking the entire browse request.
         if image_bytes is None:
-            from homeassistant.exceptions import HomeAssistantError
-
             raise HomeAssistantError("Unable to retrieve artwork from Emby server")
 
         return image_bytes, content_type
