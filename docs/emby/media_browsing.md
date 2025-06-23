@@ -12,6 +12,9 @@ integration fully implements this capability through the
 1. Open the left-hand **Media** panel in Home Assistant.
 2. Click **Browse media** then pick any Emby player entity.
 3. Choose a library (Movies, TV Shows, Music, …).
+4. Or jump straight into **Continue Watching** / **Favorites** which appear
+   at the bottom of the root view – handy when you just want to resume a
+   movie or queue up tracks you have starred in Emby.
 4. Drill down into collections / folders until you reach a playable item.
 5. Hit the artwork tile to start playback instantly on the selected client.
 
@@ -28,6 +31,7 @@ _Screenshots are illustrative – your artwork and library names will differ._
 |------------------------|-----------------------------|------------|--------------|
 | Library (View)         | `directory`                 | ❌         | ✅           |
 | Collection / Folder    | `directory`                 | ❌         | ✅           |
+| Virtual (Resume/Favs)  | `directory`                 | ❌         | ✅           |
 | TV Season              | `season`                    | ❌         | ✅           |
 | Movie                  | `movie`                     | ✅         | ❌           |
 | Episode                | `episode`                   | ✅         | ❌           |
@@ -68,6 +72,22 @@ milliseconds.
 
 Pagination is completely transparent to service calls: the `media_content_id`
 for a given item is **stable** regardless of which page it was found on.
+
+---
+
+## Continue Watching & Favorites
+
+To mirror the convenience shortcuts in the Emby web UI the integration adds
+two **virtual directories** at the root level:
+
+• **Continue Watching** – lists items that you have partially watched so you
+  can pick up right where you left off.
+• **Favorites** – every movie/episode/track that you have marked as a
+  favourite in Emby.
+
+These folders behave exactly like normal libraries – you can open them on any
+player entity, they support pagination and every entry carries a stable
+`emby://` ID that you can deep-link from automations.
 
 ---
 
