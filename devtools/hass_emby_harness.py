@@ -58,6 +58,21 @@ async def _amain() -> None:  # noqa: ANN201 – script entrypoint
     parser.add_argument("--url", default=os.getenv("EMBY_URL"), help="Base Emby URL")
     parser.add_argument("--api-key", default=os.getenv("EMBY_API_KEY"), help="Emby API key")
     parser.add_argument("--duration", type=int, default=15, help="Seconds to keep HA running")
+    parser.add_argument(
+        "--browse",
+        action="store_true",
+        help="After entities are discovered perform a root media browse and print the hierarchy.",
+    )
+    parser.add_argument(
+        "--browse-id",
+        default=None,
+        metavar="MEDIA_CONTENT_ID",
+        help=(
+            "When --browse is active, perform an additional browse for the given "
+            "Emby media_content_id (e.g. 'emby://<item_id>').  This is useful to "
+            "quickly verify navigation into a specific library or item."
+        ),
+    )
     args = parser.parse_args()
 
     if not args.url or not args.api_key:
@@ -105,6 +120,35 @@ async def _amain() -> None:  # noqa: ANN201 – script entrypoint
     print("[HA] Entities discovered:")
     for ent in entities:
         print(f" • {ent.name}  state={ent.state}  session={getattr(ent, 'get_current_session_id', lambda: None)()}")
+
+    # ------------------------------------------------------------------
+    # Optional media browsing demo
+    # ------------------------------------------------------------------
+
+    if args.browse and entities:
+        # Use the first discovered entity for demo purposes – most installations
+        # expose a single Emby *remote* at a time.  Users can refine the target
+        # via Home Assistant UI if needed.
+        target = entities[0]
+
+        print("\n[HA] Performing *root* media browse…")
+        root = await target.async_browse_media()
+
+        for child in root.children or []:
+            print(f" • {child.title}  ({child.media_content_id})  can_expand={child.can_expand}")
+
+        if args.browse_id:
+            print(f"\n[HA] Browsing into '{args.browse_id}'…")
+            try:
+                sub = await target.async_browse_media(media_content_id=args.browse_id)
+            except Exception as exc:  # noqa: BLE001 – diagnostic harness
+                print(f"[ERROR] async_browse_media failed: {exc}")
+            else:
+                if sub.children is None:
+                    print(" (no children – leaf item)")
+                else:
+                    for itr in sub.children:
+                        print(f"   - {itr.title}  can_play={itr.can_play}  id={itr.media_content_id}")
 
 
 def main() -> None:  # noqa: ANN001 – script entrypoint
