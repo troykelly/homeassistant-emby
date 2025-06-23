@@ -172,6 +172,28 @@ def test_emby_item_to_browse_movie(emby_device):  # noqa: D401
     assert node.thumbnail is not None
 
 
+# ---------------------------------------------------------------------------
+# Spec compliance – *children_media_class* defaults
+# ---------------------------------------------------------------------------
+
+
+def test_children_media_class_omitted_for_generic_directory(emby_device):  # noqa: D401
+    """Generic directories must **not** set *children_media_class*."""
+
+    folder = {
+        "Id": "dir1",
+        "Name": "Misc Folder",
+        "Type": "Folder",
+    }
+
+    node = emby_device._emby_item_to_browse(folder)  # type: ignore[attr-defined]
+
+    # The helper maps *Folder* → *DIRECTORY* which is considered heterogeneous
+    # therefore *children_media_class* must remain *None* so the frontend does
+    # not incorrectly assume a common child type.
+    assert node.children_media_class is None
+
+
 def test_emby_view_to_browse_movies_collection(emby_device):  # noqa: D401
     view = {
         "Id": "v1",
@@ -182,6 +204,13 @@ def test_emby_view_to_browse_movies_collection(emby_device):  # noqa: D401
 
     node = emby_device._emby_view_to_browse(view)  # type: ignore[attr-defined]
 
+    from homeassistant.components.media_player.const import MediaClass
+
     assert node.title == "Movies"
     assert node.media_content_type == "movies"
     assert node.can_expand is True and node.can_play is False
+
+    # New spec compliance (GitHub issue #104) – *children_media_class* must
+    # advertise the common class of the contained items so the UI can render
+    # the correct icon without making an extra request.
+    assert node.children_media_class is MediaClass.MOVIE
