@@ -184,6 +184,8 @@ PLAY_MEDIA_SCHEMA = vol.Schema(
         vol.Optional("announce"): cv.boolean,
         # Optional start position in **seconds** – translated to Emby ticks
         vol.Optional("position"): vol.All(cv.positive_int, vol.Range(min=0)),
+        # Optional explicit Emby user id/profile name for parental control.
+        vol.Optional("user_id"): cv.string,
     },
     extra=vol.ALLOW_EXTRA,
 )
@@ -725,10 +727,9 @@ class EmbyDevice(MediaPlayerEntity):
             can_play=can_play,
             can_expand=True,
             children=children,
-            # Thumbnails are served through Home Assistant's proxy endpoint
-            # so remote users (Nabu Casa, reverse proxies) can access them
-            # without a direct connection to the Emby server (GitHub issue
-            # #109).
+            # Thumbnails are served through the Home Assistant proxy so
+            # remote users (Nabu Casa, reverse proxies) can access them
+            # without a direct connection to the Emby server.
             thumbnail=self._thumbnail_url(item_id),
         )
 
@@ -830,14 +831,6 @@ class EmbyDevice(MediaPlayerEntity):
             thumbnail=self._thumbnail_url(item_id),
         )
 
-    # NOTE: *Deprecated* – replaced by Home Assistant proxy helpers in issue
-    # #109.  Kept around until downstream custom scripts migrate.  Will be
-    # removed as part of cleanup issue #117.
-    def _build_thumbnail_url(self, item: dict) -> str | None:  # noqa: ANN401 - JSON, PLW0603
-        """TEMPORARY shim – returns *None* to signal callers to use proxy."""
-
-        return None
-
     # ------------------------------------------------------------------
     # Thumbnail utility – conditional proxying (issue #122)
     # ------------------------------------------------------------------
@@ -887,7 +880,7 @@ class EmbyDevice(MediaPlayerEntity):
         )
 
     # ------------------------------------------------------------------
-    # Album-art proxy – Home Assistant > Emby (GitHub issue #109)
+    # Album-art proxy – Home Assistant > Emby
     # ------------------------------------------------------------------
 
     async def async_get_browse_image(  # noqa: D401 - verbatim HA signature
@@ -906,7 +899,44 @@ class EmbyDevice(MediaPlayerEntity):
         implemented*.  We override the helper and retrieve the image bytes
         from the underlying Emby server so remote clients (Nabu Casa,
         reverse proxies) do **not** require direct network access.
+        Security notes
+        --------------
+        The Home Assistant guidelines explicitly warn integrations to **never
+        round-trip raw URLs** via the ``media_image_id`` argument as that would
+        allow a malicious actor to coerce Home Assistant into fetching
+        arbitrary internal resources.  The Emby integration does **not** make
+        use of the argument at the moment – nevertheless we validate it to
+        ensure future changes or forged API requests cannot introduce a
+        vulnerability (GitHub issue #123).
+
+        Acceptable values:
+
+        • ``None`` – the common path when the frontend does not supply an
+          identifier.
+        • Opaque Emby identifiers (GUID / numeric ItemId).  These never
+          contain a URI scheme or "//" separator.
+
+        Any value that *looks like* a URL (contains ``://``) is rejected with
+        :class:`homeassistant.exceptions.HomeAssistantError`.
         """
+
+        # ------------------------------------------------------------------
+        # Input validation – reject *media_image_id* that encodes a URL.  This
+        # follows the security recommendation from HA developer docs.
+        # ------------------------------------------------------------------
+
+        if media_image_id and "://" in media_image_id:
+            from homeassistant.exceptions import HomeAssistantError
+
+            raise HomeAssistantError("media_image_id must not be a URL")
+
+        # ------------------------------------------------------------------
+        # Construct the Emby artwork URL – we intentionally skip resolving
+        # the *tag* query parameter as Emby will happily serve the latest
+        # cached image without it.  Passing the explicit *tag* would require
+        # an *additional* REST round-trip (*/Items/<id>) which is avoided for
+        # performance reasons.
+        # ------------------------------------------------------------------
 
         # Construct the Emby artwork URL – we intentionally skip resolving
         # the *tag* query parameter as Emby will happily serve the latest
@@ -1390,6 +1420,7 @@ class EmbyDevice(MediaPlayerEntity):
         *,
         enqueue: MediaPlayerEnqueue | bool | str | None = None,
         announce: bool | None = None,
+        user_id: str | None = None,
         **kwargs,
     ) -> None:  # noqa: D401 - verbatim HA signature
         """Handle the *play_media* service call for this entity.
@@ -1435,6 +1466,12 @@ class EmbyDevice(MediaPlayerEntity):
         elif "announce" in kwargs:
             payload["announce"] = kwargs["announce"]
 
+        # New parameter – user_id
+        if user_id is not None:
+            payload["user_id"] = user_id
+        elif "user_id" in kwargs:
+            payload["user_id"] = kwargs["user_id"]
+
         # Position is still supplied via service data only.
         if "position" in kwargs:
             payload["position"] = kwargs["position"]
@@ -1447,6 +1484,7 @@ class EmbyDevice(MediaPlayerEntity):
         raw_enqueue = validated.get("enqueue")
         announce_flag: bool = validated.get("announce", False)
         position: int | None = validated.get("position")
+        resolved_user_id: str | None = validated.get("user_id")
 
         # ------------------------------------------------------------------
         # Normalise *enqueue* → MediaPlayerEnqueue | None
@@ -1486,7 +1524,7 @@ class EmbyDevice(MediaPlayerEntity):
                 api,
                 media_type=media_type,
                 media_id=media_id,
-                user_id=None,  # TODO: expose user choice in a future update
+                user_id=resolved_user_id,
             )
         except MediaLookupError as exc:
             raise HomeAssistantError(str(exc)) from exc
@@ -1529,7 +1567,13 @@ class EmbyDevice(MediaPlayerEntity):
             start_ticks = position * 10_000_000  # seconds -> 100 ns ticks
 
         try:
-            await api.play(session_id, [item_id], play_command=play_command, start_position_ticks=start_ticks)
+            await api.play(
+                session_id,
+                [item_id],
+                play_command=play_command,
+                start_position_ticks=start_ticks,
+                controlling_user_id=resolved_user_id,
+            )
         except Exception as exc:  # broad catch -> wrap as HA error
             raise HomeAssistantError(f"Emby playback failed: {exc}") from exc
 

@@ -21,13 +21,22 @@ class _StubAPI:  # pylint: disable=too-few-public-methods
     def __init__(self) -> None:
         self.play_calls: List[dict] = []
 
-    async def play(self, session_id, item_ids, *, play_command="PlayNow", start_position_ticks=None):  # noqa: D401
+    async def play(
+        self,
+        session_id,  # noqa: D401 – test stub, no typing needed
+        item_ids,
+        *,
+        play_command="PlayNow",
+        start_position_ticks=None,
+        controlling_user_id=None,
+    ):  # noqa: D401 – allow additional keyword args
         self.play_calls.append(
             {
                 "session_id": session_id,
                 "item_ids": item_ids,
                 "play_command": play_command,
                 "start_position_ticks": start_position_ticks,
+                "controlling_user_id": controlling_user_id,
             }
         )
 
@@ -146,6 +155,7 @@ async def test_async_play_media_success(emby_device):
     assert play_kwargs["item_ids"] == ["item-1"]
     assert play_kwargs["play_command"] == "PlayNow"
     assert play_kwargs["start_position_ticks"] is None
+    assert play_kwargs["controlling_user_id"] is None
 
     # `_current_session_id` must be persisted for next invocation.
     assert emby_device.get_current_session_id() == "sess-123"
@@ -171,6 +181,26 @@ async def test_async_play_media_enqueue_with_position(monkeypatch, emby_device):
     call = stub_api.play_calls[-1]
     assert call["play_command"] == "PlayLast"  # enqueue "add" handled
     assert call["start_position_ticks"] == 5 * 10_000_000
+    assert call["controlling_user_id"] is None
+
+
+# ---------------------------------------------------------------------------
+# New test – user_id propagation (issue #125)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_async_play_media_with_user_id(emby_device):  # noqa: D401
+    """Ensure *user_id* parameter is forwarded to the API layer."""
+
+    await emby_device.async_play_media(
+        media_type="music",
+        media_id="SongX",
+        user_id="user-1234",
+    )
+
+    call = emby_device._get_emby_api().play_calls[-1]  # type: ignore[attr-defined]
+    assert call["controlling_user_id"] == "user-1234"
 
 
 @pytest.mark.asyncio

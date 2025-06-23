@@ -161,8 +161,21 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         *,
         play_command: str = "PlayNow",
         start_position_ticks: int | None = None,
+        controlling_user_id: str | None = None,
     ) -> None:
-        """Trigger playback of *item_ids* on the specified session."""
+        """Trigger playback of *item_ids* on the specified session.
+
+        Parameters
+        ----------
+        session_id
+            Target Emby *SessionId* obtained from the ``/Sessions`` endpoint.
+        item_ids
+            One or more *ItemId* values to be queued/played.
+        controlling_user_id
+            Optional Emby user id that should be recorded as the *controlling*
+            user.  When omitted Emby associates the command with the **admin**
+            account which may bypass parental controls.  See GitHub issue #125.
+        """
 
         params: Dict[str, str] = {
             "ItemIds": ",".join([str(i) for i in item_ids]),
@@ -170,6 +183,8 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         }
         if start_position_ticks is not None:
             params["StartPositionTicks"] = str(start_position_ticks)
+        if controlling_user_id is not None:
+            params["ControllingUserId"] = controlling_user_id
 
         await self._request("POST", f"/Sessions/{session_id}/Playing", params=params, json={})
 
