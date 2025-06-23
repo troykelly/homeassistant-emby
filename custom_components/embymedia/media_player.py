@@ -966,9 +966,9 @@ class EmbyDevice(MediaPlayerEntity):
         try:
             from homeassistant.components.media_player.const import RepeatMode  # type: ignore
 
-            _HAS_REPEAT_ENUM = True
+            has_repeat_enum = True
         except ImportError:  # pragma: no cover – fallback for older HA
-            _HAS_REPEAT_ENUM = False
+            has_repeat_enum = False
 
         try:
             play_state = self.device.session_raw.get("PlayState", {})  # type: ignore[dict-item]
@@ -986,7 +986,7 @@ class EmbyDevice(MediaPlayerEntity):
             if ha_mode is None:
                 return None  # unexpected value – expose as unknown
 
-            if _HAS_REPEAT_ENUM:
+            if has_repeat_enum:
                 return RepeatMode(ha_mode)  # type: ignore[call-arg]
             return ha_mode  # str for legacy cores
         except Exception:  # pragma: no cover – malformed payload / guard
