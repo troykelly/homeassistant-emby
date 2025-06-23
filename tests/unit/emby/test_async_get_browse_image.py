@@ -70,3 +70,30 @@ async def test_async_get_browse_image_error(monkeypatch):  # noqa: D401
 
     with pytest.raises(HomeAssistantError):
         await dev.async_get_browse_image("movie", "nope")
+
+
+# ---------------------------------------------------------------------------
+# Security – reject *media_image_id* that contains a URL (GitHub #123)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio()
+async def test_async_get_browse_image_reject_malicious_id(monkeypatch):  # noqa: D401
+    """Ensure the helper raises when *media_image_id* looks like a URL."""
+
+    from homeassistant.exceptions import HomeAssistantError
+
+    dev = _make_emby_device(monkeypatch)
+
+    # No network call should be attempted – *media_image_id* validation fires
+    async def _fake_fetch(_url):  # pragma: no cover
+        raise AssertionError("_async_fetch_image must not be called on invalid input")
+
+    monkeypatch.setattr(dev, "_async_fetch_image", _fake_fetch)
+
+    with pytest.raises(HomeAssistantError):
+        await dev.async_get_browse_image(
+            "movie",
+            "xyz",
+            media_image_id="https://evil.invalid/logo.png",
+        )
