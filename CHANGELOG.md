@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   client.  See the updated README for usage examples.  *(epic #3 – closes
   issue #12)*
 
+* **Virtual directories – Continue Watching & Favorites** – The media browser
+  now surfaces two convenient shortcuts at the root level so you can resume
+  unfinished movies/episodes or jump straight into items you starred in Emby.
+  Both virtual folders fully support pagination and artwork just like physical
+  libraries. *(epic #129 – closes issue #135)*
+
 * **Media browsing** – Navigate your Emby libraries directly inside Home
   Assistant via the **Browse Media** dialog.  Libraries, collections, seasons
   and items are represented with full artwork and metadata.  Delegates to the
