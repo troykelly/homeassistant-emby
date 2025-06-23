@@ -146,6 +146,8 @@ The worker automates planning via GitHub issues rather than an external tracker.
 Below are the **battle-tested commands, GraphQL mutations and patterns** we now use so
 future agents don’t need to rediscover them.
 
+**Note about escaping** make sure to correctly escape payloads to github to prevent backslash n's and missing backtick contents.
+
 ### 1. Creating issues (REST/GraphQL)
 
 *CLI (`gh`):*
