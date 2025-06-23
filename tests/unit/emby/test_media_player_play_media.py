@@ -155,11 +155,21 @@ async def test_async_play_media_success(emby_device):
 async def test_async_play_media_enqueue_with_position(monkeypatch, emby_device):
     """Verify optional arguments *enqueue* and *position* are propagated."""
 
-    await emby_device.async_play_media("movie", "MovieX", enqueue=True, position=5)
+    # Use the new *MediaPlayerEnqueue* enum (legacy bools still accepted but
+    # enum provides forward-compatibility).
+
+    from custom_components.embymedia.media_player import MediaPlayerEnqueue
+
+    await emby_device.async_play_media(
+        media_type="movie",
+        media_id="MovieX",
+        enqueue=MediaPlayerEnqueue.ADD,
+        position=5,
+    )
 
     stub_api: _StubAPI = emby_device._get_emby_api()  # type: ignore[attr-defined]
     call = stub_api.play_calls[-1]
-    assert call["play_command"] == "PlayNext"  # enqueue flag handled
+    assert call["play_command"] == "PlayLast"  # enqueue "add" handled
     assert call["start_position_ticks"] == 5 * 10_000_000
 
 
@@ -190,6 +200,26 @@ async def test_async_play_media_session_failure(monkeypatch, emby_device):
 
     with pytest.raises(HomeAssistantError):
         await emby_device.async_play_media("movie", "x")
+
+
+# ---------------------------------------------------------------------------
+# New tests – *announce* support (issue #73)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_async_play_media_announcement(emby_device):
+    """Ensure *announce=True* maps to the correct play command."""
+
+    await emby_device.async_play_media(
+        media_type="movie",
+        media_id="Intro",
+        announce=True,
+    )
+
+    stub_api: _StubAPI = emby_device._get_emby_api()  # type: ignore[attr-defined]
+    call = stub_api.play_calls[-1]
+    assert call["play_command"] == "PlayAnnouncement"
 
 
 @pytest.mark.asyncio
