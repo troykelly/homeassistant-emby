@@ -219,6 +219,20 @@ SUPPORT_EMBY = (
     # constants for clarity and forward-compatibility.
     | MediaPlayerEntityFeature.SHUFFLE_SET
     | MediaPlayerEntityFeature.REPEAT_SET
+    # Issue #77 – expose power on/off controls when supported.  Older Home
+    # Assistant cores (<2024.11) did not yet ship the *TURN_ON* / *TURN_OFF*
+    # feature flags.  Add them conditionally so the integration continues to
+    # import on legacy versions used by the test-suite.
+    | (
+        MediaPlayerEntityFeature.TURN_ON
+        if hasattr(MediaPlayerEntityFeature, "TURN_ON")
+        else MediaPlayerEntityFeature(0)
+    )
+    | (
+        MediaPlayerEntityFeature.TURN_OFF
+        if hasattr(MediaPlayerEntityFeature, "TURN_OFF")
+        else MediaPlayerEntityFeature(0)
+    )
 )
 
 PLATFORM_SCHEMA = MEDIA_PLAYER_PLATFORM_SCHEMA.extend(
@@ -1085,6 +1099,59 @@ class EmbyDevice(MediaPlayerEntity):
     async def async_media_seek(self, position: float) -> None:
         """Send seek command."""
         await self.device.media_seek(position)
+
+    # ------------------------------------------------------------------
+    # Power management – turn_on / turn_off (GitHub issue #77)
+    # ------------------------------------------------------------------
+
+    async def async_turn_on(self) -> None:  # noqa: D401 – HA naming
+        """Wake the target Emby client from standby when supported."""
+
+        api = self._get_emby_api()
+        session_id = await self._resolve_session_id(api)
+
+        if not session_id:
+            # Without a valid session id the remote command cannot be
+            # delivered.  Raise a standard HA error so callers receive a
+            # consistent failure signal (Assist / UI toast etc.).  The helper
+            # purposefully *does not* attempt any discovery fallback because
+            # the Sessions endpoint already provides our best chance at
+            # mapping device ↔ session when idle.
+            from homeassistant.exceptions import HomeAssistantError
+
+            raise HomeAssistantError("Unable to determine active Emby session for turn_on command")
+
+        try:
+            await api.power_state(session_id, True)
+        except Exception as exc:  # noqa: BLE001 – network / HTTP level
+            from homeassistant.exceptions import HomeAssistantError
+
+            raise HomeAssistantError(f"Emby turn_on failed: {exc}") from exc
+
+        # Optimistic local update – websocket event will follow shortly and
+        # update the *state* property but updating immediately results in a
+        # snappier UI response.
+        self.async_write_ha_state()
+
+    async def async_turn_off(self) -> None:  # noqa: D401 – HA naming
+        """Put the target Emby client into standby when supported."""
+
+        api = self._get_emby_api()
+        session_id = await self._resolve_session_id(api)
+
+        if not session_id:
+            from homeassistant.exceptions import HomeAssistantError
+
+            raise HomeAssistantError("Unable to determine active Emby session for turn_off command")
+
+        try:
+            await api.power_state(session_id, False)
+        except Exception as exc:  # noqa: BLE001 – network / HTTP level
+            from homeassistant.exceptions import HomeAssistantError
+
+            raise HomeAssistantError(f"Emby turn_off failed: {exc}") from exc
+
+        self.async_write_ha_state()
 
     # ------------------------------------------------------------------
     # Home Assistant service handler - play_media
