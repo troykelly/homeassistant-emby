@@ -968,10 +968,29 @@ class EmbyDevice(MediaPlayerEntity):
             raise HomeAssistantError("media_image_id must not be a URL")
 
         # ------------------------------------------------------------------
-        # Construct the Emby artwork URL – we intentionally skip resolving
-        # the *tag* query parameter as Emby will happily serve the latest
-        # cached image without it.  Passing the explicit *tag* would require
-        # an *additional* REST round-trip (*/Items/<id>) which is avoided for
+        # media_source:// fallback – delegate to the core helper before we
+        # attempt to build an Emby specific URL.  This allows automations or
+        # UI flows that mix and match items from different sources to work
+        # transparently (GitHub issue #136).
+        # ------------------------------------------------------------------
+
+        if is_media_source_id(media_content_id):
+            # The media_source helper requires a valid Home Assistant context.
+            # Guard against accidental early calls during entity set-up.
+            if self.hass is None:  # pragma: no cover – defensive path
+                raise HomeAssistantError("media_source browsing requires Home Assistant context")
+
+            return await ha_media_source.async_get_browse_image(
+                self.hass,
+                media_content_id,
+                media_image_id,
+            )
+
+        # ------------------------------------------------------------------
+        # Construct the Emby artwork URL – we intentionally skip resolving the
+        # *tag* query parameter as Emby will happily serve the latest cached
+        # image without it.  Passing the explicit *tag* would require an
+        # *additional* REST round-trip (*/Items/<id>) which is avoided for
         # performance reasons.
         # ------------------------------------------------------------------
 
