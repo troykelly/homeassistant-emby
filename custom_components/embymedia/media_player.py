@@ -681,8 +681,8 @@ class EmbyDevice(MediaPlayerEntity):
                 can_play=can_play,
                 can_expand=False,
                 children=None,
-                # Use HA proxy for artwork – see issue #109.
-                thumbnail=self.get_browse_image_url(content_type, item_id),
+                # Conditionally proxy artwork – see issue #122.
+                thumbnail=self._thumbnail_url(item_id),
             )
 
         # ------------------------------------------------------------------
@@ -729,7 +729,7 @@ class EmbyDevice(MediaPlayerEntity):
             # so remote users (Nabu Casa, reverse proxies) can access them
             # without a direct connection to the Emby server (GitHub issue
             # #109).
-            thumbnail=self.get_browse_image_url(content_type, item_id),
+            thumbnail=self._thumbnail_url(item_id),
         )
 
     # ------------------------------------------------------------------
@@ -788,7 +788,7 @@ class EmbyDevice(MediaPlayerEntity):
             media_content_type=content_type,
             can_play=can_play,
             can_expand=can_expand,
-            thumbnail=self.get_browse_image_url(content_type, item_id),
+            thumbnail=self._thumbnail_url(item_id),
         )
 
     def _emby_view_to_browse(self, item: dict) -> BrowseMedia:  # noqa: ANN401
@@ -821,8 +821,13 @@ class EmbyDevice(MediaPlayerEntity):
             # ``media_class`` resolves to *DIRECTORY*) as the contained items
             # may differ in type causing the UI to mis-classify them.
             children_media_class=(media_class if media_class is not MediaClass.DIRECTORY else None),
-            # See GitHub issue #109 – proxy artwork through Home Assistant.
-            thumbnail=self.get_browse_image_url(content_type, item_id),
+            # Provide thumbnail – conditionally proxy through Home Assistant
+            # only when the request originates from outside the local
+            # network, as recommended by the Home Assistant developer
+            # documentation.  Local requests are served the *direct* Emby
+            # image URL which avoids unnecessary bandwidth usage and lowers
+            # latency on the Home Assistant instance (GitHub issue #122).
+            thumbnail=self._thumbnail_url(item_id),
         )
 
     # NOTE: *Deprecated* – replaced by Home Assistant proxy helpers in issue
@@ -832,6 +837,39 @@ class EmbyDevice(MediaPlayerEntity):
         """TEMPORARY shim – returns *None* to signal callers to use proxy."""
 
         return None
+
+    # ------------------------------------------------------------------
+    # Thumbnail utility – conditional proxying (issue #122)
+    # ------------------------------------------------------------------
+
+    def _thumbnail_url(self, item_id: str) -> str | None:
+        """Return thumbnail URL following HA proxy guidance.
+
+        When the incoming HTTP request originates from the *internal* network we
+        can safely hand the browser the direct Emby image URL which avoids an
+        unnecessary round-trip through Home Assistant.  For **external**
+        clients we return the Home Assistant proxy endpoint produced by
+        ``get_browse_image_url`` so that Home Assistant hides the Emby server
+        details and handles authentication.
+        """
+
+        # Runtime import keeps home assistant stubs optional for unit tests.
+        from homeassistant.helpers.network import is_internal_request  # noqa: WPS433 – allowed
+
+        try:
+            internal = is_internal_request(self.hass)
+        except Exception:  # pragma: no cover – very defensive, always fallback
+            internal = False
+
+        if internal:
+            api = self._get_emby_api()
+            return f"{api._base}/Items/{item_id}/Images/Primary?maxWidth=500"  # pylint: disable=protected-access
+
+        # External request – use HA proxy which will trigger *async_get_browse_image*.
+        # We pass dummy *content_type* as it is only used for MIME heuristics
+        # by the underlying helper.  The `MediaPlayerEntity` base class does
+        # not validate the value beyond being truthy.
+        return self.get_browse_image_url("image", item_id)
 
     def _make_pagination_node(self, title: str, parent_id: str, start: int) -> BrowseMedia:
         """Return a synthetic Prev/Next BrowseMedia directory node."""
