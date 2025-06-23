@@ -128,6 +128,16 @@ async def test_async_search_media_integration(http_stub, emby_device):  # noqa: 
     # At least one result must be *playable* as per spec.
     assert any(child.can_play for child in search_result.result)
 
+    # When the running Home Assistant version supports the *result_media_class*
+    # attribute (added in the 2025-04 media-player spec revision) the
+    # integration should populate it to reflect the homogeneous media class
+    # of the returned results.
+
+    if hasattr(search_result, "result_media_class"):
+        from homeassistant.components.media_player.const import MediaClass
+
+        assert search_result.result_media_class == MediaClass.MOVIE
+
     # Confirm a single GET /Items call recorded with correct params.
     items_calls = [c for c in http_stub.calls if c[1] == "/Items"]
     assert len(items_calls) == 1
