@@ -213,6 +213,12 @@ SUPPORT_EMBY = (
     # ``device.supports_remote_control``.
     | MediaPlayerEntityFeature.VOLUME_SET
     | MediaPlayerEntityFeature.VOLUME_MUTE
+    # Issue #76 – expose shuffle & repeat controls when the target device
+    # supports Emby's remote-control API. These flags utilise the modern
+    # *MediaPlayerEntityFeature* values rather than the deprecated integer
+    # constants for clarity and forward-compatibility.
+    | MediaPlayerEntityFeature.SHUFFLE_SET
+    | MediaPlayerEntityFeature.REPEAT_SET
 )
 
 PLATFORM_SCHEMA = MEDIA_PLAYER_PLATFORM_SCHEMA.extend(
@@ -918,6 +924,142 @@ class EmbyDevice(MediaPlayerEntity):
 
             raise HomeAssistantError(f"Emby mute failed: {exc}") from exc
 
+        self.async_write_ha_state()
+
+    # ------------------------------------------------------------------
+    # Shuffle & repeat support (GitHub issue #76)
+    # ------------------------------------------------------------------
+
+    # The *shuffle* and *repeat* helpers are modelled closely after the volume
+    # implementation above:  property access translates the raw Emby session
+    # payload into Home Assistant friendly types while the *async_set_*
+    # service handlers delegate the actual command to :pyclass:`EmbyAPI`.
+
+    # ----------------------
+    # Properties – readonly
+    # ----------------------
+
+    @property  # type: ignore[override]
+    def shuffle(self) -> bool | None:  # noqa: D401 – HA naming convention
+        """Return *True* when shuffle is enabled on the client (if known)."""
+
+        try:
+            play_state = self.device.session_raw.get("PlayState", {})  # type: ignore[dict-item]
+            # The official Emby schema exposes ``IsShuffled`` as a boolean
+            # flag.  Fallback to *None* when the attribute is missing so that
+            # Home Assistant disables the UI control gracefully.
+            return play_state.get("IsShuffled")  # type: ignore[return-value]
+        except Exception:  # pragma: no cover – malformed payload
+            return None
+
+    @property  # type: ignore[override]
+    def repeat(self):  # type: ignore[override] – dynamic type depends on HA version
+        """Return current repeat mode as a *RepeatMode* enum when available.
+
+        Home Assistant 2024.11 introduced the public *RepeatMode* enum.  Older
+        versions still rely on the plain string constants
+        ``REPEAT_MODE_OFF/ONE/ALL``.  Import *RepeatMode* optimistically and
+        fall back to raw strings when unavailable so the integration remains
+        compatible with both release lines.
+        """
+
+        try:
+            from homeassistant.components.media_player.const import RepeatMode  # type: ignore
+
+            _HAS_REPEAT_ENUM = True
+        except ImportError:  # pragma: no cover – fallback for older HA
+            _HAS_REPEAT_ENUM = False
+
+        try:
+            play_state = self.device.session_raw.get("PlayState", {})  # type: ignore[dict-item]
+            repeat_raw: str | None = play_state.get("RepeatMode")
+            if repeat_raw is None:
+                return None
+
+            # Map Emby → HA identifiers
+            mapping = {
+                "RepeatNone": "off",
+                "RepeatAll": "all",
+                "RepeatOne": "one",
+            }
+            ha_mode = mapping.get(repeat_raw, None)
+            if ha_mode is None:
+                return None  # unexpected value – expose as unknown
+
+            if _HAS_REPEAT_ENUM:
+                return RepeatMode(ha_mode)  # type: ignore[call-arg]
+            return ha_mode  # str for legacy cores
+        except Exception:  # pragma: no cover – malformed payload / guard
+            return None
+
+    # ----------------------
+    # Service handlers
+    # ----------------------
+
+    async def async_set_shuffle(self, shuffle: bool) -> None:  # noqa: D401 – HA naming
+        """Enable or disable *shuffle* mode on the client."""
+
+        api = self._get_emby_api()
+        session_id = await self._resolve_session_id(api)
+        if not session_id:
+            from homeassistant.exceptions import HomeAssistantError
+
+            raise HomeAssistantError("Unable to determine active Emby session for shuffle control")
+
+        try:
+            await api.shuffle(session_id, shuffle)
+        except Exception as exc:  # noqa: BLE001 – any network / HTTP failure
+            from homeassistant.exceptions import HomeAssistantError
+
+            raise HomeAssistantError(f"Emby shuffle failed: {exc}") from exc
+
+        # Optimistic local update – websocket will confirm quickly.
+        self.async_write_ha_state()
+
+    async def async_set_repeat(self, repeat):  # type: ignore[override] – dynamic typing
+        """Set *repeat* mode on the client.
+
+        The *repeat* parameter can be either a :class:`RepeatMode` enum or the
+        corresponding string identifier ("off" / "one" / "all").  The helper
+        translates the value to Emby's expected *Repeat<Mode>* form.
+        """
+
+        try:
+            from homeassistant.components.media_player.const import RepeatMode  # type: ignore
+
+            if isinstance(repeat, RepeatMode):  # newer HA – enum instance
+                repeat_val: str = repeat.value  # type: ignore[assignment]
+            else:  # Accept plain strings for older cores / service data
+                repeat_val = str(repeat)
+        except ImportError:  # pragma: no cover – legacy HA path
+            repeat_val = str(repeat)
+
+        mapping = {
+            "off": "RepeatNone",
+            "all": "RepeatAll",
+            "one": "RepeatOne",
+        }
+        emby_mode = mapping.get(repeat_val.lower())
+        if emby_mode is None:
+            from homeassistant.exceptions import HomeAssistantError
+
+            raise HomeAssistantError(f"Invalid repeat mode: {repeat}")
+
+        api = self._get_emby_api()
+        session_id = await self._resolve_session_id(api)
+        if not session_id:
+            from homeassistant.exceptions import HomeAssistantError
+
+            raise HomeAssistantError("Unable to determine active Emby session for repeat control")
+
+        try:
+            await api.repeat(session_id, emby_mode)
+        except Exception as exc:  # noqa: BLE001
+            from homeassistant.exceptions import HomeAssistantError
+
+            raise HomeAssistantError(f"Emby repeat failed: {exc}") from exc
+
+        # Optimistic state update – websocket will update soon
         self.async_write_ha_state()
 
     async def async_media_play(self) -> None:
