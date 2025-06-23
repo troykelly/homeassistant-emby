@@ -701,8 +701,24 @@ class EmbyDevice(MediaPlayerEntity):
                 children=children,
             )
 
-        # Fetch metadata for the item to know whether it can expand.
-        item = await api.get_item(item_id)
+        # Fetch metadata for the item to know whether it can expand.  The
+        # *EmbyAPI.get_item* helper (introduced in v0.30) accepts an optional
+        # *user_id* keyword so it can fall back to the user-scoped Emby REST
+        # endpoint when the global variant does not expose the requested
+        # object (behaviour observed for TV shows – see GitHub issue #182).
+        #
+        # Earlier unit-test stubs still implement the *legacy* single-argument
+        # signature therefore we inspect the callable at runtime and only
+        # forward the *user_id* when the parameter is supported.  This keeps
+        # the public behaviour untouched while avoiding a blanket refactor of
+        # the extensive test-suite shipped with the repository.
+
+        import inspect  # local import – very cheap & avoids polluting module top
+
+        if "user_id" in inspect.signature(api.get_item).parameters:  # pragma: no cover – py311 signature caching
+            item = await api.get_item(item_id, user_id=user_id)
+        else:  # fallback for stubs / third-party overrides
+            item = await api.get_item(item_id)
         if item is None:
             raise HomeAssistantError("Emby item not found - the library may have changed")
 

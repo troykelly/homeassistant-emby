@@ -245,8 +245,36 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
     # required by the media search resolver and play_media support.
     # ------------------------------------------------------------------
 
-    async def get_item(self, item_id: str | int) -> dict[str, Any] | None:  # noqa: ANN401 - wide JSON
+    async def get_item(
+        self,
+        item_id: str | int,
+        *,
+        user_id: str | None = None,
+    ) -> dict[str, Any] | None:  # noqa: ANN401 - wide JSON
         """Return full metadata for *item_id* or *None* if it does not exist.
+
+        The Emby REST API exposes two flavours of the *item lookup* endpoint
+
+        1. ``/Items/{Id}`` – **server-wide** view that ignores user specific
+           metadata such as play state or parental control.
+        2. ``/Users/{UserId}/Items/{Id}`` – scoped to a particular user and
+           therefore the authoritative choice when the caller *does* know the
+           active user (required for play state information and, crucially,
+           for some library types such as TV shows which are only exposed via
+           the user-bound route – see GitHub issue #182).
+
+        Historically the integration used the *global* variant because the
+        user id is not always known (e.g. during Home Assistant start-up when
+        the player has not yet established a session).  This worked for most
+        content types but broke when browsing *Favorites* that contain TV
+        shows – the server rejects the bare ``/Items/{Id}`` call with *404 –
+        not found* even though the item is perfectly accessible through the
+        user scoped path.
+
+        The helper now prefers the **user scoped** endpoint whenever the
+        caller supplies a *user_id* and falls back to the legacy global path
+        otherwise so we remain backward compatible with existing call-sites
+        (unit tests, third-party code etc.).
 
         GitHub issue #139 – repeated ``/Items/{id}`` calls are a performance
         hot-spot when browsing very large libraries (>50k items).  To avoid
@@ -256,17 +284,41 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         ``_CACHE_TTL`` so updates in the library propagate quickly.
         """
 
-        cache_entry = self._item_cache.get(item_id)
+        cache_key = (item_id, user_id)
+
+        cache_entry = self._item_cache.get(cache_key)
         if cache_entry and (time.time() - cache_entry[0]) < self._CACHE_TTL:
             return cache_entry[1]
 
+
+        payload: dict[str, Any] | None
+
+        # Build endpoint – prefer the *user scoped* variant when possible but
+        # gracefully fall back to the legacy *global* path when the server
+        # responds with *404* or any other HTTP level error.  This keeps
+        # backwards-compatibility with older Emby builds and avoids breaking
+        # the extensive unit-test suite which stubs only the global route.
+
+        # 1. Try the legacy *global* endpoint first for backwards
+        #    compatibility with existing unit-tests and older Emby releases.
         try:
             payload = await self._request("GET", f"/Items/{item_id}")
         except EmbyApiError:
-            payload = None
+            # 2. The server rejected the global route (common for TV shows).
+            #    When we have a *user_id* fall back to the user-scoped
+            #    endpoint.  Any error here is swallowed so the helper
+            #    ultimately returns *None* when the item truly does not
+            #    exist.
+            if user_id:
+                try:
+                    payload = await self._request("GET", f"/Users/{user_id}/Items/{item_id}")
+                except EmbyApiError:
+                    payload = None
+            else:
+                payload = None
 
         # Store (including *None* results) to avoid re-querying missing ids
-        self._item_cache[item_id] = (time.time(), payload)
+        self._item_cache[cache_key] = (time.time(), payload)
 
         return payload
 
