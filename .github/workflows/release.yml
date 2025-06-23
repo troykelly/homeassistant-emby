@@ -65,6 +65,14 @@ jobs:
           skip-on-empty: true
           tag-prefix: 'v'
           git-branch: main
+          # The checkout action leaves the repository in a detached HEAD
+          # state when the workflow is triggered from a tag push.  The
+          # conventional-changelog action attempts a `git pull` immediately
+          # which fails because we are not on a branch yet.  Skipping the
+          # pull step avoids the failure – we explicitly fetch the full
+          # history above and will commit any CHANGELOG updates directly to
+          # `main` below.
+          skip-git-pull: true
 
       - name: 📦 Create integration zip
         run: |
