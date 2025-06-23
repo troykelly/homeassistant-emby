@@ -978,7 +978,10 @@ class EmbyDevice(MediaPlayerEntity):
 
         # Lazy imports for optional HA stubs ------------------------------
         from homeassistant.exceptions import HomeAssistantError
-        from homeassistant.components.media_player import SearchMedia, SearchMediaQuery  # noqa: WPS433 – runtime import is fine
+        from homeassistant.components.media_player.browse_media import (
+            SearchMedia,
+            SearchMediaQuery,
+        )  # noqa: WPS433 – runtime import is acceptable
 
         if not isinstance(query, SearchMediaQuery):  # defensive guard – keeps mypy & tests happy
             raise HomeAssistantError("Invalid query object passed to async_search_media")
