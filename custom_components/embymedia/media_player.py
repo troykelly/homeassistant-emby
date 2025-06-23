@@ -51,7 +51,7 @@ from enum import Enum
 
 try:
     # Home Assistant ≥2024.11
-    from homeassistant.components.media_player.const import MediaPlayerEnqueue as _HAEnqueue
+    from homeassistant.components.media_player.const import MediaPlayerEnqueue as _HAEnqueue  # type: ignore[attr-defined]
 
     MediaPlayerEnqueue = _HAEnqueue  # type: ignore[invalid-name]
 except (ImportError, AttributeError):  # pragma: no cover – fallback path
@@ -68,6 +68,9 @@ __all__: list[str] = [
     # public HA helpers
     "MediaPlayerEnqueue",
 ]
+# stdlib typing helpers -------------------------------------------------------
+from typing import Any
+
 from homeassistant.const import (
     CONF_API_KEY,
     CONF_HOST,
@@ -894,7 +897,8 @@ class EmbyDevice(MediaPlayerEntity):
         # voluptuous schema for validation while still supporting the new
         # keyword arguments.
 
-        payload = {
+        # Use *Any* for values so we can assign strings, bools and enums
+        payload: dict[str, Any] = {
             "media_type": media_type,
             "media_id": media_id,
         }
