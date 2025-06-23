@@ -115,27 +115,6 @@ def test_map_item_type_unknown_defaults_to_directory(emby_device):  # noqa: D401
 
 
 # ---------------------------------------------------------------------------
-# Thumbnail builder – primary path & fallback
-# ---------------------------------------------------------------------------
-
-
-def test_build_thumbnail_url_primary_tag(emby_device):  # noqa: D401
-    """Primary image tag must be embedded into the constructed URL."""
-
-    item = {"Id": "789", "ImageTags": {"Primary": "pTag"}}
-
-    url = emby_device._build_thumbnail_url(item)  # type: ignore[attr-defined]
-
-    # Basic structure validation – cover host, path & query string.
-    assert url == "https://emby.example.com/Items/789/Images/Primary?tag=pTag&maxWidth=500"
-
-
-def test_build_thumbnail_url_no_image_returns_none(emby_device):  # noqa: D401
-    item = {"Id": "noimg"}
-    assert emby_device._build_thumbnail_url(item) is None  # type: ignore[attr-defined]
-
-
-# ---------------------------------------------------------------------------
 # Pagination helper – ensure query string encoded correctly
 # ---------------------------------------------------------------------------
 

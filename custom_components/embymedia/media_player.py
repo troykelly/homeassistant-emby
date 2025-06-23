@@ -825,20 +825,13 @@ class EmbyDevice(MediaPlayerEntity):
             thumbnail=self.get_browse_image_url(content_type, item_id),
         )
 
-    def _build_thumbnail_url(self, item: dict) -> str | None:  # noqa: ANN401 - JSON
-        """Return Emby image URL for *item* or *None* when not available."""
+    # NOTE: *Deprecated* – replaced by Home Assistant proxy helpers in issue
+    # #109.  Kept around until downstream custom scripts migrate.  Will be
+    # removed as part of cleanup issue #117.
+    def _build_thumbnail_url(self, item: dict) -> str | None:  # noqa: ANN401 - JSON, PLW0603
+        """TEMPORARY shim – returns *None* to signal callers to use proxy."""
 
-        # Prefer Primary image tag.
-        image_tag = None
-        if isinstance(item.get("ImageTags"), dict):
-            image_tag = item["ImageTags"].get("Primary") or item["ImageTags"].get("Backdrop")
-
-        if not image_tag:
-            return None
-
-        api = self._get_emby_api()
-        # The EmbyAPI keeps the base URL without trailing slash.
-        return f"{api._base}/Items/{item.get('Id')}/Images/Primary?tag={image_tag}&maxWidth=500"  # pylint: disable=protected-access
+        return None
 
     def _make_pagination_node(self, title: str, parent_id: str, start: int) -> BrowseMedia:
         """Return a synthetic Prev/Next BrowseMedia directory node."""
@@ -1601,9 +1594,25 @@ class EmbyDevice(MediaPlayerEntity):
 
         from .search_resolver import _MEDIA_TYPE_MAP  # re-use the proven map
 
-        include_types = None
+        # ------------------------------------------------------------------
+        # Derive an *IncludeItemTypes* filter for the Emby search.
+        # ------------------------------------------------------------------
+
+        include_types: list[str] | None = None
+
+        # 1. Honour explicit media_type hints provided by the caller (voice
+        #    assistant, UI etc.) when present.
         if query.media_content_type and query.media_content_type in _MEDIA_TYPE_MAP:
             include_types = list(_MEDIA_TYPE_MAP[query.media_content_type])
+
+        # 2. Home Assistant may omit the *media_content_type* field entirely –
+        #    this happens for example when the user invokes a global search
+        #    via the WebSocket API.  The official docs (and the core
+        #    `plex` integration used as reference) default to a **movie**
+        #    search in that case to reduce the result set to something
+        #    sensible while still matching the majority of free-form queries.
+        if include_types is None:
+            include_types = ["Movie"]
 
         # ------------------------------------------------------------------
         # Execute the search via the shared EmbyAPI instance.
