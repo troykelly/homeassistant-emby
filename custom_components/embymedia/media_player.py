@@ -805,6 +805,17 @@ class EmbyDevice(MediaPlayerEntity):
             media_content_type=content_type,
             can_play=False,
             can_expand=True,
+            # When dealing with a *root* Emby view the collection is known to
+            # be *homogeneous* – e.g. the *Movies* library exclusively
+            # contains movie items.  Surfacing the common media class via the
+            # ``children_media_class`` attribute allows the Home Assistant
+            # frontend to render the correct icon immediately without issuing
+            # an additional network request for the first child entry.
+            #
+            # We deliberately omit the attribute for *generic* folders (where
+            # ``media_class`` resolves to *DIRECTORY*) as the contained items
+            # may differ in type causing the UI to mis-classify them.
+            children_media_class=(media_class if media_class is not MediaClass.DIRECTORY else None),
             thumbnail=self._build_thumbnail_url(item),
         )
 
