@@ -1594,9 +1594,25 @@ class EmbyDevice(MediaPlayerEntity):
 
         from .search_resolver import _MEDIA_TYPE_MAP  # re-use the proven map
 
-        include_types = None
+        # ------------------------------------------------------------------
+        # Derive an *IncludeItemTypes* filter for the Emby search.
+        # ------------------------------------------------------------------
+
+        include_types: list[str] | None = None
+
+        # 1. Honour explicit media_type hints provided by the caller (voice
+        #    assistant, UI etc.) when present.
         if query.media_content_type and query.media_content_type in _MEDIA_TYPE_MAP:
             include_types = list(_MEDIA_TYPE_MAP[query.media_content_type])
+
+        # 2. Home Assistant may omit the *media_content_type* field entirely –
+        #    this happens for example when the user invokes a global search
+        #    via the WebSocket API.  The official docs (and the core
+        #    `plex` integration used as reference) default to a **movie**
+        #    search in that case to reduce the result set to something
+        #    sensible while still matching the majority of free-form queries.
+        if include_types is None:
+            include_types = ["Movie"]
 
         # ------------------------------------------------------------------
         # Execute the search via the shared EmbyAPI instance.
