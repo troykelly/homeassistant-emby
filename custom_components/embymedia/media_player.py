@@ -963,15 +963,46 @@ class EmbyDevice(MediaPlayerEntity):
         # ------------------------------------------------------------------
 
         if media_image_id and "://" in media_image_id:
-            from homeassistant.exceptions import HomeAssistantError
+            # Raising the error directly is safe because *HomeAssistantError*
+            # is imported at module level.  Importing the symbol inside this
+            # conditional would shadow the global binding and confuse static
+            # analysis (Pyright would flag it as potentially unbound on code
+            # paths that do **not** execute the branch).  Rely on the global
+            # import instead.
 
             raise HomeAssistantError("media_image_id must not be a URL")
 
         # ------------------------------------------------------------------
-        # Construct the Emby artwork URL – we intentionally skip resolving
-        # the *tag* query parameter as Emby will happily serve the latest
-        # cached image without it.  Passing the explicit *tag* would require
-        # an *additional* REST round-trip (*/Items/<id>) which is avoided for
+        # media_source:// fallback – delegate to the core helper before we
+        # attempt to build an Emby specific URL.  This allows automations or
+        # UI flows that mix and match items from different sources to work
+        # transparently (GitHub issue #136).
+        # ------------------------------------------------------------------
+
+        if is_media_source_id(media_content_id):
+            # The media_source helper requires a valid Home Assistant context.
+            # Guard against accidental early calls during entity set-up.
+            if self.hass is None:  # pragma: no cover – defensive path
+                raise HomeAssistantError("media_source browsing requires Home Assistant context")
+
+            # *async_get_browse_image* is available starting with Home
+            # Assistant 2024.6.  The typing stubs shipped with older Core
+            # versions do not expose the helper which trips up Pyright’s
+            # *reportAttributeAccessIssue* check.  The runtime implementation
+            # is present in all supported versions, therefore we silence the
+            # warning for static analysis.
+
+            return await ha_media_source.async_get_browse_image(  # type: ignore[attr-defined]
+                self.hass,
+                media_content_id,
+                media_image_id,
+            )
+
+        # ------------------------------------------------------------------
+        # Construct the Emby artwork URL – we intentionally skip resolving the
+        # *tag* query parameter as Emby will happily serve the latest cached
+        # image without it.  Passing the explicit *tag* would require an
+        # *additional* REST round-trip (*/Items/<id>) which is avoided for
         # performance reasons.
         # ------------------------------------------------------------------
 
@@ -990,8 +1021,6 @@ class EmbyDevice(MediaPlayerEntity):
         # propagate a standard Home Assistant error so the frontend can show
         # a placeholder icon instead of breaking the entire browse request.
         if image_bytes is None:
-            from homeassistant.exceptions import HomeAssistantError
-
             raise HomeAssistantError("Unable to retrieve artwork from Emby server")
 
         return image_bytes, content_type

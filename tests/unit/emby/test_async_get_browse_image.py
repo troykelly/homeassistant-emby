@@ -97,3 +97,51 @@ async def test_async_get_browse_image_reject_malicious_id(monkeypatch):  # noqa:
             "xyz",
             media_image_id="https://evil.invalid/logo.png",
         )
+
+# ---------------------------------------------------------------------------
+# media-source:// path – must be delegated to core helper (#136)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio()
+async def test_async_get_browse_image_media_source(monkeypatch):  # noqa: D401
+    """Ensure *media_source* paths are delegated and Emby fetch is skipped."""
+
+    dev = _make_emby_device(monkeypatch)
+
+    # Guard – _async_fetch_image **must not** be called for media-source IDs.
+    def _fail(_url):  # noqa: D401 – helper
+        raise AssertionError("_async_fetch_image must not be called for media-source IDs")
+
+    monkeypatch.setattr(dev, "_async_fetch_image", _fail)
+
+    # Stub *media_source.async_get_browse_image* to track invocation.
+    from types import SimpleNamespace
+
+    calls: list[tuple] = []
+
+    async def _fake_media_source_get_image(hass, media_content_id, media_image_id=None):  # noqa: D401 – stub
+        calls.append((hass, media_content_id, media_image_id))
+        return b"src-bytes", "image/png"
+
+    # The helper lives on the imported alias inside the integration module.
+    import custom_components.embymedia.media_player as mp
+
+    monkeypatch.setattr(
+        mp.ha_media_source,
+        "async_get_browse_image",
+        _fake_media_source_get_image,
+        raising=False,  # create the attribute when it does not yet exist
+    )
+
+    # Provide a dummy Home Assistant instance – only argument propagation is verified.
+    dev.hass = SimpleNamespace(name="dummy-ha")
+
+    img_bytes, mime_type = await dev.async_get_browse_image(
+        "image",  # media_content_type – ignored by the helper
+        "media-source://camera/light.jpg",
+    )
+
+    assert img_bytes == b"src-bytes" and mime_type == "image/png"
+    # Ensure the stub was invoked exactly once with expected parameters.
+    assert len(calls) == 1 and calls[0][1] == "media-source://camera/light.jpg"
