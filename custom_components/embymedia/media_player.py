@@ -511,6 +511,32 @@ class EmbyDevice(MediaPlayerEntity):
 
 
         # --------------------------------------------------------------
+        # Home Assistant passes ``media_content_type`` and
+        # ``media_content_id`` *concatenated* in the second parameter when
+        # routing *BrowseMedia* websocket calls – the value therefore looks
+        # like ``"tvshow,emby://<id>"`` rather than a plain ``emby://`` URI.
+        #
+        # Older Home Assistant versions (and several unit-tests within this
+        # repository) still call the helper with a *bare* URI.  Normalise the
+        # incoming parameters so that downstream logic can assume
+        # ``media_content_id`` contains a pure Emby identifier.
+        #
+        # GitHub issue #132 tracks the bug.
+        # --------------------------------------------------------------
+
+        if media_content_id and "," in media_content_id:
+            possible_type, possible_id = media_content_id.split(",", 1)
+
+            # Only treat the string as *combined* when the suffix clearly
+            # carries an Emby or media-source URI.  This guards against edge
+            # cases where a legitimate identifier may contain a comma (very
+            # unlikely but defensive coding costs little).
+            if possible_id.startswith("emby://") or possible_id.startswith("media-source://"):
+                if not media_content_type:
+                    media_content_type = possible_type
+                media_content_id = possible_id
+
+        # --------------------------------------------------------------
         # Home Assistant *media_source* fallback (issue #28)
         # --------------------------------------------------------------
 
