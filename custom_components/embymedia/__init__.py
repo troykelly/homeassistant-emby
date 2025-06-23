@@ -11,4 +11,10 @@ submodules (e.g. *media_player*).  The docstring exists primarily to satisfy
 """
 
 # Apply runtime shim – safe no-op on older environments.
-from . import _pyemby_compat  # noqa: F401  pylint: disable=unused-import
+# Import solely for its side-effects (monkey-patching pyemby).  Suppress the
+# *unused import* diagnostic for both Pyright and pylint/flake8.
+#
+# pyright: ignore[reportUnusedImport]
+# noqa: F401
+# pylint: disable=unused-import
+from . import _pyemby_compat as _  # type: ignore

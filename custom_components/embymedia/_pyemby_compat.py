@@ -20,8 +20,12 @@ the method with an ``async with`` variant works across all releases.
 
 from __future__ import annotations
 
-from types import ModuleType
-from typing import Any, Awaitable, Callable
+# pyright: reportUnusedImport=false, reportGeneralTypeIssues=false
+
+# Only *Any* is needed for typing hints below – import directly to avoid
+# *unused import* diagnostics for the other helpers.
+
+from typing import Any
 
 
 def _patch_pyemby_timeout() -> None:
