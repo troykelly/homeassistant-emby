@@ -125,6 +125,9 @@ async def test_async_search_media_integration(http_stub, emby_device):  # noqa: 
     assert len(search_result.result) == 2
     assert search_result.result[0].title == "The Matrix"
 
+    # At least one result must be *playable* as per spec.
+    assert any(child.can_play for child in search_result.result)
+
     # Confirm a single GET /Items call recorded with correct params.
     items_calls = [c for c in http_stub.calls if c[1] == "/Items"]
     assert len(items_calls) == 1
