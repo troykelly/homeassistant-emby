@@ -85,5 +85,29 @@ def test_supported_features_updates_on_capability_change(emby_device):  # noqa: 
     emby_device.async_update_callback({})  # type: ignore[arg-type]
 
     from custom_components.embymedia.media_player import SUPPORT_EMBY
+    assert emby_device.supported_features == SUPPORT_EMBY
 
     assert emby_device.supported_features == SUPPORT_EMBY
+
+    # ------------------------------------------------------------------
+    # Additional explicit checks for new capability flags (issue #108)
+    # ------------------------------------------------------------------
+
+    # Verify that the extended feature mask now includes browse, search,
+    # enqueue and announce capabilities when available in the running Core.
+
+    optional_flags = [
+        getattr(MediaPlayerEntityFeature, name, MediaPlayerEntityFeature(0))
+        for name in (
+            "BROWSE_MEDIA",
+            "SEARCH_MEDIA",
+            "MEDIA_ENQUEUE",
+            "MEDIA_ANNOUNCE",
+        )
+    ]
+
+    # All optional flags that exist in the current Home Assistant installation
+    # must be set in the computed feature mask.
+    for flag in optional_flags:
+        if flag != MediaPlayerEntityFeature(0):
+            assert emby_device.supported_features & flag == flag

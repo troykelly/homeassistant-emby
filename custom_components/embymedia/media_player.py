@@ -238,6 +238,28 @@ SUPPORT_EMBY = (
         if hasattr(MediaPlayerEntityFeature, "TURN_OFF")
         else MediaPlayerEntityFeature(0)
     )
+    # Issue #108 – expose browse, search, enqueue & announce capabilities so
+    # the Home Assistant UI renders the Media panel and related controls.
+    | (
+        MediaPlayerEntityFeature.BROWSE_MEDIA
+        if hasattr(MediaPlayerEntityFeature, "BROWSE_MEDIA")
+        else MediaPlayerEntityFeature(0)
+    )
+    | (
+        MediaPlayerEntityFeature.SEARCH_MEDIA
+        if hasattr(MediaPlayerEntityFeature, "SEARCH_MEDIA")
+        else MediaPlayerEntityFeature(0)
+    )
+    | (
+        MediaPlayerEntityFeature.MEDIA_ENQUEUE
+        if hasattr(MediaPlayerEntityFeature, "MEDIA_ENQUEUE")
+        else MediaPlayerEntityFeature(0)
+    )
+    | (
+        MediaPlayerEntityFeature.MEDIA_ANNOUNCE
+        if hasattr(MediaPlayerEntityFeature, "MEDIA_ANNOUNCE")
+        else MediaPlayerEntityFeature(0)
+    )
 )
 
 PLATFORM_SCHEMA = MEDIA_PLAYER_PLATFORM_SCHEMA.extend(
