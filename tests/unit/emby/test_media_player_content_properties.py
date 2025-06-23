@@ -75,6 +75,9 @@ def test_media_content_id_passthrough(emby_device):  # noqa: D401
         ("Video", "video"),
         ("Audio", "music"),
         ("TvChannel", "channel"),
+        ("Recording", "video"),
+        ("RecordingSeries", "directory"),
+        ("BoxSet", "directory"),
         ("Unknown", None),
     ],
 )

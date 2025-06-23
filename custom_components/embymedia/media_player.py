@@ -143,6 +143,17 @@ _ITEM_TYPE_MAP: dict[str, tuple[MediaClass, str, bool, bool]] = {
     "TvChannel": (MediaClass.CHANNEL, "channel", True, False),
     "Trailer": (MediaClass.VIDEO, "video", True, False),
     "Video": (MediaClass.VIDEO, "video", True, False),
+
+    # Live-TV recording types – surfaced via the *Live TV* section in Emby.
+    # A *Recording* represents a single, directly playable file while
+    # *RecordingSeries* groups multiple recordings under the same schedule.
+    #
+    # BoxSet is Emby’s term for a curated collection of movies or shows.  It
+    # behaves like a folder from the user’s perspective.
+
+    "Recording": (MediaClass.VIDEO, "recording", True, False),
+    "RecordingSeries": (MediaClass.DIRECTORY, "recording_series", False, True),
+    "BoxSet": (MediaClass.DIRECTORY, "boxset", False, True),
 }
 
 # Fallback mapping for library / root views where `CollectionType` is returned
@@ -1014,6 +1025,12 @@ class EmbyDevice(MediaPlayerEntity):
             return MediaType.MUSIC
         if media_type == "TvChannel":
             return MediaType.CHANNEL
+        if media_type == "Recording":
+            return MediaType.VIDEO
+        if media_type == "RecordingSeries":
+            return "directory"
+        if media_type == "BoxSet":
+            return "directory"
         return None
 
     @property  # pyright: ignore[override]
