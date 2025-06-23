@@ -137,8 +137,17 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         # stays negligible and changes in the library become visible almost
         # immediately when the user navigates back.
 
-        # Keyed by ``item_id`` – stores ``(timestamp, payload)``.
-        self._item_cache: dict[str | int, tuple[float, dict[str, Any] | None]] = {}
+        # Keyed by ``(item_id, user_id)`` – stores ``(timestamp, payload)``.
+        #
+        # The optional *user_id* is part of the key because the Emby server
+        # may return **different** play-state metadata and access
+        # permissions for the same *ItemId* depending on the requesting
+        # user (e.g. parental controls).  Treating the pair as one logical
+        # identifier keeps the cache safe while still eliminating redundant
+        # HTTP round-trips when the same client walks the browse hierarchy.
+        self._item_cache: dict[
+            tuple[str | int, str | None], tuple[float, dict[str, Any] | None]
+        ] = {}
 
         # Caches for virtual *Resume* / *Favorites* directory helpers added
         # for GitHub issue #78.  The payloads are small but we still keep a
@@ -464,6 +473,66 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
             raise EmbyApiError("Unexpected payload from Favorites query – expected JSON object")
 
         self._favorites_cache[cache_key] = (time.time(), payload)
+        return payload
+
+    # ------------------------------------------------------------------
+    # Issue #161 – helper for library *directory* pagination
+    # ------------------------------------------------------------------
+
+    async def get_user_items(
+        self,
+        user_id: str,
+        *,
+        parent_id: str | int | None = None,
+        start_index: int = 0,
+        limit: int = 100,
+        force_refresh: bool = False,
+    ) -> dict[str, Any]:  # noqa: ANN401 – JSON payload
+        """Return a slice of items for *user_id* optionally scoped by *parent_id*.
+
+        The method wraps Emby's generic ``/Users/{id}/Items`` endpoint which
+        powers many UI listings.  It is primarily used by the media browsing
+        fallback path (GitHub issue #161) when an item identifier represents
+        a *library root* that is **not** available through ``/Items/{id}``.
+
+        Parameters
+        ----------
+        user_id
+            Emby user to scope the query to.
+        parent_id
+            Optional *ParentId* filter – when supplied the server returns the
+            direct children of the given container.  When *None* the query
+            spans the entire library.
+        start_index, limit
+            Pagination parameters mirroring the REST API fields.  The helper
+            imposes no additional constraints and forwards the values as
+            provided so callers can retrieve arbitrary slices.
+        force_refresh
+            Bypass the short-lived in-memory cache even when the key is still
+            considered valid.  This exists mainly for unit-tests that need
+            deterministic control over HTTP traffic.
+        """
+
+        cache_key = (parent_id or "__root__", start_index, limit, user_id)
+        cached = self._children_cache.get(cache_key)
+        if not force_refresh and cached and (time.time() - cached[0]) < self._CACHE_TTL:
+            return cached[1]
+
+        params: dict[str, str] = {
+            "StartIndex": str(start_index),
+            "Limit": str(limit),
+        }
+        if parent_id is not None:
+            params["ParentId"] = str(parent_id)
+
+        payload = await self._request("GET", f"/Users/{user_id}/Items", params=params)
+
+        if not isinstance(payload, dict):
+            raise EmbyApiError("Unexpected payload from /Items query – expected JSON object")
+
+        # Re-use the *children* cache because the semantics are identical – a
+        # tuple of (timestamp, payload) keyed by all pagination parameters.
+        self._children_cache[cache_key] = (time.time(), payload)
         return payload
 
     # ------------------------------------------------------------------
