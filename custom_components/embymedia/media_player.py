@@ -206,6 +206,13 @@ SUPPORT_EMBY = (
     | MediaPlayerEntityFeature.SEEK
     | MediaPlayerEntityFeature.PLAY
     | MediaPlayerEntityFeature.PLAY_MEDIA
+    # Issue #75 – expose volume & mute controls when the target device
+    # supports Emby's remote-control API.  The flags are included in the
+    # *base* capability mask so that the existing initialisation logic can
+    # continue to apply the constant wholesale based on
+    # ``device.supports_remote_control``.
+    | MediaPlayerEntityFeature.VOLUME_SET
+    | MediaPlayerEntityFeature.VOLUME_MUTE
 )
 
 PLATFORM_SCHEMA = MEDIA_PLAYER_PLATFORM_SCHEMA.extend(
@@ -832,6 +839,86 @@ class EmbyDevice(MediaPlayerEntity):
         return {
             "emby_session_id": self._current_session_id,
         }
+
+    # ------------------------------------------------------------------
+    # Volume & mute support (GitHub issue #75)
+    # ------------------------------------------------------------------
+
+    @property  # type: ignore[override]
+    def volume_level(self) -> float | None:  # noqa: D401 – HA naming convention
+        """Return the current volume level (0.0 – 1.0) if reported by Emby.
+
+        The Emby *session* payload exposes ``VolumeLevel`` as an **integer
+        percentage** (0–100) nested under the ``PlayState`` object.  When the
+        attribute is unavailable (older server, unsupported client, idle
+        session …) the helper returns *None* so Home Assistant can gracefully
+        disable the volume slider.
+        """
+
+        try:
+            play_state = self.device.session_raw.get("PlayState", {})  # type: ignore[dict-item]
+            vol_pct = play_state.get("VolumeLevel")
+            if vol_pct is None:
+                return None
+            # Clamp & normalise – defensive against bad data.
+            vol_pct = max(0, min(100, int(vol_pct)))
+            return vol_pct / 100.0
+        except Exception:  # pragma: no cover – any malformed payload treated as unknown
+            return None
+
+    @property  # type: ignore[override]
+    def is_volume_muted(self) -> bool | None:  # noqa: D401 – HA naming convention
+        """Return *True* when the client is muted (if known)."""
+
+        try:
+            play_state = self.device.session_raw.get("PlayState", {})  # type: ignore[dict-item]
+            return play_state.get("IsMuted")  # type: ignore[return-value]
+        except Exception:  # pragma: no cover – malformed payload
+            return None
+
+    async def async_set_volume_level(self, volume: float) -> None:
+        """Set the absolute *volume* on the client.
+
+        Home Assistant guarantees ``volume`` is between 0.0 and 1.0.  The
+        helper converts the value to the percentage format required by Emby
+        and relays it via :pyclass:`custom_components.embymedia.api.EmbyAPI`.
+        """
+
+        api = self._get_emby_api()
+        session_id = await self._resolve_session_id(api)
+        if not session_id:
+            from homeassistant.exceptions import HomeAssistantError
+
+            raise HomeAssistantError("Unable to determine active Emby session for volume control")
+
+        try:
+            await api.set_volume(session_id, volume)
+        except Exception as exc:  # noqa: BLE001 – wrap all network/HTTP failures
+            from homeassistant.exceptions import HomeAssistantError
+
+            raise HomeAssistantError(f"Emby volume_set failed: {exc}") from exc
+
+        # Optimistic state update – websocket will confirm shortly.
+        self.async_write_ha_state()
+
+    async def async_mute_volume(self, mute: bool) -> None:
+        """Toggle mute state on the target client."""
+
+        api = self._get_emby_api()
+        session_id = await self._resolve_session_id(api)
+        if not session_id:
+            from homeassistant.exceptions import HomeAssistantError
+
+            raise HomeAssistantError("Unable to determine active Emby session for mute control")
+
+        try:
+            await api.mute(session_id, mute)
+        except Exception as exc:  # noqa: BLE001
+            from homeassistant.exceptions import HomeAssistantError
+
+            raise HomeAssistantError(f"Emby mute failed: {exc}") from exc
+
+        self.async_write_ha_state()
 
     async def async_media_play(self) -> None:
         """Play media."""
