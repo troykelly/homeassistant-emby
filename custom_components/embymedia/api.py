@@ -118,6 +118,28 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
             tuple[str | int, int, int, str | None], tuple[float, dict[str, Any]]
         ] = {}
 
+        # ------------------------------------------------------------------
+        # Lightweight *item* cache – GitHub issue #139
+        # ------------------------------------------------------------------
+        # ``/Items/{Id}`` look-ups occur frequently while building the
+        # *BrowseMedia* tree because the integration has to ask Emby whether
+        # a given object can **expand** (directory) or **play** (leaf).  On a
+        # large library this results in hundreds of small REST calls which
+        # quickly add up to noticeable latency.
+        #
+        # A *very small* in-memory cache (keyed by the identifier only) is
+        # sufficient to eliminate the duplicate round-trips that happen
+        # during a single browse request chain – Home Assistant never issues
+        # concurrent requests for different users, therefore we can reuse
+        # the same payload safely.
+        #
+        # The entries are short-lived (``_CACHE_TTL`` seconds) so memory usage
+        # stays negligible and changes in the library become visible almost
+        # immediately when the user navigates back.
+
+        # Keyed by ``item_id`` – stores ``(timestamp, payload)``.
+        self._item_cache: dict[str | int, tuple[float, dict[str, Any] | None]] = {}
+
         # Caches for virtual *Resume* / *Favorites* directory helpers added
         # for GitHub issue #78.  The payloads are small but we still keep a
         # short-lived cache to avoid hammering the Emby HTTP API when users
@@ -226,16 +248,27 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
     async def get_item(self, item_id: str | int) -> dict[str, Any] | None:  # noqa: ANN401 - wide JSON
         """Return full metadata for *item_id* or *None* if it does not exist.
 
-        The call wraps the simple `/Items/{Id}` endpoint.  The method does **not**
-        raise when the item is not found - it returns *None* allowing callers
-        to fall back to alternative lookup strategies.
+        GitHub issue #139 – repeated ``/Items/{id}`` calls are a performance
+        hot-spot when browsing very large libraries (>50k items).  To avoid
+        hammering the Emby server we maintain an **ephemeral** in-memory cache
+        that is consulted before a network request is issued.  The cache is
+        deliberately small (keyed solely by *item_id*) and obeys the global
+        ``_CACHE_TTL`` so updates in the library propagate quickly.
         """
 
+        cache_entry = self._item_cache.get(item_id)
+        if cache_entry and (time.time() - cache_entry[0]) < self._CACHE_TTL:
+            return cache_entry[1]
+
         try:
-            return await self._request("GET", f"/Items/{item_id}")
+            payload = await self._request("GET", f"/Items/{item_id}")
         except EmbyApiError:
-            # 404 or other errors -> treat as not-found
-            return None
+            payload = None
+
+        # Store (including *None* results) to avoid re-querying missing ids
+        self._item_cache[item_id] = (time.time(), payload)
+
+        return payload
 
     # ------------------------------------------------------------------
     # New helpers - used by media browsing implementation (issue #26)
