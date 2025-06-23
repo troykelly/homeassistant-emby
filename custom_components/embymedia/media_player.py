@@ -719,8 +719,79 @@ class EmbyDevice(MediaPlayerEntity):
             item = await api.get_item(item_id, user_id=user_id)
         else:  # fallback for stubs / third-party overrides
             item = await api.get_item(item_id)
+        # --------------------------------------------------------------
+        # Fallback for *library roots* where `/Items/{id}` is not exposed.
+        # --------------------------------------------------------------
+
         if item is None:
-            raise HomeAssistantError("Emby item not found - the library may have changed")
+            # Some library containers (e.g. *Movies* / *TV Shows*) are *views*
+            # only addressable through the *user scoped* `/Items` listing and
+            # therefore do **not** resolve via `/Items/{id}` at all.  Treat
+            # such ids as *generic directories* and obtain children through
+            # the broader `/Users/{user}/Items?ParentId=` endpoint (issue
+            # #167).
+
+            # Retrieve user *views* (libraries) so we can determine whether
+            # *item_id* actually represents a *library root* (e.g. *Movies*,
+            # *TV Shows*).  Only in that case do we attempt the *expensive*
+            # `/Users/{user}/Items` query.  This mirrors the original error
+            # handling expectations exercised by
+            # *tests/integration/emby/test_browse_media_hierarchy.py* where an
+            # **unknown** identifier is meant to raise *HomeAssistantError*
+            # **without** hitting additional REST endpoints.
+
+            views_meta = await api.get_user_views(user_id)
+
+            matched_view = next((v for v in views_meta if str(v.get("Id")) == item_id), None)
+
+            # Item truly does not exist → propagate error so the UI shows red
+            # banner – this path intentionally avoids the *user items* lookup
+            # to keep the failure response lightweight and to maintain
+            # backwards-compatibility with existing test-stubs that do not
+            # implement the endpoint (see GitHub issue #161).
+            if matched_view is None:
+                raise HomeAssistantError("Emby item not found - the library may have changed")
+
+            # ----------------------------------------------------------
+            # Valid library root – fetch children slice for pagination.
+            # ----------------------------------------------------------
+
+            slice_payload = await api.get_user_items(
+                user_id,
+                parent_id=item_id,
+                start_index=start_idx,
+                limit=_PAGE_SIZE,
+            )
+
+            child_items: list[dict] = slice_payload.get("Items", []) if isinstance(slice_payload, dict) else []
+            total_count: int = (
+                slice_payload.get("TotalRecordCount", len(child_items)) if isinstance(slice_payload, dict) else len(child_items)
+            )
+
+            children = [self._emby_item_to_browse(child) for child in child_items]
+
+            if start_idx > 0:
+                prev_start = max(0, start_idx - _PAGE_SIZE)
+                children.insert(0, self._make_pagination_node("← Prev", item_id, prev_start))
+
+            if (start_idx + _PAGE_SIZE) < total_count:
+                next_start = start_idx + _PAGE_SIZE
+                children.append(self._make_pagination_node("Next →", item_id, next_start))
+
+            media_class, content_type = _COLLECTION_TYPE_MAP.get(
+                matched_view.get("CollectionType", "folder"),
+                (MediaClass.DIRECTORY, "directory"),
+            )
+
+            return BrowseMedia(
+                title=matched_view.get("Name", "Emby Directory"),
+                media_class=media_class,
+                media_content_id=media_content_id,
+                media_content_type=content_type,
+                can_play=False,
+                can_expand=True,
+                children=children,
+            )
 
         media_class, content_type, can_play, can_expand = self._map_item_type(item)
 
