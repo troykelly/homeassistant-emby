@@ -825,20 +825,13 @@ class EmbyDevice(MediaPlayerEntity):
             thumbnail=self.get_browse_image_url(content_type, item_id),
         )
 
-    def _build_thumbnail_url(self, item: dict) -> str | None:  # noqa: ANN401 - JSON
-        """Return Emby image URL for *item* or *None* when not available."""
+    # NOTE: *Deprecated* – replaced by Home Assistant proxy helpers in issue
+    # #109.  Kept around until downstream custom scripts migrate.  Will be
+    # removed as part of cleanup issue #117.
+    def _build_thumbnail_url(self, item: dict) -> str | None:  # noqa: ANN401 - JSON, PLW0603
+        """TEMPORARY shim – returns *None* to signal callers to use proxy."""
 
-        # Prefer Primary image tag.
-        image_tag = None
-        if isinstance(item.get("ImageTags"), dict):
-            image_tag = item["ImageTags"].get("Primary") or item["ImageTags"].get("Backdrop")
-
-        if not image_tag:
-            return None
-
-        api = self._get_emby_api()
-        # The EmbyAPI keeps the base URL without trailing slash.
-        return f"{api._base}/Items/{item.get('Id')}/Images/Primary?tag={image_tag}&maxWidth=500"  # pylint: disable=protected-access
+        return None
 
     def _make_pagination_node(self, title: str, parent_id: str, start: int) -> BrowseMedia:
         """Return a synthetic Prev/Next BrowseMedia directory node."""
