@@ -31,11 +31,43 @@ from homeassistant.components.media_player import (
     PLATFORM_SCHEMA as MEDIA_PLAYER_PLATFORM_SCHEMA,
     MediaPlayerEntity,
 )
+# -----------------------------------------------------------------------------
+# Home Assistant *media_player* constants & helpers
+# -----------------------------------------------------------------------------
+
 from homeassistant.components.media_player.const import (
     MediaPlayerEntityFeature,
     MediaPlayerState,
     MediaType,
 )
+
+# ``MediaPlayerEnqueue`` was added to Home Assistant 2024.11.  Older Core
+# releases (and therefore CI environments pinned to earlier versions) do not
+# expose the enum yet.  Import it when available and fall back to a *local*
+# poly-fill that mimics the public interface so the integration remains
+# compatible with both old and new versions.
+
+from enum import Enum
+
+try:
+    # Home Assistant ≥2024.11
+    from homeassistant.components.media_player.const import MediaPlayerEnqueue as _HAEnqueue
+
+    MediaPlayerEnqueue = _HAEnqueue  # type: ignore[invalid-name]
+except (ImportError, AttributeError):  # pragma: no cover – fallback path
+
+    class MediaPlayerEnqueue(str, Enum):  # type: ignore[override] – local shim
+        """Minimal replacement that reflects the official Core enum values."""
+
+        PLAY = "play"
+        NEXT = "next"
+        ADD = "add"
+
+# Re-export for *mypy/pyright* consumers – the alias is always defined.
+__all__: list[str] = [
+    # public HA helpers
+    "MediaPlayerEnqueue",
+]
 from homeassistant.const import (
     CONF_API_KEY,
     CONF_HOST,
@@ -124,15 +156,25 @@ _COLLECTION_TYPE_MAP: dict[str, tuple[MediaClass, str]] = {
 # **kwargs.  We build a small voluptuous schema so the integration fails fast
 # and with useful error messages when mis-used.
 
+# The play_media service passes a **service data** dictionary which ends up in
+# ``**kwargs`` when Home Assistant calls :py:meth:`async_play_media`.  The
+# schema below validates this dictionary for *backwards-compatibility* –
+# callers invoking the method directly should use the new keyword parameters
+# instead.
+
+# Supported values for *enqueue*:
+# * bool – legacy flag (*True*  → queue after current, *False* → play now)
+# * str  – one of the new enum identifiers ("play", "next", "add")
+
+_ENQUEUE_SCHEMA = vol.Any(cv.boolean, vol.In([e.value for e in MediaPlayerEnqueue]))
+
 PLAY_MEDIA_SCHEMA = vol.Schema(
     {
         vol.Required("media_type"): cv.string,
         vol.Required("media_id"): cv.string,
-        # When *enqueue* is true the item will be queued *after* the current
-        # one rather than interrupting playback immediately.
-        vol.Optional("enqueue", default=False): cv.boolean,
-        # Optional start position in **seconds** - will be converted to Emby
-        # ticks (100 ns units) internally.
+        vol.Optional("enqueue"): _ENQUEUE_SCHEMA,
+        vol.Optional("announce"): cv.boolean,
+        # Optional start position in **seconds** – translated to Emby ticks
         vol.Optional("position"): vol.All(cv.positive_int, vol.Range(min=0)),
     },
     extra=vol.ALLOW_EXTRA,
@@ -820,6 +862,9 @@ class EmbyDevice(MediaPlayerEntity):
         self,
         media_type: str | None,
         media_id: str,
+        *,
+        enqueue: MediaPlayerEnqueue | bool | str | None = None,
+        announce: bool | None = None,
         **kwargs,
     ) -> None:  # noqa: D401 - verbatim HA signature
         """Handle the *play_media* service call for this entity.
@@ -840,16 +885,65 @@ class EmbyDevice(MediaPlayerEntity):
         # 1. Merge fixed params with **kwargs and validate.
         # ------------------------------------------------------------------
 
-        payload = {"media_type": media_type, "media_id": media_id}
-        payload.update(kwargs or {})
+        # ------------------------------------------------------------------
+        # 0. Merge *service data* payload (kwargs) for compatibility.
+        # ------------------------------------------------------------------
+
+        # Home Assistant passes any additional service data into **kwargs**.
+        # Combine it with the explicit parameters so we can reuse the existing
+        # voluptuous schema for validation while still supporting the new
+        # keyword arguments.
+
+        payload = {
+            "media_type": media_type,
+            "media_id": media_id,
+        }
+        # Prefer explicit parameters over **kwargs**
+        if enqueue is not None:
+            payload["enqueue"] = enqueue
+        elif "enqueue" in kwargs:
+            payload["enqueue"] = kwargs["enqueue"]
+
+        if announce is not None:
+            payload["announce"] = announce
+        elif "announce" in kwargs:
+            payload["announce"] = kwargs["announce"]
+
+        # Position is still supplied via service data only.
+        if "position" in kwargs:
+            payload["position"] = kwargs["position"]
 
         try:
             validated = PLAY_MEDIA_SCHEMA(payload)
         except vol.Invalid as exc:
             raise HomeAssistantError(f"Invalid play_media payload: {exc}") from exc
 
-        enqueue: bool = validated["enqueue"]
+        raw_enqueue = validated.get("enqueue")
+        announce_flag: bool = validated.get("announce", False)
         position: int | None = validated.get("position")
+
+        # ------------------------------------------------------------------
+        # Normalise *enqueue* → MediaPlayerEnqueue | None
+        # ------------------------------------------------------------------
+
+        enqueue_enum: MediaPlayerEnqueue | None = None
+
+        if raw_enqueue is None:
+            enqueue_enum = None
+        elif isinstance(raw_enqueue, MediaPlayerEnqueue):
+            enqueue_enum = raw_enqueue
+        elif isinstance(raw_enqueue, bool):
+            # Legacy flag – True → NEXT; False acts as omitted / play now
+            enqueue_enum = MediaPlayerEnqueue.NEXT if raw_enqueue else None
+        elif isinstance(raw_enqueue, str):
+            try:
+                enqueue_enum = MediaPlayerEnqueue(raw_enqueue)
+            except ValueError as exc:
+                raise HomeAssistantError(
+                    f"Invalid enqueue value '{raw_enqueue}' – expected one of {[e.value for e in MediaPlayerEnqueue]}"
+                ) from exc
+        else:  # pragma: no cover – schema should have blocked this
+            raise HomeAssistantError("Unsupported type for 'enqueue' parameter")
 
         # ------------------------------------------------------------------
         # 2. Resolve to a concrete Emby item.
@@ -887,7 +981,23 @@ class EmbyDevice(MediaPlayerEntity):
         # 4. Trigger playback.
         # ------------------------------------------------------------------
 
-        play_command = "PlayNext" if enqueue else "PlayNow"
+        if announce_flag:
+            play_command = "PlayAnnouncement"
+        else:
+            if enqueue_enum is None or enqueue_enum == MediaPlayerEnqueue.PLAY:
+                play_command = "PlayNow"
+            else:
+                # Map enum → Emby command.  According to the Emby REST docs
+                # valid values are PlayNow, PlayNext, PlayLast, PlayInstantMix
+                # and PlayShuffle.
+
+                if enqueue_enum == MediaPlayerEnqueue.NEXT:
+                    play_command = "PlayNext"
+                elif enqueue_enum == MediaPlayerEnqueue.ADD:
+                    play_command = "PlayLast"
+                else:  # pragma: no cover – defensive fallback
+                    play_command = "PlayNext"
+
         start_ticks: int | None = None
         if position is not None:
             start_ticks = position * 10_000_000  # seconds -> 100 ns ticks

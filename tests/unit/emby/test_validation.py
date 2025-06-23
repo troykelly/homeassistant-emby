@@ -12,7 +12,9 @@ def test_schema_accepts_minimal_payload():
 
     data = {"media_type": "movie", "media_id": "some-id"}
     validated = PLAY_MEDIA_SCHEMA(data)
-    assert validated == {"media_type": "movie", "media_id": "some-id", "enqueue": False}
+    # Legacy default for *enqueue* has been removed – minimal payload should
+    # round-trip unchanged.
+    assert validated == {"media_type": "movie", "media_id": "some-id"}
 
 
 @pytest.mark.parametrize(
@@ -21,7 +23,7 @@ def test_schema_accepts_minimal_payload():
         {},  # missing everything
         {"media_type": "movie"},  # missing id
         {"media_id": "abc"},  # missing type
-        {"media_type": "movie", "media_id": "x", "enqueue": "maybe"},  # unparseable bool
+        {"media_type": "movie", "media_id": "x", "enqueue": "maybe"},  # invalid string value
         {"media_type": "movie", "media_id": "x", "position": -5},  # negative seek
     ],
 )
