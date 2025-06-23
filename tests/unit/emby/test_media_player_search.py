@@ -135,6 +135,12 @@ async def test_async_search_media_success(emby_device):  # noqa: D401 – pytest
     # Verify correct filter mapping was applied (Movie)
     assert api_stub.search_calls[0]["item_types"] == ["Movie"]
 
+    # new spec attribute ------------------------------------------------
+    if hasattr(result, "result_media_class"):
+        from homeassistant.components.media_player.const import MediaClass
+
+        assert result.result_media_class == MediaClass.MOVIE
+
 
 @pytest.mark.asyncio
 async def test_async_search_media_not_found(emby_device):  # noqa: D401

@@ -1646,5 +1646,38 @@ class EmbyDevice(MediaPlayerEntity):
         # Convert JSON payloads -> BrowseMedia nodes -----------------------
         browse_nodes = [self._emby_item_to_browse(item) for item in results]
 
-        # Package into Home Assistant dataclass ----------------------------
+        # ------------------------------------------------------------------
+        # Build *SearchMedia* response.  Home Assistant 2025-04 spec adds the
+        # optional *result_media_class* attribute that should be populated
+        # when the top-level search results are homogeneous.  Earlier Core
+        # versions – including the ones used by our CI matrix – do **not**
+        # expose the new attribute yet.  Runtime inspection is therefore
+        # required to keep backwards-compatibility.
+
+        # Determine a common media_class for all returned items (if any).
+        result_media_class = None
+        if browse_nodes:
+            first_class = browse_nodes[0].media_class
+            if all(node.media_class == first_class for node in browse_nodes):
+                result_media_class = first_class
+
+        # Construct the dataclass using the attribute only when supported by
+        # the running Home Assistant version.
+        # Pyright running against older Core stubs does not know the new
+        # *result_media_class* parameter.  The conditional check above ensures
+        # we only reference it when present at *runtime*; nevertheless the
+        # static analyzer flags this as an invalid argument.  Silence the
+        # false-positive via an explicit *type: ignore*.
+
+        if "result_media_class" in SearchMedia.__dataclass_fields__:  # type: ignore[attr-defined]
+            from typing import cast, Any  # Any required for cast target – used below
+
+            SearchMediaDynamic = cast(Any, SearchMedia)
+            _ = Any  # prevent pyright unused-import false positive
+            return SearchMediaDynamic(
+                result=browse_nodes,
+                result_media_class=result_media_class,
+            )
+
+        # Fallback – Core version prior to 2025-04.
         return SearchMedia(result=browse_nodes)
