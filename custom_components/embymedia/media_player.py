@@ -348,13 +348,14 @@ class EmbyDevice(MediaPlayerEntity):
         #   we can set it once.
         self._attr_name = f"Emby {self.device.name}" if self.device.name else DEVICE_DEFAULT_NAME
 
-        # * Feature flags only depend on whether the target device supports
-        #   Emby's remote-control API which is a static capability.  Capture
-        #   the information up-front so we do not need a dedicated property
-        #   override anymore.
-        self._attr_supported_features = (
-            SUPPORT_EMBY if self.device.supports_remote_control else MediaPlayerEntityFeature(0)
-        )
+        # Feature flags depend on the *current* capabilities reported by the
+        # Emby client.  They may change while Home Assistant is running (for
+        # example when the user disables the "Allow remote control" toggle in
+        # the Emby settings).  Compute the initial mask via the shared helper
+        # so we can reuse the same logic every time the payload updates – see
+        # GitHub issue #88.
+
+        self._update_supported_features()
 
         # Expose availability via the standard dynamic attribute so callers
         # can still toggle it through *set_available()*.
@@ -372,6 +373,13 @@ class EmbyDevice(MediaPlayerEntity):
         # Always capture the latest session id provided by pyemby so external
         # helpers can request it on-demand.
         self._current_session_id = self.device.session_id
+        # Refresh feature flags *before* we propagate the state update so the
+        # UI always reflects the latest capabilities.  The helper performs an
+        # internal *no-op* when the mask remains unchanged to avoid
+        # unnecessary entity registry churn.
+
+        self._update_supported_features()
+
         # Check if we should update progress
         if self.device.media_position:
             if self.device.media_position != self.media_status_last_position:
@@ -383,6 +391,28 @@ class EmbyDevice(MediaPlayerEntity):
             self.media_status_received = None
 
         self.async_write_ha_state()
+
+    # ---------------------------------------------------------------------
+    # Private helpers – dynamic feature handling (GitHub issue #88)
+    # ---------------------------------------------------------------------
+
+    def _update_supported_features(self) -> None:
+        """Recalculate *supported_features* based on current capabilities.
+
+        The method compares the freshly computed mask with the attribute’s
+        previous value and only updates it when a change is detected to avoid
+        needless entity state churn.  Callers must ensure
+        :pyfunc:`async_write_ha_state` is invoked afterwards when a change
+        should be propagated to Home Assistant.
+        """
+
+        new_mask: MediaPlayerEntityFeature = (
+            SUPPORT_EMBY if getattr(self.device, "supports_remote_control", False) else MediaPlayerEntityFeature(0)
+        )
+
+        # Assign when different so Home Assistant can pick up the change.
+        if new_mask != getattr(self, "_attr_supported_features", None):
+            self._attr_supported_features = new_mask
 
     # ---------------------------------------------------------------------
     # Public helper - session id mapping (used by play_media helper)
