@@ -1062,3 +1062,98 @@ class EmbyDevice(MediaPlayerEntity):
                 return self._current_session_id
 
         return None
+
+    # ------------------------------------------------------------------
+    # Home Assistant – media search implementation (issue #74)
+    # ------------------------------------------------------------------
+
+    async def async_search_media(self, query):  # type: ignore[override]
+        """Handle the global media search request.
+
+        The Home Assistant UI and voice assistants forward a
+        :class:`homeassistant.components.media_player.SearchMediaQuery`
+        instance containing the raw *search text* and optional content
+        filters.  The integration must respond with a
+        :class:`homeassistant.components.media_player.SearchMedia` data
+        structure wrapping one or more :class:`BrowseMedia` entries that the
+        caller can subsequently *play* or *expand*.
+
+        The implementation purposefully re-uses the existing lightweight
+        lookup helpers to stay consistent with ``async_play_media``:
+
+        1. Convert the Home Assistant *media_type* filter (when supplied) to
+           the corresponding Emby *ItemType* list using the mapping from
+           ``components.emby.search_resolver``.
+        2. Execute a single ``/Items`` query via :class:`components.emby.api.EmbyAPI`.
+        3. Wrap the resulting list (may be empty) into ``BrowseMedia`` nodes
+           using the same private helpers employed by the browsing feature so
+           UI presentation stays uniform.
+        """
+
+        # Lazy imports for optional HA stubs ------------------------------
+        from homeassistant.exceptions import HomeAssistantError
+        from homeassistant.components.media_player.browse_media import (
+            SearchMedia,
+            SearchMediaQuery,
+        )  # noqa: WPS433 – runtime import is acceptable
+
+        if not isinstance(query, SearchMediaQuery):  # defensive guard – keeps mypy & tests happy
+            raise HomeAssistantError("Invalid query object passed to async_search_media")
+
+        search_term: str = query.search_query.strip()
+        if not search_term:
+            raise HomeAssistantError("Empty search query")
+
+        # ------------------------------------------------------------------
+        # Determine Emby *IncludeItemTypes* filter from HA *media_type*.
+        # ------------------------------------------------------------------
+
+        from .search_resolver import _MEDIA_TYPE_MAP  # re-use the proven map
+
+        include_types = None
+        if query.media_content_type and query.media_content_type in _MEDIA_TYPE_MAP:
+            include_types = list(_MEDIA_TYPE_MAP[query.media_content_type])
+
+        # ------------------------------------------------------------------
+        # Execute the search via the shared EmbyAPI instance.
+        # ------------------------------------------------------------------
+
+        api = self._get_emby_api()
+
+        # Attempt to respect parental control by forwarding the active Emby
+        # *UserId* whenever we can derive it from the current session.
+        user_id: str | None = None
+        session_raw = getattr(self.device, "session_raw", None)
+        if isinstance(session_raw, dict):
+            user_id = session_raw.get("UserId")
+
+        # Fallback – refresh sessions list when we have no user attached yet.
+        if not user_id:
+            try:
+                sessions = await api.get_sessions(force_refresh=True)
+            except Exception:  # noqa: BLE001 – surfaced later
+                sessions = []
+
+            for sess in sessions:
+                if sess.get("DeviceId") in (self.device_id, getattr(self.device, "unique_id", None)):
+                    user_id = sess.get("UserId")
+                    break
+
+        try:
+            results = await api.search(
+                search_term=search_term,
+                item_types=include_types,
+                user_id=user_id,
+                limit=5,
+            )
+        except Exception as exc:  # noqa: BLE001 – wrap generically
+            raise HomeAssistantError(f"Error during Emby search: {exc}") from exc
+
+        if not results:
+            raise HomeAssistantError("No matching items found")
+
+        # Convert JSON payloads -> BrowseMedia nodes -----------------------
+        browse_nodes = [self._emby_item_to_browse(item) for item in results]
+
+        # Package into Home Assistant dataclass ----------------------------
+        return SearchMedia(result=browse_nodes)
