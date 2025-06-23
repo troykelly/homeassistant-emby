@@ -103,7 +103,12 @@ from homeassistant.components.media_player.const import MediaClass
 # tests may inject a stub implementation via *sys.modules* before importing
 # this integration module.
 
+# Home Assistant *media_source* helpers – used for fallback browsing paths
+# and to detect *media-source://* identifiers in a robust way (replaces the
+# previous manual string check).
+
 from homeassistant.components import media_source as ha_media_source  # noqa: WPS433 - runtime import is acceptable
+from homeassistant.components.media_source import is_media_source_id
 
 from urllib.parse import urlparse, parse_qs, urlencode
 
@@ -485,7 +490,7 @@ class EmbyDevice(MediaPlayerEntity):
         # Home Assistant *media_source* fallback (issue #28)
         # --------------------------------------------------------------
 
-        if media_content_id and media_content_id.startswith("media-source://"):
+        if media_content_id and is_media_source_id(media_content_id):
             # Delegate the request - Home Assistant core handles all built-in
             # libraries (TTS, local media, etc.).  We purposefully pass *None*
             # for the *entity_id* parameter because the current integration
@@ -535,9 +540,43 @@ class EmbyDevice(MediaPlayerEntity):
 
         if not media_content_id:  # root browse
             views = await api.get_user_views(user_id)
-            children: list[BrowseMedia] = [
-                self._emby_view_to_browse(item) for item in views
-            ]
+
+            # GitHub issue #78 – prepend *virtual* directories for Resume &
+            # Favorites so users can quickly access their personal lists.
+
+            children: list[BrowseMedia] = []
+
+            # Existing libraries first to keep the original ordering relied on
+            # by unit-tests and to avoid breaking user muscle-memory.
+            children.extend(self._emby_view_to_browse(item) for item in views)
+
+            # Append virtual folders.  We *always* expose them even when the
+            # underlying list may be empty because Emby will happily return
+            # an empty collection which the UI renders gracefully.
+
+            children.append(
+                BrowseMedia(
+                    title="Continue Watching",
+                    media_class=MediaClass.DIRECTORY,
+                    media_content_id=f"{_EMBY_URI_SCHEME}://resume",
+                    media_content_type="directory",
+                    can_play=False,
+                    can_expand=True,
+                    thumbnail=None,
+                )
+            )
+
+            children.append(
+                BrowseMedia(
+                    title="Favorites",
+                    media_class=MediaClass.DIRECTORY,
+                    media_content_id=f"{_EMBY_URI_SCHEME}://favorites",
+                    media_content_type="directory",
+                    can_play=False,
+                    can_expand=True,
+                    thumbnail=None,
+                )
+            )
 
             # Assemble the root node
             return BrowseMedia(
@@ -556,6 +595,50 @@ class EmbyDevice(MediaPlayerEntity):
         # ------------------------------------------------------------------
 
         item_id, start_idx = self._parse_emby_uri(media_content_id)
+
+        # ------------------------------------------------------------------
+        # Virtual directories – *resume* & *favorites*
+        # ------------------------------------------------------------------
+
+        if item_id in ("resume", "favorites"):
+            if item_id == "resume":
+                slice_payload = await api.get_resume_items(
+                    user_id,
+                    start_index=start_idx,
+                    limit=_PAGE_SIZE,
+                )
+                title = "Continue Watching"
+            else:  # "favorites"
+                slice_payload = await api.get_favorite_items(
+                    user_id,
+                    start_index=start_idx,
+                    limit=_PAGE_SIZE,
+                )
+                title = "Favorites"
+
+            child_items: list[dict] = slice_payload.get("Items", []) if isinstance(slice_payload, dict) else []
+            total_count: int = slice_payload.get("TotalRecordCount", len(child_items)) if isinstance(slice_payload, dict) else len(child_items)
+
+            children = [self._emby_item_to_browse(child) for child in child_items]
+
+            # Pagination nodes same logic as regular directories
+            if start_idx > 0:
+                prev_start = max(0, start_idx - _PAGE_SIZE)
+                children.insert(0, self._make_pagination_node("← Prev", item_id, prev_start))
+
+            if (start_idx + _PAGE_SIZE) < total_count:
+                next_start = start_idx + _PAGE_SIZE
+                children.append(self._make_pagination_node("Next →", item_id, next_start))
+
+            return BrowseMedia(
+                title=title,
+                media_class=MediaClass.DIRECTORY,
+                media_content_id=media_content_id,
+                media_content_type="directory",
+                can_play=False,
+                can_expand=True,
+                children=children,
+            )
 
         # Fetch metadata for the item to know whether it can expand.
         item = await api.get_item(item_id)

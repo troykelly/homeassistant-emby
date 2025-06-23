@@ -118,6 +118,17 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
             tuple[str | int, int, int, str | None], tuple[float, dict[str, Any]]
         ] = {}
 
+        # Caches for virtual *Resume* / *Favorites* directory helpers added
+        # for GitHub issue #78.  The payloads are small but we still keep a
+        # short-lived cache to avoid hammering the Emby HTTP API when users
+        # repeatedly open and close the browse pane in the Home Assistant UI.
+
+        # Keyed by `(user_id, start_index, limit)`
+        self._resume_cache: dict[tuple[str, int, int], tuple[float, dict[str, Any]]] = {}
+
+        # Keyed by `(user_id, start_index, limit)`
+        self._favorites_cache: dict[tuple[str, int, int], tuple[float, dict[str, Any]]] = {}
+
         _LOGGER.debug("Initialised EmbyAPI for %s", self._base)
 
     # ---------------------------------------------------------------------
@@ -284,6 +295,75 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
 
         # Cache & return
         self._children_cache[cache_key] = (time.time(), payload)
+        return payload
+
+    # ------------------------------------------------------------------
+    # Issue #78 – additional library helpers for *Resume* and *Favorites*
+    # ------------------------------------------------------------------
+
+    async def get_resume_items(
+        self,
+        user_id: str,
+        *,
+        start_index: int = 0,
+        limit: int = 100,
+        force_refresh: bool = False,
+    ) -> dict[str, Any]:  # noqa: ANN401 – JSON payload
+        """Return the *Continue Watching* list for *user_id*.
+
+        The Emby REST API exposes the data via ``/Users/{id}/Items/Resume``.
+        The payload structure matches the generic ``/Items`` response therefore
+        the helper returns it **verbatim** so callers can reuse existing
+        parsing logic.
+        """
+
+        cache_key = (user_id, start_index, limit)
+        cached = self._resume_cache.get(cache_key)
+        if not force_refresh and cached and (time.time() - cached[0]) < self._CACHE_TTL:
+            return cached[1]
+
+        params = {
+            "StartIndex": str(start_index),
+            "Limit": str(limit),
+        }
+
+        payload = await self._request("GET", f"/Users/{user_id}/Items/Resume", params=params)
+
+        if not isinstance(payload, dict):
+            raise EmbyApiError("Unexpected payload from Resume endpoint – expected JSON object")
+
+        self._resume_cache[cache_key] = (time.time(), payload)
+        return payload
+
+    async def get_favorite_items(
+        self,
+        user_id: str,
+        *,
+        start_index: int = 0,
+        limit: int = 100,
+        force_refresh: bool = False,
+    ) -> dict[str, Any]:  # noqa: ANN401 – JSON payload
+        """Return the *Favorites* list for *user_id*."""
+
+        cache_key = (user_id, start_index, limit)
+        cached = self._favorites_cache.get(cache_key)
+        if not force_refresh and cached and (time.time() - cached[0]) < self._CACHE_TTL:
+            return cached[1]
+
+        params = {
+            "StartIndex": str(start_index),
+            "Limit": str(limit),
+            "IsFavorite": "true",
+            "Recursive": "true",
+            "SortBy": "SortName",
+        }
+
+        payload = await self._request("GET", f"/Users/{user_id}/Items", params=params)
+
+        if not isinstance(payload, dict):
+            raise EmbyApiError("Unexpected payload from Favorites query – expected JSON object")
+
+        self._favorites_cache[cache_key] = (time.time(), payload)
         return payload
 
     # ------------------------------------------------------------------

@@ -193,9 +193,12 @@ async def test_root_browse_returns_views(emby_device):  # noqa: D401 – pytest 
     assert result.can_play is False
     assert result.can_expand is True
 
-    # Two libraries expected
+    # Two libraries + 2 virtual directories expected (Resume, Favorites)
     assert result.children is not None
-    assert len(result.children) == 2
+    assert len(result.children) == 4
+
+    # The integration keeps the original library order, therefore the first
+    # two children are the libraries registered by the fixture.
 
     first_child = result.children[0]
     assert first_child.title == "Movies"
