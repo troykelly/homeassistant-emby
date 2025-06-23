@@ -32,6 +32,18 @@ __all__ = [
     "EmbyAPI",
 ]
 
+# -----------------------------------------------------------------------------
+# NOTE: Additional helper methods added for GitHub issue #79 – they expose
+# commonly used remote-control commands (volume, mute, shuffle, repeat and
+# power management) required by upcoming Home Assistant media-player features.
+#
+# The public wrappers funnel into the private `_post_session_command()` utility
+# which POSTs to `/Sessions/{id}/Command` with a request body that follows the
+# `GeneralCommand` schema described by the Emby OpenAPI spec.  Keeping the
+# implementation generic avoids a proliferation of near-duplicate HTTP helpers
+# while retaining a strongly-typed public surface.
+# -----------------------------------------------------------------------------
+
 
 class EmbyApiError(RuntimeError):
     """Raised for *http level* errors received from Emby."""
@@ -273,6 +285,82 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         # Cache & return
         self._children_cache[cache_key] = (time.time(), payload)
         return payload
+
+    # ------------------------------------------------------------------
+    # Issue #79 – additional remote-control helpers
+    # ------------------------------------------------------------------
+
+    async def set_volume(self, session_id: str, volume_level: float) -> None:
+        """Set *absolute* volume on a client.
+
+        `volume_level` follows Home Assistant convention – a float between
+        0.0 and 1.0.  Values are clamped to that range and translated to a
+        percentage as expected by Emby's *VolumeSet* command.
+        """
+
+        volume_pct = max(0, min(1, volume_level)) * 100  # clamp & convert
+        await self._post_session_command(
+            session_id,
+            "VolumeSet",
+            {"Volume": str(int(round(volume_pct)))},
+        )
+
+    async def mute(self, session_id: str, mute: bool) -> None:
+        """Toggle mute state on *session_id*."""
+
+        await self._post_session_command(
+            session_id,
+            "Mute",
+            {"Mute": "true" if mute else "false"},
+        )
+
+    async def shuffle(self, session_id: str, shuffle: bool) -> None:
+        """Enable or disable shuffle mode."""
+
+        await self._post_session_command(
+            session_id,
+            "Shuffle",
+            {"Shuffle": "true" if shuffle else "false"},
+        )
+
+    async def repeat(self, session_id: str, mode: str) -> None:
+        """Set repeat *mode* – one of ``RepeatNone``, ``RepeatAll``, ``RepeatOne``."""
+
+        if mode not in {"RepeatNone", "RepeatAll", "RepeatOne"}:
+            raise ValueError("Invalid repeat mode")
+
+        await self._post_session_command(
+            session_id,
+            "Repeat",
+            {"Mode": mode},
+        )
+
+    async def power_state(self, session_id: str, turn_on: bool) -> None:
+        """Power on/off the target client (best-effort)."""
+
+        await self._post_session_command(
+            session_id,
+            "DisplayOn" if turn_on else "Standby",
+        )
+
+    # ------------------------------------------------------------------
+    # Internal helpers – not part of the public surface
+    # ------------------------------------------------------------------
+
+    async def _post_session_command(
+        self,
+        session_id: str,
+        name: str,
+        arguments: dict[str, str] | None = None,
+    ) -> None:
+        """Send a *GeneralCommand* payload to `/Sessions/{id}/Command`."""
+
+        payload = {
+            "Name": name,
+            "Arguments": arguments or {},
+        }
+
+        await self._request("POST", f"/Sessions/{session_id}/Command", json=payload)
 
     # ------------------------------------------------------------------
     # Internal utilities
