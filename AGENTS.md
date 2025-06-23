@@ -32,6 +32,9 @@ You are `codex`, an autonomous development assistant with the following responsi
 
 All code is written in Python, unless otherwise specified.
 
+**A Note On Your Memeory**: Your memory is more than likely outdated and wrong. Home Assistant runs on Python 3.13. Emby has a fully featured API that is documented in the `docs/emby/openapi.json` file. You are expected to use this API to interact with Emby.
+Look up information - use URL's provided by the user, or in the dcumentation, or use the Google Programmable Search API to find information. Do not assume you know the answer. You do not _KNOW_ the answer, you must look it up.
+
 ---
 
 ## 🌐 Available Resources

@@ -212,8 +212,8 @@ _LOGGER = logging.getLogger(__name__)
 MEDIA_TYPE_TRAILER = "trailer"
 
 DEFAULT_HOST = "localhost"
-DEFAULT_PORT = 8096
-DEFAULT_SSL_PORT = 8920
+DEFAULT_PORT = 80
+DEFAULT_SSL_PORT = 443
 DEFAULT_SSL = False
 
 SUPPORT_EMBY = (
@@ -587,8 +587,24 @@ class EmbyDevice(MediaPlayerEntity):
         user_id: str | None = self.device.session_raw.get("UserId")
         if not user_id:
             sessions = await api.get_sessions(force_refresh=True)
+
+            # Normalise the *pyemby* device identifier – the library appends
+            # the *Client* name to the raw *DeviceId* ("<id>.<Client>") while
+            # the REST `/Sessions` payload strips that suffix.  Compare both
+            # the full string **and** the bare prefix so we reliably match
+            # regardless of the formatting differences.  GitHub issue #176.
+
+            this_dev_prefix = self.device_id.split(".", 1)[0]
             for sess in sessions:
-                if sess.get("DeviceId") in (self.device_id, getattr(self.device, "unique_id", None)):
+                sess_dev_id = sess.get("DeviceId")
+                if not sess_dev_id:
+                    continue
+
+                if sess_dev_id in (
+                    self.device_id,
+                    getattr(self.device, "unique_id", None),
+                    this_dev_prefix,
+                ):
                     user_id = sess.get("UserId")
                     break
 
@@ -815,12 +831,30 @@ class EmbyDevice(MediaPlayerEntity):
         # Expandable directory - fetch children slice.
         # ------------------------------------------------------------------
 
-        slice_payload = await api.get_item_children(
-            item_id,
-            user_id=user_id,
-            start_index=start_idx,
-            limit=_PAGE_SIZE,
-        )
+        # Fetch children – some *library root* ids fail with 404 when routed
+        # through the generic ``/Items/{id}/Children`` endpoint even though a
+        # metadata lookup via ``/Items/{id}`` succeeds (behaviour observed
+        # on Emby 4.8 for *Movies* / *TV Shows* top-level containers).  When
+        # this happens we transparently fall back to the *user-scoped*
+        # ``/Users/{id}/Items`` query which always works.  GitHub issue #176.
+
+        from custom_components.embymedia.api import EmbyApiError  # local import to avoid circular
+
+        try:
+            slice_payload = await api.get_item_children(
+                item_id,
+                user_id=user_id,
+                start_index=start_idx,
+                limit=_PAGE_SIZE,
+            )
+        except EmbyApiError:
+            # Fallback – treat *item_id* as *ParentId* under the user scope.
+            slice_payload = await api.get_user_items(
+                user_id,
+                parent_id=item_id,
+                start_index=start_idx,
+                limit=_PAGE_SIZE,
+            )
 
         # Extract children & total count - defend against edge cases.
         child_items: list[dict] = slice_payload.get("Items", []) if isinstance(slice_payload, dict) else []
