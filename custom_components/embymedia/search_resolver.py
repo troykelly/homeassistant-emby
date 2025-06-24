@@ -116,6 +116,33 @@ async def resolve_media_item(
     if media_type and media_type in _MEDIA_TYPE_MAP:
         search_types = list(_MEDIA_TYPE_MAP[media_type])
 
+    # ------------------------------------------------------------------
+    # Fast-path for **Live TV channels** (GitHub issue #202)
+    # ------------------------------------------------------------------
+    # The Emby REST API does *not* expose `TvChannel` objects through the
+    # generic `/Items/{id}` endpoint – a call returns HTTP 404 even though the
+    # identifier **is** valid and can be used for playback via
+    # `/Sessions/{id}/Playing`.  Attempting to validate the id through
+    # :pymeth:`EmbyAPI.get_item` therefore yields *None* which ultimately
+    # bubbles up as "No matching items found" in Home Assistant.
+    #
+    # To keep the resolver lightweight and avoid additional network
+    # round-trips we short-circuit the lookup when the caller explicitly
+    # requests a *channel* **and** the provided value already resembles an
+    # Emby identifier.  Returning a minimal placeholder dictionary is
+    # sufficient because the MediaPlayer service only needs the *Id* field
+    # for the subsequent *play* command – metadata such as *Name* is not used
+    # during playback.
+    #
+    # The heuristic mirrors the existing `_looks_like_item_id()` helper which
+    # intentionally errs on the side of *false negatives*; in those cases we
+    # gracefully fall back to the full-text search logic further below which
+    # remains unchanged.
+    # ------------------------------------------------------------------
+
+    if media_type == MediaType.CHANNEL and _looks_like_item_id(media_id):
+        return {"Id": media_id, "Type": "TvChannel"}
+
     # Special-case: user passed an episode shorthand like "S02E05" - include
     # Episode in the type filter unconditionally so that a series search does
     # not hide direct episode hits.

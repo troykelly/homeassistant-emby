@@ -748,6 +748,35 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
                     return await resp.json()
                 return await resp.text()
         except ClientResponseError as exc:
+            # ----------------------------------------------------------------
+            # Heuristic fallback – some public Emby instances (including the
+            # hosted test server used by the CI suite) expose the entire HTTP
+            # API under the **/emby/** sub-path.  When the base path constructed
+            # from *host*/*port* returns *404* we transparently retry the same
+            # request with the prefix so callers do not have to hard-code the
+            # non-standard root in their *EMBY_URL* environment variable.
+            #
+            # The retry is *safe* because it only triggers on *404 Not Found*
+            # and when the original *path* does *not* already include the
+            # namespace.  All other error codes (401, 500, …) are surfaced as
+            # :class:`EmbyApiError` without modification.
+            # ----------------------------------------------------------------
+
+            if exc.status == 404 and not path.startswith("/emby/"):
+                alt_url = f"{self._base}/emby{path}"
+                _LOGGER.debug("Retrying Emby request against /emby prefix: %s", alt_url)
+                try:
+                    async with self._session.request(method, alt_url, **kwargs) as resp2:
+                        resp2.raise_for_status()
+                        if resp2.content_type == "application/json":
+                            return await resp2.json()
+                        return await resp2.text()
+                except ClientResponseError as exc2:
+                    _LOGGER.warning(
+                        "Emby API error after /emby retry [%s] %s", exc2.status, exc2.message
+                    )
+                    raise EmbyApiError(str(exc2)) from exc2
+
             _LOGGER.warning("Emby API error [%s] %s", exc.status, exc.message)
             raise EmbyApiError(str(exc)) from exc
         except ClientError as exc:  # network error
