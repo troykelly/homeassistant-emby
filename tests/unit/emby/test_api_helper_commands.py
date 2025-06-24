@@ -52,7 +52,7 @@ async def test_set_volume_sends_correct_json(monkeypatch, input_level, expected_
 
     payload = call["json"]
     assert payload["Name"] == "VolumeSet"
-    assert payload["Arguments"]["Volume"] == str(expected_pct)
+    assert payload["Arguments"]["Volume"] == expected_pct
 
 
 # ---------------------------------------------------------------------------
@@ -61,8 +61,8 @@ async def test_set_volume_sends_correct_json(monkeypatch, input_level, expected_
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mute_flag,expected_str", [(True, "true"), (False, "false")])
-async def test_mute_command(monkeypatch, mute_flag, expected_str):
+@pytest.mark.parametrize("mute_flag", [True, False])
+async def test_mute_command(monkeypatch, mute_flag):
     recorder = _Recorder()
     api = EmbyAPI(None, host="emby", api_key="k", session=SimpleNamespace())
     monkeypatch.setattr(api, "_request", recorder)  # type: ignore[attr-defined]
@@ -71,7 +71,7 @@ async def test_mute_command(monkeypatch, mute_flag, expected_str):
 
     payload = recorder.calls[0]["json"]
     assert payload["Name"] == "Mute"
-    assert payload["Arguments"]["Mute"] == expected_str
+    assert payload["Arguments"]["Mute"] is mute_flag
 
 
 # ---------------------------------------------------------------------------
