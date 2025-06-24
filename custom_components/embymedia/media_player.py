@@ -780,14 +780,28 @@ class EmbyDevice(MediaPlayerEntity):
 
             # ----------------------------------------------------------
             # Valid library root – fetch children slice for pagination.
+            #
+            # Special case *Live TV* which is **not** exposed via the generic
+            # `/Users/{user}/Items` endpoint.  The server instead provides a
+            # dedicated `/LiveTv/Channels` route returning `TvChannel` items.
+            # Falling back to the *generic* endpoint results in a confusing
+            # mix of unrelated objects (most notably *artists*) – exactly the
+            # bug tracked in GitHub issue #202.
             # ----------------------------------------------------------
 
-            slice_payload = await api.get_user_items(
-                user_id,
-                parent_id=item_id,
-                start_index=start_idx,
-                limit=_PAGE_SIZE,
-            )
+            if matched_view.get("CollectionType", "").lower() == "livetv":
+                slice_payload = await api.get_live_tv_channels(
+                    user_id,
+                    start_index=start_idx,
+                    limit=_PAGE_SIZE,
+                )
+            else:
+                slice_payload = await api.get_user_items(
+                    user_id,
+                    parent_id=item_id,
+                    start_index=start_idx,
+                    limit=_PAGE_SIZE,
+                )
 
             child_items: list[dict] = slice_payload.get("Items", []) if isinstance(slice_payload, dict) else []
             total_count: int = (
