@@ -547,20 +547,36 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         percentage as expected by Emby's *VolumeSet* command.
         """
 
-        volume_pct = max(0, min(1, volume_level)) * 100  # clamp & convert
+        # Clamp `volume_level` to the valid Home-Assistant range (0–1) then
+        # convert it to the 0-100 percentage expected by Emby.  **Important**:
+        # Emby interprets the JSON *value type* – not just the lexical content.
+        # Passing the number inside a **string** (as the previous
+        # implementation did) results in the command being silently ignored
+        # by many clients (see GitHub issue #190).
+        #
+        # The argument therefore **must** be an *integer* to guarantee cross
+        #-client compatibility.
+        volume_pct: int = int(round(max(0, min(1, volume_level)) * 100))
+
         await self._post_session_command(
             session_id,
             "VolumeSet",
-            {"Volume": str(int(round(volume_pct)))},
+            {"Volume": volume_pct},
         )
 
     async def mute(self, session_id: str, mute: bool) -> None:
         """Toggle mute state on *session_id*."""
 
+        # Similar to *VolumeSet* above Emby evaluates the **actual JSON data
+        # type**.  The integration previously sent the boolean flag encoded as
+        # the strings "true"/"false" leading to the *un-mute* operation being
+        # dropped by the server.  The fix is to transmit a **native** boolean
+        # value.
+
         await self._post_session_command(
             session_id,
             "Mute",
-            {"Mute": "true" if mute else "false"},
+            {"Mute": mute},
         )
 
     async def shuffle(self, session_id: str, shuffle: bool) -> None:
@@ -600,7 +616,7 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         self,
         session_id: str,
         name: str,
-        arguments: dict[str, str] | None = None,
+        arguments: dict[str, str | int | bool] | None = None,
     ) -> None:
         """Send a *GeneralCommand* payload to `/Sessions/{id}/Command`."""
 
