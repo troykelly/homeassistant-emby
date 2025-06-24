@@ -75,6 +75,19 @@ media_player:
 
 Reload the `media_player` platform or restart Home Assistant for the changes to take effect.
 
+#### Configuration parameters
+
+| Key       | Required | Default | Description                                                |
+|-----------|----------|---------|------------------------------------------------------------|
+| `host`    | ✔ (UI) / YAML | `localhost` | IP address or hostname of your Emby server.               |
+| `api_key` | ✔        | –       | Emby **API key** generated under *Server → Security → API Keys*. |
+| `port`    | ✖        | `8096` (HTTP) / `8920` (HTTPS) | Override the listening port when you have changed Emby’s defaults. |
+| `ssl`     | ✖        | `false` | Set `true` when the **base URL** you enter is HTTPS.       |
+| `timeout` | ✖        | `10`    | Connection timeout in **seconds** during setup.            |
+
+Parameters are identical between the UI flow and YAML – pick whichever method
+fits your deployment.
+
 ---
 
 ## ▶️  Playing Media & Building Automations
