@@ -72,6 +72,23 @@ class _StubHTTP:  # pylint: disable=too-few-public-methods
             return None
 
         # ------------------------------------------------------------------
+        # Live-TV channel metadata – utilised by the TvChannel fallback logic
+        # added for GitHub issue #202.  Unknown ids still resolve to *None*
+        # to emulate a 404 so the browse helper can raise a clean
+        # *HomeAssistantError*.
+        # ------------------------------------------------------------------
+
+        if method == "GET" and path.startswith("/LiveTv/Channels/"):
+            channel_id = path.split("/")[-1]
+
+            # Known test-id to keep the fixture minimal – currently the
+            # integration only requests this route for *invalid* identifiers
+            # during the *error propagation* test.  Returning *None* mimics a
+            # 404 (not found) response from the server which is exactly what
+            # the code-path under test expects.
+            return None
+
+        # ------------------------------------------------------------------
         # Children listing – Movies library (250 fake items so pagination kicks in)
         # ------------------------------------------------------------------
 

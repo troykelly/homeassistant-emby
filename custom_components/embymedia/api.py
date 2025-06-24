@@ -326,6 +326,41 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
             else:
                 payload = None
 
+        # ------------------------------------------------------------------
+        # Fallback – Live-TV channel lookup (GitHub issue #202 / task #???)
+        # ------------------------------------------------------------------
+        # The Emby REST API does **not** expose *TvChannel* objects via the
+        # generic ``/Items/{Id}`` routes.  Attempting to query the endpoint
+        # therefore results in a *404 – not found* even though the identifier
+        # is perfectly valid under the dedicated Live-TV namespace.  When the
+        # earlier global **and** user-scoped look-ups failed we make one last
+        # attempt through ``/LiveTv/Channels/{Id}`` so that Home Assistant can
+        # resolve *channel* objects without knowing the Emby *UserId* (which
+        # is commonly missing from `media_player.play_media` service calls
+        # issued by the UI).
+        #
+        # The helper purposefully **does not** depend on the caller passing a
+        # *user_id* – the parameter is optional according to the OpenAPI spec
+        # and omitting it keeps the public `get_item()` signature unchanged.
+        # Any HTTP error is swallowed silently so the function still returns
+        # *None* when the identifier truly does not exist.
+        # ------------------------------------------------------------------
+
+        if payload is None:
+            try:
+                # Prefer user-scoped variant when we have an id because the
+                # server may attach additional access metadata / parental
+                # control flags.
+
+                if user_id:
+                    payload = await self._request(
+                        "GET", f"/LiveTv/Channels/{item_id}", params={"UserId": str(user_id)}
+                    )
+                else:  # FALLBACK – anonymous lookup
+                    payload = await self._request("GET", f"/LiveTv/Channels/{item_id}")
+            except EmbyApiError:
+                payload = None
+
         # Store (including *None* results) to avoid re-querying missing ids
         self._item_cache[cache_key] = (time.time(), payload)
 
