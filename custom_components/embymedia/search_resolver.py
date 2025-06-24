@@ -159,13 +159,31 @@ async def resolve_media_item(
         if "Episode" not in search_types:
             search_types.append("Episode")
 
+    SEARCH_LIMIT = 5
+
     try:
         results = await api.search(
             search_term=media_id,
             item_types=search_types,
             user_id=user_id,
-            limit=5,
+            limit=SEARCH_LIMIT,
         )
+
+        # ------------------------------------------------------------------
+        # Fallback – the first *SEARCH_LIMIT* results may omit an otherwise
+        # perfect match (especially on large libraries).  When the initial
+        # query comes back empty broaden the range and relax the *type*
+        # filter so voice assistants like HA Assist have a higher chance of
+        # finding content even without an explicit media type.
+        # ------------------------------------------------------------------
+
+        if not results:
+            results = await api.search(
+                search_term=media_id,
+                item_types=None,  # broaden
+                user_id=user_id,
+                limit=20,
+            )
     except EmbyApiError as exc:
         raise MediaLookupError("Emby API error during search") from exc
 
