@@ -212,8 +212,18 @@ _LOGGER = logging.getLogger(__name__)
 MEDIA_TYPE_TRAILER = "trailer"
 
 DEFAULT_HOST = "localhost"
-DEFAULT_PORT = 80
-DEFAULT_SSL_PORT = 443
+# -----------------------------------------------------------------------------
+# Default Emby ports – fixes GitHub issue #181
+# -----------------------------------------------------------------------------
+# Emby's upstream defaults differ from the **generic** web ports used by the
+# original implementation.  The incorrect values (80/443) prevented the
+# integration from connecting when the user did **not** explicitly specify a
+# custom *port* in the YAML or Config-Flow set-up.  Update the constants to
+# match the upstream server defaults so that out-of-the-box configurations
+# work again.
+
+DEFAULT_PORT = 8096  # default HTTP port exposed by Emby
+DEFAULT_SSL_PORT = 8920  # default HTTPS port exposed by Emby
 DEFAULT_SSL = False
 
 SUPPORT_EMBY = (
