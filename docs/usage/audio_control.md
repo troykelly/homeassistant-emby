@@ -16,8 +16,9 @@ and validated against Emby v4.9 using the web UI, Android and LG TV clients.
 
 | Action                              | Command  | JSON arguments | Notes |
 | ----------------------------------- | -------- | -------------- | ----- |
-| **Set absolute volume**             | `VolumeSet` | `{ "Volume": <int 0-100> }` | The value **must** be a number (not a string). |
-| **Mute / Un-mute**                  | `Mute`      | `{ "Mute": <bool> }`        | Send `true` to mute, `false` to un-mute. |
+| **Set absolute volume**             | `SetVolume` | `{ "Volume": <int 0-100> }` | The value **must** be a number (not a string). |
+| **Mute**                            | `Mute`      | *none*                       | — |
+| **Un-mute**                         | `Unmute`    | *none*                       | — |
 
 The semantics are defined by the *GeneralCommand* schema in the official
 Emby OpenAPI specification (`docs/emby/openapi.json`).
@@ -45,8 +46,9 @@ Emby OpenAPI specification (`docs/emby/openapi.json`).
 The helpers live in `custom_components/embymedia/api.py`:
 
 * `EmbyAPI.set_volume()` – clamps the Home Assistant `volume_level` (*float
-  0.0-1.0*) and submits `VolumeSet` with an **integer** 0-100.
-* `EmbyAPI.mute()` – forwards the boolean flag unchanged.
+  0.0-1.0*) and submits `SetVolume` with an **integer** 0-100.
+* `EmbyAPI.mute()` – chooses **`Mute`** or **`Unmute`** based on the boolean
+  flag.
 
 Both funnel into the private `_post_session_command()` utility which POSTs to
 `/Sessions/{id}/Command`.
