@@ -140,6 +140,15 @@ async def resolve_media_item(
     # remains unchanged.
     # ------------------------------------------------------------------
 
+    # Support Home Assistant's *content-id* URI scheme – the frontend encodes
+    # native Emby identifiers as ``emby://<id>``.  Strip the prefix so the
+    # remaining string can be evaluated by the heuristics below.  We purpose
+    # intentionally keep the *scheme* very narrow (exact "emby://") so we do
+    # not accidentally consume http/https URLs which must be resolved via the
+    # generic `/Items` search.
+    if media_id.startswith("emby://"):
+        media_id = media_id[len("emby://") :]
+
     if media_type == MediaType.CHANNEL and _looks_like_item_id(media_id):
         return {"Id": media_id, "Type": "TvChannel"}
 
@@ -187,7 +196,11 @@ def _looks_like_item_id(value: str) -> bool:  # noqa: D401 - simple helper
 
     # Hex uuid without dashes or a long decimal
     if _HEX_RE.match(value) or value.isdigit():
-        return len(value) >= 8  # simple length guard to avoid tiny numbers
+        # Emby numeric identifiers for *TvChannel* can be as short as 6 digits.
+        # Keep a slightly lower guard to avoid matching everyday numbers like
+        # *007* while still recognising legitimate ids used by the Live TV
+        # feature.
+        return len(value) >= 6
 
     # UUID with dashes - 8-4-4-4-12
     if len(value) == 36 and value.count("-") == 4:

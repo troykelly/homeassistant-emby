@@ -137,6 +137,24 @@ async def test_resolve_channel_raw_id_shortcuts(fake_emby_api):  # noqa: D401 â€
     assert item == {"Id": channel_id, "Type": "TvChannel"}
 
 
+@pytest.mark.asyncio
+async def test_resolve_channel_emby_uri(fake_emby_api):  # noqa: D401
+    """`emby://<id>` URIs must resolve to direct channel items."""
+
+    fake_emby_api._item_response = None
+
+    channel_id = "1066543"  # 7-digit typical Emby channel id
+    item = await resolve_media_item(
+        fake_emby_api,
+        media_type="channel",
+        media_id=f"emby://{channel_id}",
+    )
+
+    assert item == {"Id": channel_id, "Type": "TvChannel"}
+    # No search/api get_item attempted beyond the shortcut heuristics.
+    assert fake_emby_api._search_calls == []
+
+
 # ---------------------------------------------------------------------------
 # Fixtures used within this module only
 # ---------------------------------------------------------------------------
