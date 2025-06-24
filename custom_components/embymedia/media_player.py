@@ -864,21 +864,46 @@ class EmbyDevice(MediaPlayerEntity):
 
         from custom_components.embymedia.api import EmbyApiError  # local import to avoid circular
 
-        try:
-            slice_payload = await api.get_item_children(
-                item_id,
-                user_id=user_id,
-                start_index=start_idx,
-                limit=_PAGE_SIZE,
-            )
-        except EmbyApiError:
-            # Fallback – treat *item_id* as *ParentId* under the user scope.
-            slice_payload = await api.get_user_items(
+        # --------------------------------------------------------------
+        # Special case – *Live TV* user view (GitHub issue #202)
+        # --------------------------------------------------------------
+        # When the Emby server is queried through the **user-scoped**
+        #   `/Users/{id}/Items/{viewId}` endpoint the *Live TV* root resolves
+        # to an object of ``Type == 'UserView'`` **with**
+        # ``CollectionType == 'livetv'``.  Fetching children through the
+        # generic ``/Items/{id}/Children`` route, however, yields a random
+        # mix of *artists* and *audio tracks* instead of `TvChannel`
+        # objects – the very bug tracked in issue #202.
+        #
+        # Detect that scenario up-front and route the request to the
+        # dedicated ``/LiveTv/Channels`` helper instead of the generic
+        # children listing.  This logic complements the earlier *library
+        # root* fallback that handles the case where the *global* ``/Items``
+        # lookup already failed (resulting in *item is None*).
+        # --------------------------------------------------------------
+
+        if item.get("CollectionType", "").lower() == "livetv":
+            slice_payload = await api.get_live_tv_channels(
                 user_id,
-                parent_id=item_id,
                 start_index=start_idx,
                 limit=_PAGE_SIZE,
             )
+        else:
+            try:
+                slice_payload = await api.get_item_children(
+                    item_id,
+                    user_id=user_id,
+                    start_index=start_idx,
+                    limit=_PAGE_SIZE,
+                )
+            except EmbyApiError:
+                # Fallback – treat *item_id* as *ParentId* under the user scope.
+                slice_payload = await api.get_user_items(
+                    user_id,
+                    parent_id=item_id,
+                    start_index=start_idx,
+                    limit=_PAGE_SIZE,
+                )
 
         # Extract children & total count - defend against edge cases.
         child_items: list[dict] = slice_payload.get("Items", []) if isinstance(slice_payload, dict) else []
