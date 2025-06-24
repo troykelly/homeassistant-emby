@@ -407,6 +407,64 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         return payload
 
     # ------------------------------------------------------------------
+    # Live-TV helpers – GitHub issue #202 / task #204
+    # ------------------------------------------------------------------
+
+    async def get_live_tv_channels(
+        self,
+        user_id: str,
+        *,
+        start_index: int = 0,
+        limit: int = 100,
+        force_refresh: bool = False,
+    ) -> dict[str, Any]:  # noqa: ANN401 – JSON payload
+        """Return a slice of *TvChannel* objects available to *user_id*.
+
+        The helper wraps Emby's ``/LiveTv/Channels`` endpoint which backs the
+        *Live TV* section in the Emby UI.  Pagination mirrors the behaviour of
+        other collection helpers via the ``StartIndex`` / ``Limit`` query
+        parameters.
+
+        Emby historically returned either a *plain list* **or** an *object*
+        with ``Items`` / ``TotalRecordCount`` depending on server version.
+        To shield callers from that inconsistency the wrapper normalises the
+        response to the canonical *dict* structure expected by the media
+        browsing implementation.
+        """
+
+        cache_key = ("__livetv__", start_index, limit, user_id)
+        cached = self._children_cache.get(cache_key)
+        if not force_refresh and cached and (time.time() - cached[0]) < self._CACHE_TTL:
+            return cached[1]
+
+        params: dict[str, str] = {
+            "UserId": str(user_id),
+            "StartIndex": str(start_index),
+            "Limit": str(limit),
+        }
+
+        payload = await self._request("GET", "/LiveTv/Channels", params=params)
+
+        # Normalise to {"Items": [...], "TotalRecordCount": N}
+        if isinstance(payload, list):
+            norm_payload: dict[str, Any] = {
+                "Items": payload,
+                "TotalRecordCount": len(payload),
+            }
+        elif isinstance(payload, dict):
+            norm_payload = {
+                "Items": payload.get("Items", payload.get("items", [])),
+                "TotalRecordCount": payload.get(
+                    "TotalRecordCount", payload.get("totalRecordCount", 0)
+                ),
+            }
+        else:
+            raise EmbyApiError("Unexpected payload from /LiveTv/Channels endpoint")
+
+        self._children_cache[cache_key] = (time.time(), norm_payload)
+        return norm_payload
+
+    # ------------------------------------------------------------------
     # Issue #78 – additional library helpers for *Resume* and *Favorites*
     # ------------------------------------------------------------------
 
