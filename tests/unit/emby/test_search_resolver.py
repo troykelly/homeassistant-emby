@@ -108,6 +108,36 @@ async def test_resolve_api_error(fake_emby_api):
 
 
 # ---------------------------------------------------------------------------
+# New regression – GitHub issue #202 (Live TV channel playback)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_resolve_channel_raw_id_shortcuts(fake_emby_api):  # noqa: D401 – naming
+    """Raw *TvChannel* ids must bypass the `/Items/{id}` lookup (#202)."""
+
+    # Arrange – provoke the fallback path by returning *None* for get_item.
+    fake_emby_api._item_response = None
+
+    # Use an 8-digit numeric id which passes the *looks like id* heuristic.
+    channel_id = "10665430"
+
+    item = await resolve_media_item(
+        fake_emby_api,
+        media_type="channel",
+        media_id=channel_id,
+    )
+
+    # Resolver must *not* attempt a full-text search when the id can be used
+    # as-is for playback.
+    assert fake_emby_api._search_calls == []
+
+    # The returned mapping must preserve the identifier and mark the object
+    # as *TvChannel* so higher layers can set the correct *media_class*.
+    assert item == {"Id": channel_id, "Type": "TvChannel"}
+
+
+# ---------------------------------------------------------------------------
 # Fixtures used within this module only
 # ---------------------------------------------------------------------------
 
