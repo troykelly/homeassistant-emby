@@ -544,39 +544,50 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
 
         `volume_level` follows Home Assistant convention – a float between
         0.0 and 1.0.  Values are clamped to that range and translated to a
-        percentage as expected by Emby's *VolumeSet* command.
+        percentage as expected by Emby's *SetVolume* command.
         """
 
         # Clamp `volume_level` to the valid Home-Assistant range (0–1) then
         # convert it to the 0-100 percentage expected by Emby.  **Important**:
-        # Emby interprets the JSON *value type* – not just the lexical content.
-        # Passing the number inside a **string** (as the previous
-        # implementation did) results in the command being silently ignored
-        # by many clients (see GitHub issue #190).
+        # Emby interprets the JSON *value type* – not just the lexical
+        # content.  Passing the number inside a **string** results in the
+        # command being silently ignored by many clients (see GitHub
+        # issue #190).
         #
-        # The argument therefore **must** be an *integer* to guarantee cross
-        #-client compatibility.
+        # The argument therefore **must** be sent as an *integer* to
+        # guarantee cross-client compatibility.  The correct *GeneralCommand*
+        # identifier, confirmed via the upstream WebSocket documentation, is
+        # **`SetVolume`** (not the older `VolumeSet`).
         volume_pct: int = int(round(max(0, min(1, volume_level)) * 100))
 
         await self._post_session_command(
             session_id,
-            "VolumeSet",
+            "SetVolume",
             {"Volume": volume_pct},
         )
 
     async def mute(self, session_id: str, mute: bool) -> None:
         """Toggle mute state on *session_id*."""
 
-        # Similar to *VolumeSet* above Emby evaluates the **actual JSON data
+        # Similar to *SetVolume* above Emby evaluates the **actual JSON data
         # type**.  The integration previously sent the boolean flag encoded as
         # the strings "true"/"false" leading to the *un-mute* operation being
         # dropped by the server.  The fix is to transmit a **native** boolean
         # value.
 
+        # Newer versions of Emby expose **separate** command identifiers for
+        # *mute* and *un-mute* which do **not** require any additional
+        # arguments.  Attempting to re-use the `Mute` command with a boolean
+        # argument is accepted by the HTTP layer but ignored by most client
+        # applications – exactly the regression reported in GitHub
+        # issue #190.
+
+        command = "Mute" if mute else "Unmute"
+
         await self._post_session_command(
             session_id,
-            "Mute",
-            {"Mute": mute},
+            command,
+            None,
         )
 
     async def shuffle(self, session_id: str, shuffle: bool) -> None:

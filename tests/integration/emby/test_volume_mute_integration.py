@@ -8,10 +8,10 @@ live Emby server is required.
 Covered behaviour:
 
 1. ``async_set_volume_level`` must POST a *GeneralCommand* payload with
-   ``Name = "VolumeSet"`` and the absolute integer ``Volume`` argument.
-2. ``async_mute_volume`` must POST a *GeneralCommand* payload with
-   ``Name = "Mute"`` and a native boolean ``Mute`` argument – *both* mute and
-   un-mute operations are verified.
+   ``Name = "SetVolume"`` and the absolute integer ``Volume`` argument.
+2. ``async_mute_volume`` must POST a *GeneralCommand* payload using the
+   distinct ``Mute`` / ``Unmute`` identifiers – *both* mute **and** un-mute
+   operations are verified.
 
 The tests purposefully mirror the lightweight stub pattern used by
 ``tests/integration/emby/test_play_media_integration.py`` to keep runtime and
@@ -134,7 +134,7 @@ def emby_device(monkeypatch):  # noqa: D401 – pytest fixture naming
 @pytest.mark.asyncio
 @pytest.mark.parametrize("level,pct", [(0.0, 0), (0.55, 55), (1.0, 100)])
 async def test_async_set_volume_level_integration(http_stub, emby_device, level, pct):  # noqa: D401, ANN001
-    """Ensure a proper *VolumeSet* command is emitted for various inputs."""
+    """Ensure a proper *SetVolume* command is emitted for various inputs."""
 
     # Act – trigger the Home Assistant service handler.
     await emby_device.async_set_volume_level(level)
@@ -145,14 +145,14 @@ async def test_async_set_volume_level_integration(http_stub, emby_device, level,
     assert (method, path) == ("POST", "/Sessions/sess-123/Command")
 
     payload = kwargs["json"]
-    assert payload["Name"] == "VolumeSet"
+    assert payload["Name"] == "SetVolume"
     assert payload["Arguments"]["Volume"] == pct
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mute_flag", [True, False])
 async def test_async_mute_volume_integration(http_stub, emby_device, mute_flag):  # noqa: D401, ANN001
-    """Ensure a proper *Mute* command with native boolean flag is sent."""
+    """Ensure that the integration emits the correct *Mute/Unmute* command."""
 
     await emby_device.async_mute_volume(mute_flag)
 
@@ -161,5 +161,7 @@ async def test_async_mute_volume_integration(http_stub, emby_device, mute_flag):
     assert (method, path) == ("POST", "/Sessions/sess-123/Command")
 
     payload = kwargs["json"]
-    assert payload["Name"] == "Mute"
-    assert payload["Arguments"]["Mute"] is mute_flag
+
+    expected_name = "Mute" if mute_flag else "Unmute"
+    assert payload["Name"] == expected_name
+    assert payload["Arguments"] == {}

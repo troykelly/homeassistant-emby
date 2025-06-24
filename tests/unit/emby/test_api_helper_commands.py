@@ -30,7 +30,7 @@ class _Recorder:
 
 
 # ---------------------------------------------------------------------------
-# set_volume – clamps & sends VolumeSet command
+# set_volume – clamps & sends SetVolume command
 # ---------------------------------------------------------------------------
 
 
@@ -51,7 +51,7 @@ async def test_set_volume_sends_correct_json(monkeypatch, input_level, expected_
     assert call["path"] == "/Sessions/sess-X/Command"
 
     payload = call["json"]
-    assert payload["Name"] == "VolumeSet"
+    assert payload["Name"] == "SetVolume"
     assert payload["Arguments"]["Volume"] == expected_pct
 
 
@@ -70,8 +70,11 @@ async def test_mute_command(monkeypatch, mute_flag):
     await api.mute("sess-1", mute_flag)
 
     payload = recorder.calls[0]["json"]
-    assert payload["Name"] == "Mute"
-    assert payload["Arguments"]["Mute"] is mute_flag
+    expected_name = "Mute" if mute_flag else "Unmute"
+
+    assert payload["Name"] == expected_name
+    # Mute/Unmute commands carry **no** arguments in modern Emby builds.
+    assert payload["Arguments"] == {}
 
 
 # ---------------------------------------------------------------------------
