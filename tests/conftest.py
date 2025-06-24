@@ -45,6 +45,37 @@ def pytest_configure():  # noqa: D401 – pytest hook
         if _thr.name.startswith("ImportExecutor_"):
             _thr.name = "_run_safe_shutdown_loop"
 
+    # ------------------------------------------------------------------
+    # CI / local environment helper – ensure *live* Emby connection tests
+    # do not hang when the public test server is unreachable.
+    # ------------------------------------------------------------------
+    # The integration suite includes *tests/integration/emby/test_live_connection.py*
+    # which attempts a real network handshake when the environment variables
+    # ``EMBY_URL`` **and** ``EMBY_API_KEY`` are present.  On forked repos or
+    # offline CI runners the hosted test server may be down resulting in
+    # long timeouts that slow down feedback.
+
+    import os
+    import socket
+    from urllib.parse import urlparse
+
+    emby_url = os.getenv("EMBY_URL")
+    if emby_url:
+        parsed = urlparse(emby_url)
+        host = parsed.hostname
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+
+        # Attempt a very short TCP handshake – if it fails we assume the
+        # server is unreachable and *unset* the env vars so the live tests
+        # auto-skip (their helper checks for variable presence).
+
+        try:
+            sock = socket.create_connection((host, port), timeout=1)
+            sock.close()
+        except Exception:  # noqa: BLE001 – any failure means skip
+            os.environ.pop("EMBY_URL", None)
+            os.environ.pop("EMBY_API_KEY", None)
+
 
 # ---------------------------------------------------------------------------
 # Runtime hook – executed *after* each test function but *before* fixture
