@@ -9,5 +9,5 @@
   "loggers": ["pyemby"],
   "quality_scale": "legacy",
   "requirements": ["pyEmby==1.10"],
-  "version": "0.0.10"
+  "version": "0.0.11"
 }
