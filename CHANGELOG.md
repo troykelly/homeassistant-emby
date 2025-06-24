@@ -26,3 +26,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and items are represented with full artwork and metadata.  Delegates to the
   built-in `media_source` integration for TTS and local files. *(epic #24 –
   closes issues #25–#29)*
+
+### Fixed
+
+* **Connection regression on default ports** – The integration again honours
+  Emby’s *native* defaults (`8096`/`8920`) when the **port** field is left
+  blank during setup.  Custom host/port/SSL combinations now work reliably
+  across both YAML and UI configuration. *(task #181)*
+
+### Changed
+
+* **Browse Media now enabled by default** – Surfacing the capability flag on
+  every player means you can start using the media browser without manual
+  `supported_features` overrides. *(task #183)*
