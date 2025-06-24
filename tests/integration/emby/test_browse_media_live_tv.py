@@ -49,13 +49,30 @@ class _StubHTTP:  # pylint: disable=too-few-public-methods
                 ]
             }
 
-        # Attempt to resolve the view via /Items/{id} or the user scoped
-        # `/Users/{user}/Items/{id}` – Emby returns 404 for library roots so
-        # we emulate that by raising *EmbyApiError*.
-        if path in ("/Items/lib-live", "/Users/user-1/Items/lib-live") and method == "GET":
+        # Attempt to resolve the view via the **global** `/Items/{id}` route –
+        # Emby responds with *404* for library roots therefore we emulate the
+        # same behaviour by raising :class:`EmbyApiError` so the integration
+        # falls back to the user-scoped variant.
+        if path == "/Items/lib-live" and method == "GET":
             from custom_components.embymedia.api import EmbyApiError
 
             raise EmbyApiError("Item not found")
+
+        # The **user-scoped** endpoint *does* resolve and returns metadata
+        # describing the *Live TV* view.  The payload intentionally contains
+        # ``CollectionType == 'livetv'`` so the browsing logic recognises the
+        # special view and queries `/LiveTv/Channels` for the actual
+        # children instead of the generic `/Items/{id}/Children` route (bug
+        # #202).
+        if path == "/Users/user-1/Items/lib-live" and method == "GET":
+            return {
+                "Id": "lib-live",
+                "Name": "Live TV",
+                "Type": "UserView",
+                "CollectionType": "livetv",
+                "ImageTags": {},
+                "UserData": {},
+            }
 
         # Correct endpoint for channels listing – respond with two channels
         # so we can assert the mapping to *BrowseMedia* objects.
