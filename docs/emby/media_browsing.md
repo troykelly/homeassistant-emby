@@ -75,6 +75,46 @@ for a given item is **stable** regardless of which page it was found on.
 
 ---
 
+## Device-less playback (direct stream URLs)
+
+Starting with release **0.0.15** the Emby integration can play **any** library
+item on *non-Emby* targets such as Chromecast, Sonos, AirPlay speakers or the
+built-in browser player. When you open the browse tree **while another media
+player is selected** (for example a Chromecast entity) all leaf nodes now
+expose a `media-source://emby/<ItemId>` identifier instead of the classic
+`emby://item/<ItemId>` variant.
+
+Home Assistant resolves this identifier through the new *Emby media source*
+provider which negotiates the best stream with your Emby server via
+`POST /Items/{Id}/PlaybackInfo` and returns a **fully authenticated** HTTP(S)
+URL. Because the API key is embedded as a query parameter the downstream
+device can fetch the media without any custom headers – the URL therefore
+works with everything that can handle a plain MP4 or HLS stream.
+
+**In short:** You can now cast Emby movies to a living-room Chromecast,
+announce audio snippets on a Sonos group or play your music collection in the
+browser *without* having to install an Emby client application.
+
+### Automation example – play a movie on Chromecast
+
+```yaml
+alias: Friday movie night
+trigger:
+  - platform: time
+    at: "20:00:00"
+action:
+  - service: media_player.play_media
+    target:
+      entity_id: media_player.living_room_chromecast
+    data:
+      media_content_id: "media-source://emby/122"
+      media_content_type: movie
+```
+
+---
+
+---
+
 ## Continue Watching & Favorites
 
 To mirror the convenience shortcuts in the Emby web UI the integration adds

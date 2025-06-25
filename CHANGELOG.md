@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+* **Device-less playback support** – The integration can now generate direct
+  stream URLs for any Emby library item allowing you to cast movies, music or
+  shows to *non-Emby* targets such as Chromecast, Sonos or the browser media
+  player.  Browse tree leaf nodes expose `media-source://emby/<ItemId>` when
+  you open them on a non-Emby entity and the new *media source* provider
+  negotiates the best audio/video variant with your server. *(epic #217 –
+  closes tasks #218–#223)*
+
 * **Play media support** – Home Assistant’s `media_player.play_media` service is
   now fully implemented.  Call the service with `media_type` / `media_id` (and
   optional `enqueue`, `position`) to start playback or queue items on any Emby
