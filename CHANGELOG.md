@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   negotiates the best audio/video variant with your server. *(epic #217 –
   closes tasks #218–#223)*
 
+* **Entity-less media browser** – The *Media* sidebar can now be opened **without
+  selecting an Emby entity**.  In this mode the integration falls back to its
+  *media source* provider and exposes the same rich library hierarchy so you
+  can queue content for generic players.  The feature is covered by a brand
+  new integration-level test-suite and extensive documentation under
+  `docs/emby/media_browsing.md`. *(task #238)*
+
 * **Play media support** – Home Assistant’s `media_player.play_media` service is
   now fully implemented.  Call the service with `media_type` / `media_id` (and
   optional `enqueue`, `position`) to start playback or queue items on any Emby

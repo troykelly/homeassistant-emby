@@ -10,13 +10,23 @@ integration fully implements this capability through the
 ## Quick start
 
 1. Open the left-hand **Media** panel in Home Assistant.
-2. Click **Browse media** then pick any Emby player entity.
+2. Click **Browse media** then **either**
+
+   • **pick an Emby player entity** – the classic flow which will stream
+     directly to the chosen client, *or*
+   • **leave the *player* dropdown empty** – this opens the brand-new
+     **entity-less** browser powered by the integration’s *media source*
+     provider so you can cue up items for *any* downstream device that
+     understands plain MP4/HLS URLs (Chromecast, Sonos, browser, …).
+
 3. Choose a library (Movies, TV Shows, Music, …).
 4. Or jump straight into **Continue Watching** / **Favorites** which appear
    at the bottom of the root view – handy when you just want to resume a
    movie or queue up tracks you have starred in Emby.
-4. Drill down into collections / folders until you reach a playable item.
-5. Hit the artwork tile to start playback instantly on the selected client.
+5. Drill down into collections / folders until you reach a playable item.
+6. Hit the artwork tile to start playback instantly on the selected client –
+   or copy the `media-source://emby/<ItemId>` URI from the info pane to use
+   it inside automations.
 
 ![Browse Emby root](../images/browse_root.png)
 ![Browse Emby movies](../images/browse_movies.png)
