@@ -315,6 +315,39 @@ async def async_setup_platform(
 
     emby = EmbyServer(host, key, port, ssl, hass.loop)
 
+    # ------------------------------------------------------------------
+    # Expose a **shared** EmbyAPI handle for other integration parts that are
+    # not attached to a specific *EmbyDevice* instance (e.g. the *media_source*
+    # provider).  Storing the client under ``hass.data['embymedia']`` mirrors
+    # the config-entry pattern used by Home Assistant and is what
+    # :pymeth:`custom_components.embymedia.media_source.EmbyMediaSource._get_api`
+    # expects.  The object is lightweight (lazy HTTP session) so instantiating
+    # it up-front adds negligible overhead.
+    # ------------------------------------------------------------------
+
+    try:
+        from .api import EmbyAPI  # local import to avoid import cycle at top
+
+        from typing import cast
+
+        shared_api = EmbyAPI(
+            hass,
+            host=cast(str, host),
+            api_key=cast(str, key),
+            port=port,
+            ssl=ssl,
+        )
+
+        domain_bucket = hass.data.setdefault("embymedia", {})  # type: ignore[attr-defined]
+        # Use a deterministic key so multiple YAML platforms do not overwrite
+        # each other – users rarely configure more than one Emby instance via
+        # YAML; when they do, the host:port combo is distinct.
+        bucket_key = f"{host}:{port}"
+        domain_bucket[bucket_key] = {"api": shared_api}
+
+    except Exception as exc:  # pragma: no cover – defensive
+        _LOGGER.debug("Could not initialise shared EmbyAPI handle: %s", exc)
+
     active_emby_devices: dict[str, EmbyDevice] = {}
     inactive_emby_devices: dict[str, EmbyDevice] = {}
 
