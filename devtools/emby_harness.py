@@ -35,6 +35,7 @@ async def _amain() -> None:  # noqa: ANN201
 
     parser = argparse.ArgumentParser(description="Quick Emby API helper harness")
     parser.add_argument("--search", help="Search term to look for in the library", default=None)
+    parser.add_argument("--stream", help="Request stream URL for given ItemId", default=None)
     args = parser.parse_args()
 
     parsed = urlparse(emby_url)
@@ -55,6 +56,14 @@ async def _amain() -> None:  # noqa: ANN201
         print("Search results:")
         for itm in results:
             print(f" • {itm.get('Id')}  {itm.get('Name')}  ({itm.get('Type')})")
+
+    if args.stream:
+        print(f"Requesting stream URL for ItemId={args.stream}…")
+        try:
+            url = await api.get_stream_url(args.stream, user_id="6a8978ee032d411da36051fa36af5864")
+            print("Stream URL:", url)
+        except Exception as exc:  # noqa: BLE001 – diagnostic utility only
+            print("FAILED", exc)
 
 
 def main() -> None:  # noqa: ANN001 – entrypoint

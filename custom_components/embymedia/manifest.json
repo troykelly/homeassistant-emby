@@ -3,6 +3,7 @@
   "name": "Emby",
 
   "codeowners": ["@troykelly"],
+  "dependencies": ["media_source"],
   "documentation": "https://github.com/troykelly/homeassistant-emby",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/troykelly/homeassistant-emby/issues",
