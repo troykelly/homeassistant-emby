@@ -569,6 +569,139 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         return payload
 
     # ------------------------------------------------------------------
+    # Issue #219 – obtain a *play-ready* stream URL for a media item
+    # ------------------------------------------------------------------
+
+    async def get_stream_url(
+        self,
+        item_id: str | int,
+        *,
+        user_id: str | None = None,
+        max_bitrate: int | None = 80_000_000,
+        device_profile: dict[str, Any] | None = None,
+    ) -> str:
+        """Return a fully authenticated stream URL for *item_id*.
+
+        The helper implements the negotiation flow researched in GitHub issue
+        #218 and encapsulated in ``docs/emby/stream_playback_research.md``:
+
+        1. ``POST /Items/{Id}/PlaybackInfo`` is used to discover the available
+           *MediaSources* for the requesting user / device.
+        2. The first source that supports **direct play** is preferred because
+           it avoids server-side transcoding.  If none match, the helper
+           falls back to the first entry that exposes a *TranscodingUrl* (HLS
+           master playlist).
+        3. The resulting URL is made *self-contained* by appending the Emby
+           ``api_key`` query parameter when it is missing.  Down-stream media
+           players (Chromecast, browsers, Sonos, …) therefore do not need to
+           inject custom headers which greatly simplifies Home Assistant’s
+           generic *play media* flow.
+
+        Parameters
+        ----------
+        item_id
+            Emby *ItemId* to obtain the stream URL for.
+        user_id
+            Optional Emby user under which the request should be executed. If
+            omitted, Emby treats the call as *anonymous* which works for
+            public libraries but may bypass parental controls.
+        max_bitrate
+            Upper bitrate cap (in **bits/s**) advertised to Emby when
+            negotiating playback.  The rather generous default of 80 Mbit/s
+            effectively signals *no limit* for local networks while still
+            ensuring the value fits into 32-bit signed integers expected by
+            some older Emby versions.
+        device_profile
+            Optional override of the Emby *DeviceProfile* object.  Callers
+            can provide a tailored profile to influence transcoder decisions.
+            When *None* a minimal profile advertising support for common
+            containers (mp4 / mkv) and audio codecs (aac / mp3) is used.
+        """
+
+        # ------------------------------------------------------------------
+        # 1. Build POST body for /PlaybackInfo negotiation
+        # ------------------------------------------------------------------
+
+        if device_profile is None:
+            device_profile = {
+                "Name": "home-assistant",
+                "DirectPlayProfile": [
+                    {"Container": "mp4,mkv", "Type": "Video"},
+                    {"Container": "aac,mp3,flac", "Type": "Audio"},
+                ],
+            }
+
+        body: dict[str, Any] = {
+            "MaxStreamingBitrate": max_bitrate,
+            "DeviceProfile": device_profile,
+        }
+        if user_id is not None:
+            body["UserId"] = user_id
+
+        playback: dict[str, Any] = await self._request(
+            "POST", f"/Items/{item_id}/PlaybackInfo", json=body
+        )
+
+        media_sources: list[dict[str, Any]] = playback.get("MediaSources", [])  # type: ignore[arg-type]
+        if not media_sources:
+            raise EmbyApiError("No MediaSources returned for item – cannot build stream URL")
+
+        # ------------------------------------------------------------------
+        # 2. Prefer *direct play* sources and gracefully fall back to HLS.
+        # ------------------------------------------------------------------
+
+        chosen_url: str | None = None
+
+        # 2a. First pass – look for direct play support.
+        for src in media_sources:
+            if src.get("SupportsDirectPlay") and src.get("DirectStreamUrl"):
+                chosen_url = src["DirectStreamUrl"]
+                break
+
+        # 2b. Fallback – use the first *TranscodingUrl* if necessary.
+        if chosen_url is None:
+            for src in media_sources:
+                if src.get("TranscodingUrl"):
+                    chosen_url = src["TranscodingUrl"]
+                    break
+
+        if chosen_url is None:
+            raise EmbyApiError("Unable to determine a playable stream URL for item")
+
+        # ------------------------------------------------------------------
+        # 3. Normalise – ensure URL is absolute and carries the api_key param.
+        # ------------------------------------------------------------------
+
+        from urllib.parse import urlparse, urlunparse, urlencode, parse_qsl
+
+        # Some Emby builds return *relative* paths (with or without a leading
+        # slash).  Prepend the server base URL in that case so downstream
+        # callers always receive an absolute link.
+        if not chosen_url.startswith(("http://", "https://")):
+            chosen_url = f"{self._base}/{chosen_url.lstrip('/')}"
+
+        # Ensure the `api_key` query parameter is present so that the URL is
+        # self-contained and can be fetched without custom headers.
+        parsed = urlparse(chosen_url)
+        query = dict(parse_qsl(parsed.query))
+        if "api_key" not in query:
+            query["api_key"] = self._headers.get("X-Emby-Token", "")
+
+        new_query = urlencode(query, doseq=True)
+        normalised_url = urlunparse(
+            (
+                parsed.scheme,
+                parsed.netloc,
+                parsed.path,
+                parsed.params,
+                new_query,
+                parsed.fragment,
+            )
+        )
+
+        return normalised_url
+
+    # ------------------------------------------------------------------
     # Issue #161 – helper for library *directory* pagination
     # ------------------------------------------------------------------
 
