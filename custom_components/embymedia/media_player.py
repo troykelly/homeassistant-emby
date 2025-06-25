@@ -485,6 +485,37 @@ class EmbyDevice(MediaPlayerEntity):
         # Default – remote control not allowed / unknown
         return False
 
+    # ------------------------------------------------------------------
+    # Helper – determine whether a Home Assistant *entity_id* represents an
+    # Emby client media_player.  The check relies on the well-known naming
+    # convention that all entities provided by this integration start with
+    # the prefix ``media_player.emby``.
+    # ------------------------------------------------------------------
+
+    def _is_emby_client(self, entity_id: str | None) -> bool:  # noqa: D401
+        """Return *True* when *entity_id* belongs to the Emby integration.
+
+        The function performs a *best effort* evaluation based solely on the
+        entity identifier string because querying Home Assistant’s entity
+        registry is heavyweight and not required for the simple prefix check.
+
+        Passing *None* defaults to *True* which preserves the historical
+        behaviour where browse calls without explicit *target* parameter are
+        assumed to address an Emby client.
+        """
+
+        if not entity_id:
+            # No target provided – assume classic Emby→Emby scenario.
+            return True
+
+        if not isinstance(entity_id, str) or "." not in entity_id:
+            # Malformed identifier – treat as non-Emby so we err on the side
+            # of exposing *media-source* URLs which work for **all** players.
+            return False
+
+        domain, object_id = entity_id.split(".", 1)
+        return domain == "media_player" and object_id.startswith("emby")
+
     def _update_supported_features(self) -> None:
         """Recalculate *supported_features* based on current capabilities.
 
@@ -552,11 +583,12 @@ class EmbyDevice(MediaPlayerEntity):
     # Home Assistant media browsing implementation (issue #24 - task #27)
     # ------------------------------------------------------------------
 
-    async def async_browse_media(
+    async def async_browse_media(  # noqa: D401 - verbatim HA signature
         self,
         media_content_type: str | None = None,
         media_content_id: str | None = None,
-    ) -> BrowseMedia:  # noqa: D401 - verbatim HA signature
+        **kwargs: Any,  # Home Assistant may pass extra context parameters (2025.1+)
+    ) -> BrowseMedia:
         """Return a BrowseMedia tree for the requested path.
 
         The method implements a minimal yet fully functional browsing
@@ -572,6 +604,29 @@ class EmbyDevice(MediaPlayerEntity):
         UI can follow to request subsequent slices of the list.  Each slice
         returns up to ``_PAGE_SIZE`` items.
         """
+
+        # --------------------------------------------------------------
+        # Determine whether we should expose *media-source* identifiers for
+        # leaf nodes (device-less playback) or the traditional *emby://*
+        # scheme (remote control between Emby clients).  Home Assistant 2025.1
+        # started forwarding the **target** media player through the
+        # ``target_entity_id`` keyword so that integrations can tailor the
+        # browse tree accordingly.  Earlier Core versions omit the argument –
+        # in that case we fall back to the historical behaviour which keeps
+        # the URI scheme as *emby://*.
+        # --------------------------------------------------------------
+
+        target_entity: str | None = (
+            kwargs.get("target_entity_id")
+            or kwargs.get("target")
+            or kwargs.get("entity_id")
+        )
+
+        # Store flag on *self* so helper functions deeper in the call-stack
+        # can access the decision without additional plumbing.  The attribute
+        # is ephemeral – it is **only** referenced during the current browse
+        # request lifecycle therefore later calls will compute a fresh value.
+        self._browse_use_media_source: bool = not self._is_emby_client(target_entity)  # type: ignore[attr-defined]
 
 
         # --------------------------------------------------------------
@@ -882,10 +937,17 @@ class EmbyDevice(MediaPlayerEntity):
         # node - Home Assistant will subsequently call `async_play_media` when
         # the user clicks it.
         if not can_expand:
+            # Decide final *media_content_id* respecting the target player
+            # type computed at the beginning of this browse request.
+            if getattr(self, "_browse_use_media_source", False):
+                final_media_id = f"media-source://emby/{item_id}"
+            else:
+                final_media_id = media_content_id
+
             return BrowseMedia(
                 title=item.get("Name", "Unknown"),
                 media_class=media_class,
-                media_content_id=media_content_id,
+                media_content_id=final_media_id,
                 media_content_type=content_type,
                 can_play=can_play,
                 can_expand=False,
@@ -1030,7 +1092,17 @@ class EmbyDevice(MediaPlayerEntity):
 
         media_class, content_type, can_play, can_expand = self._map_item_type(item)
         item_id = str(item.get("Id"))
-        uri = f"{_EMBY_URI_SCHEME}://{item_id}"
+
+        use_media_source: bool = bool(getattr(self, "_browse_use_media_source", False))
+
+        # Only swap the scheme for *leaf* nodes – directories continue to use
+        # the internal ``emby://`` identifier so that subsequent navigation
+        # requests are routed back into this browse method (and therefore the
+        # Emby REST API) instead of the generic media_source hierarchy.
+        if use_media_source and not can_expand:
+            uri = f"media-source://emby/{item_id}"
+        else:
+            uri = f"{_EMBY_URI_SCHEME}://{item_id}"
 
         return BrowseMedia(
             title=item.get("Name", "Unknown"),
