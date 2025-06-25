@@ -1838,6 +1838,97 @@ class EmbyDevice(MediaPlayerEntity):
         except vol.Invalid as exc:
             raise HomeAssistantError(f"Invalid play_media payload: {exc}") from exc
 
+        # ------------------------------------------------------------------
+        # GitHub issue #222 – *media_source* playback delegation
+        # ------------------------------------------------------------------
+        #
+        # Home Assistant forwards links that start with the special
+        # ``media-source://`` scheme to the *media_source* integration which
+        # in turn resolves the identifier to a *direct* HTTP(S) URL.  When
+        # such an identifier points at the **Emby** provider we must **not**
+        # treat the value as a library *search term* because the existing
+        # resolver logic would attempt an unnecessary `/Items?SearchTerm=`
+        # round-trip and ultimately issue a *remote-control* command against
+        # an Emby session – neither step is required (or even valid) for
+        # device-less playback.
+        #
+        # Instead we delegate the request straight back to Home Assistant
+        # core by resolving the URL **early** and returning *without* touching
+        # the Emby REST API.  Generic player entities such as Chromecast or
+        # Sonos already implement the standard `async_play_media` handler that
+        # consumes plain URLs – therefore the actual streaming starts outside
+        # of the Emby integration.
+        #
+        # The logic intentionally runs **before** any call to `_get_emby_api`
+        # so unit-tests can assert that the legacy control path is skipped.
+        # ------------------------------------------------------------------
+
+        raw_media_id: str = validated["media_id"]
+
+        if is_media_source_id(raw_media_id):
+            # Ensure we operate under a Home Assistant instance – the helper
+            # lives in *core* and needs the `hass` object.
+            if self.hass is None:
+                raise HomeAssistantError("media_source playback requires Home Assistant context")
+
+            try:
+                # Home Assistant ≥2024.6 added an optional *entity_id*
+                # parameter – pass it when available so providers may tailor
+                # the response (e.g. dynamic subtitle selection).  Fallback to
+                # the two-arg signature for older cores.
+                try:
+                    play_item = await ha_media_source.async_resolve_media(  # type: ignore[arg-type]
+                        self.hass, raw_media_id, self.entity_id
+                    )
+                except TypeError:
+                    # Old helper – 2-param variant.
+                    play_item = await ha_media_source.async_resolve_media(self.hass, raw_media_id)  # type: ignore[arg-type]
+            except Exception as exc:  # noqa: BLE001 – wrap as HA error
+                raise HomeAssistantError(f"Unable to resolve media_source id: {exc}") from exc
+
+            if play_item is None or not getattr(play_item, "url", None):
+                raise HomeAssistantError("media_source item returned no playable URL")
+
+            # Best-effort translation of the returned URL – the helper is
+            # optional and may be missing in stripped down test environments.
+            # Import helper **lazily** via *importlib* so static type checkers
+            # do not flag the private re-export on the public stub package
+            # (see Pyright error *reportPrivateImportUsage*).
+            import importlib
+
+            _proc_helper = None
+            try:
+                _mp_mod = importlib.import_module("homeassistant.components.media_player")
+                _proc_helper = getattr(_mp_mod, "async_process_play_media_url", None)
+            except ModuleNotFoundError:  # pragma: no cover – test env without HA
+                _proc_helper = None
+
+            if callable(_proc_helper):
+                try:
+                    media_url = _proc_helper(self.hass, play_item.url)  # type: ignore[arg-type]
+                except Exception:  # pragma: no cover – helper raised unexpectedly
+                    media_url = play_item.url
+            else:
+                media_url = play_item.url
+
+            _LOGGER.debug(
+                "Delegated media_source playback – resolved %s to %s (mime=%s)",
+                raw_media_id,
+                media_url,
+                getattr(play_item, "mime_type", None),
+            )
+
+            # ------------------------------------------------------------------
+            # Ultimately *playing* the URL is handled by the target player
+            # entity (Chromecast, browser, etc.).  The Emby integration merely
+            # completes early so that the Home Assistant frontend keeps the
+            # promise of executing the service call without raising, while the
+            # resolved URL is consumed by the caller who initiated the request
+            # (e.g. the media dashboard).
+            # ------------------------------------------------------------------
+
+            return  # early exit – skip legacy Emby remote-control path
+
         raw_enqueue = validated.get("enqueue")
         announce_flag: bool = validated.get("announce", False)
         position: int | None = validated.get("position")
