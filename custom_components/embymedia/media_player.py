@@ -446,6 +446,45 @@ class EmbyDevice(MediaPlayerEntity):
     # Private helpers – dynamic feature handling (GitHub issue #88)
     # ---------------------------------------------------------------------
 
+    # ---------------------------------------------------------------------
+    # Private helpers – permission / capability detection
+    # ---------------------------------------------------------------------
+
+    def _device_allows_remote_control(self) -> bool:  # noqa: D401 – simple helper
+        """Return *True* when the underlying Emby device permits remote control.
+
+        Emby 4.9 introduced a breaking change to the *Sessions* websocket
+        payload: the previously *flat* ``SupportsRemoteControl`` field moved
+        under the nested ``HasPermission.RemoteControl`` key.  When running
+        against an updated server the original ``supports_remote_control``
+        attribute exposed by *pyemby* therefore disappears and the integration
+        falsely assumes that the client no longer supports transport
+        controls.  This helper inspects **both** the legacy attribute *and*
+        the new nested structure so we remain compatible with all supported
+        server versions.
+        """
+
+        # 1. Preferred path – attribute exposed by *pyemby* up to Emby ≤ 4.8
+        attr_val = getattr(self.device, "supports_remote_control", None)
+        if attr_val is not None:
+            return bool(attr_val)
+
+        # 2. Fallback – inspect raw session dictionary (available on all
+        #    *pyemby* device instances).
+        session_raw = getattr(self.device, "session_raw", None)
+        if isinstance(session_raw, dict):
+            # a. Legacy flat key
+            if "SupportsRemoteControl" in session_raw:
+                return bool(session_raw.get("SupportsRemoteControl"))
+
+            # b. New nested permission structure
+            perms = session_raw.get("HasPermission")
+            if isinstance(perms, dict):
+                return bool(perms.get("RemoteControl", False))
+
+        # Default – remote control not allowed / unknown
+        return False
+
     def _update_supported_features(self) -> None:
         """Recalculate *supported_features* based on current capabilities.
 
@@ -457,7 +496,7 @@ class EmbyDevice(MediaPlayerEntity):
         """
 
         new_mask: MediaPlayerEntityFeature = (
-            SUPPORT_EMBY if getattr(self.device, "supports_remote_control", False) else MediaPlayerEntityFeature(0)
+            SUPPORT_EMBY if self._device_allows_remote_control() else MediaPlayerEntityFeature(0)
         )
 
         # Assign when different so Home Assistant can pick up the change.
@@ -483,8 +522,12 @@ class EmbyDevice(MediaPlayerEntity):
 
     @property
     def supports_remote_control(self):
-        """Return control ability."""
-        return self.device.supports_remote_control
+        """Return *True* when the device allows remote commands via Emby."""
+
+        # Keep the public interface unchanged but delegate the logic to the
+        # compatibility helper so callers transparently benefit from the new
+        # detection code.
+        return self._device_allows_remote_control()
 
     @property  # pyright: ignore[override]
     def state(self) -> MediaPlayerState | None:
@@ -1326,7 +1369,7 @@ class EmbyDevice(MediaPlayerEntity):
             return attr_val  # type: ignore[return-value]
 
         # Legacy / test path – determine on demand.
-        if getattr(self.device, "supports_remote_control", False):
+        if self._device_allows_remote_control():
             return SUPPORT_EMBY
         return MediaPlayerEntityFeature(0)
 

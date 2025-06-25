@@ -29,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+* **Missing transport & browse controls** – A breaking change in Emby 4.9
+  moved the *remote control* permission flag to a new location which caused
+  Home Assistant to hide **all** playback buttons and the *Browse media*
+  dialog.  The integration now detects both the legacy *flat* flag and the
+  new nested structure so feature support is restored across all server
+  versions.  *(task #227 – closes regression epic #225)*
+
 * **Connection regression on default ports** – The integration again honours
   Emby’s *native* defaults (`8096`/`8920`) when the **port** field is left
   blank during setup.  Custom host/port/SSL combinations now work reliably
