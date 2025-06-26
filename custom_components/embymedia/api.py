@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import time
+import asyncio
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -95,7 +96,11 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
             if session is None:
                 import aiohttp
 
-                session = aiohttp.ClientSession()
+                import aiohttp
+
+                session = aiohttp.ClientSession(
+                    timeout=aiohttp.ClientTimeout(total=8, connect=4)
+                )
             self._session = session
 
         # Very small in-memory cache for the sessions list - refreshed at most
@@ -912,6 +917,6 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
 
             _LOGGER.warning("Emby API error [%s] %s", exc.status, exc.message)
             raise EmbyApiError(str(exc)) from exc
-        except ClientError as exc:  # network error
+        except (ClientError, asyncio.TimeoutError) as exc:  # network / timeout error
             _LOGGER.error("Error communicating with Emby server: %s", exc)
             raise EmbyApiError(str(exc)) from exc
