@@ -190,6 +190,22 @@ class EmbyAPI:  # pylint: disable=too-few-public-methods
         self._sessions_cached_at = time.time()
         return data
 
+    # ------------------------------------------------------------------
+    # User helpers
+    # ------------------------------------------------------------------
+
+    async def get_current_user(self) -> dict[str, Any]:  # noqa: ANN401 – raw JSON
+        """Return the user profile linked to the API token.
+
+        Emby exposes ``GET /Users/Me`` that resolves authentication headers or
+        ``api_key`` query parameters without needing the caller to know its
+        GUID.  We use this as a *last-resort* when no active sessions are
+        present and the Home Assistant config does not specify a specific
+        *user_id*.
+        """
+
+        return await self._request("GET", "/Users/Me")
+
     async def play(
         self,
         session_id: str,

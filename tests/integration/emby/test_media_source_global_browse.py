@@ -201,6 +201,9 @@ class _StubEmbyAPI(EmbyAPI):  # type: ignore[misc]
     async def get_item_children(self, *_args, **_kwargs):  # noqa: D401 – not reached in this test
         return {"Items": [], "TotalRecordCount": 0}
 
+    async def get_current_user(self):  # noqa: D401 – used by fallback path
+        return {"Id": "user-x"}
+
 
 # ---------------------------------------------------------------------------
 # Pytest fixtures

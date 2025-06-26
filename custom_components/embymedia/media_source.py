@@ -291,7 +291,16 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             if uid:
                 return str(uid)
 
-        raise BrowseError("Unable to determine an Emby user for media browsing")
+        # Final fallback – resolve the API token to the *current* user profile.
+        try:
+            me = await api.get_current_user()
+            uid = me.get("Id")
+            if uid:
+                return str(uid)
+        except Exception as exc:  # pragma: no cover – network / auth failure
+            LOGGER.debug("Failed to resolve /Users/Me: %s", exc)
+
+        raise BrowseError("Unable to determine an Emby user for media browsing – no active sessions or configured user_id")
 
     # -------------------------
     # Mapping helpers
