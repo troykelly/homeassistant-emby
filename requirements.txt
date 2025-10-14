@@ -7,7 +7,7 @@ voluptuous==0.15.2
 pyemby==1.10
 
 # Home Assistant core (for integration tests)
-homeassistant==2025.6.1
+homeassistant==2025.10.2
 
 # Development & testing
 pytest==8.3.5
