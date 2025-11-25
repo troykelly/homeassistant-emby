@@ -1983,10 +1983,7 @@ class TestEmbyMediaPlayerSearchMedia:
     ) -> None:
         """Test async_search_media respects media_content_type filter."""
         from homeassistant.components.media_player import MediaType
-        from homeassistant.components.media_player.browse_media import (
-            SearchMedia,
-            SearchMediaQuery,
-        )
+        from homeassistant.components.media_player.browse_media import SearchMediaQuery
 
         from custom_components.embymedia.media_player import EmbyMediaPlayer
 

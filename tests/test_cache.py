@@ -2,14 +2,7 @@
 
 from __future__ import annotations
 
-import asyncio
-from typing import TYPE_CHECKING
-from unittest.mock import MagicMock
-
 import pytest
-
-if TYPE_CHECKING:
-    pass
 
 
 class TestBrowseCache:

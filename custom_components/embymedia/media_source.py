@@ -492,7 +492,7 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
         library_id: str,
     ) -> BrowseMediaSource:
         """Browse movies A-Z menu."""
-        letters = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ") + ["#"]
+        letters = [*"ABCDEFGHIJKLMNOPQRSTUVWXYZ", "#"]
         children: list[BrowseMediaSource] = []
 
         for letter in letters:
@@ -884,7 +884,7 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
         library_id: str,
     ) -> BrowseMediaSource:
         """Browse TV shows A-Z menu."""
-        letters = list("ABCDEFGHIJKLMNOPQRSTUVWXYZ") + ["#"]
+        letters = [*"ABCDEFGHIJKLMNOPQRSTUVWXYZ", "#"]
         children: list[BrowseMediaSource] = []
 
         for letter in letters:
