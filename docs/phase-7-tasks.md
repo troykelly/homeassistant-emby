@@ -676,29 +676,33 @@ Test complete WebSocket workflow:
 
 ### Required for Phase 7 Complete
 
-- [ ] WebSocket client implementation
-- [ ] Connection URL format: `wss://{host}/embywebsocket?api_key={key}&deviceId={id}`
-- [ ] SessionsStart/SessionsStop subscription
-- [ ] Handle Sessions message updates
-- [ ] Handle playback events (PlaybackStarted, PlaybackStopped)
-- [ ] Handle session end events
-- [ ] Automatic reconnection with backoff
-- [ ] Coordinator integration
-- [ ] Hybrid polling mode
-- [ ] Clean shutdown
-- [ ] All tests passing
-- [ ] 100% code coverage maintained
-- [ ] No mypy errors
-- [ ] No ruff errors
+- [x] WebSocket client implementation
+- [x] Connection URL format: `wss://{host}/embywebsocket?api_key={key}&deviceId={id}`
+- [x] SessionsStart/SessionsStop subscription
+- [x] Handle Sessions message updates
+- [x] Handle playback events (PlaybackStarted, PlaybackStopped)
+- [x] Handle session end events
+- [x] Automatic reconnection with backoff
+- [x] Coordinator integration
+- [x] Hybrid polling mode
+- [x] Clean shutdown
+- [x] All tests passing (445 tests)
+- [x] 100% code coverage maintained
+- [x] No mypy errors
+- [x] No ruff errors
 
 ### Definition of Done
 
 1. ✅ WebSocket connects to Emby server
 2. ✅ Real-time session updates received
 3. ✅ Automatic reconnection on disconnect
-4. ✅ Reduced polling with WebSocket active
+4. ✅ Reduced polling with WebSocket active (60s vs 10s)
 5. ✅ Graceful fallback to polling
 6. ✅ Integration continues to work if WebSocket unavailable
+
+### Phase 7 Complete
+
+All acceptance criteria have been met. WebSocket real-time updates are now fully implemented.
 
 ---
 
