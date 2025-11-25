@@ -92,8 +92,6 @@ known-first-party = ["custom_components.emby"]
 source = ["custom_components/emby"]
 omit = [
     "tests/*",
-    "custom_components/emby/coordinator.py",  # Phase 2 stub
-    "custom_components/emby/models.py",       # Phase 2 stub
 ]
 
 [tool.coverage.report]
