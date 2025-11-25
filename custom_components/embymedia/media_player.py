@@ -3,22 +3,38 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from homeassistant.components.media_player import (
     MediaPlayerEntity,
+    MediaPlayerEntityFeature,
     MediaPlayerState,
+    MediaType,
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from .entity import EmbyEntity
+from .models import MediaType as EmbyMediaType
 
 if TYPE_CHECKING:
     from .const import EmbyConfigEntry
     from .coordinator import EmbyDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+# Map Emby media types to HA media types
+_MEDIA_TYPE_MAP: dict[EmbyMediaType, MediaType] = {
+    EmbyMediaType.MOVIE: MediaType.MOVIE,
+    EmbyMediaType.EPISODE: MediaType.TVSHOW,
+    EmbyMediaType.AUDIO: MediaType.MUSIC,
+    EmbyMediaType.MUSIC_VIDEO: MediaType.VIDEO,
+    EmbyMediaType.TRAILER: MediaType.VIDEO,
+    EmbyMediaType.PHOTO: MediaType.IMAGE,
+    EmbyMediaType.LIVE_TV: MediaType.CHANNEL,
+}
 
 
 async def async_setup_entry(
@@ -102,6 +118,328 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             return MediaPlayerState.PAUSED
 
         return MediaPlayerState.PLAYING
+
+    @property
+    def supported_features(self) -> MediaPlayerEntityFeature:
+        """Return the supported features.
+
+        Features are dynamically determined based on session capabilities.
+
+        Returns:
+            Bitmask of supported features.
+        """
+        session = self.session
+        if session is None:
+            return MediaPlayerEntityFeature(0)
+
+        if not session.supports_remote_control:
+            return MediaPlayerEntityFeature(0)
+
+        features = (
+            MediaPlayerEntityFeature.PAUSE
+            | MediaPlayerEntityFeature.PLAY
+            | MediaPlayerEntityFeature.STOP
+            | MediaPlayerEntityFeature.NEXT_TRACK
+            | MediaPlayerEntityFeature.PREVIOUS_TRACK
+            | MediaPlayerEntityFeature.PLAY_MEDIA
+        )
+
+        # Volume control if supported
+        if "SetVolume" in session.supported_commands:
+            features |= MediaPlayerEntityFeature.VOLUME_SET
+        if "Mute" in session.supported_commands:
+            features |= MediaPlayerEntityFeature.VOLUME_MUTE
+
+        # Seek if playback supports it
+        if session.play_state and session.play_state.can_seek:
+            features |= MediaPlayerEntityFeature.SEEK
+
+        return features
+
+    @property
+    def media_content_id(self) -> str | None:
+        """Return the content ID of current playing media.
+
+        Returns:
+            Item ID or None if not playing.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        return session.now_playing.item_id
+
+    @property
+    def media_content_type(self) -> MediaType | str | None:
+        """Return the content type of current playing media.
+
+        Returns:
+            HA MediaType or None if not playing.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+
+        return _MEDIA_TYPE_MAP.get(session.now_playing.media_type, MediaType.VIDEO)
+
+    @property
+    def media_title(self) -> str | None:
+        """Return the title of current playing media.
+
+        Returns:
+            Item name or None if not playing.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        return session.now_playing.name
+
+    @property
+    def media_series_title(self) -> str | None:
+        """Return the series title for TV episodes.
+
+        Returns:
+            Series name or None if not an episode.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        return session.now_playing.series_name
+
+    @property
+    def media_season(self) -> str | None:
+        """Return the season number.
+
+        Returns:
+            Season number as string or None.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        season = session.now_playing.season_number
+        return str(season) if season is not None else None
+
+    @property
+    def media_episode(self) -> str | None:
+        """Return the episode number.
+
+        Returns:
+            Episode number as string or None.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        episode = session.now_playing.episode_number
+        return str(episode) if episode is not None else None
+
+    @property
+    def media_artist(self) -> str | None:
+        """Return the artist of current playing media.
+
+        Returns:
+            Artist name(s) or None.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+
+        artists = session.now_playing.artists
+        if artists:
+            return ", ".join(artists)
+        return session.now_playing.album_artist
+
+    @property
+    def media_album_name(self) -> str | None:
+        """Return the album of current playing media.
+
+        Returns:
+            Album name or None.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        return session.now_playing.album
+
+    @property
+    def media_album_artist(self) -> str | None:
+        """Return the album artist of current playing media.
+
+        Returns:
+            Album artist or None.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        return session.now_playing.album_artist
+
+    @property
+    def media_duration(self) -> int | None:
+        """Return the duration of current playing media in seconds.
+
+        Returns:
+            Duration in seconds or None.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        duration = session.now_playing.duration_seconds
+        return int(duration) if duration is not None else None
+
+    @property
+    def media_position(self) -> int | None:
+        """Return the current position in seconds.
+
+        Returns:
+            Position in seconds or None.
+        """
+        session = self.session
+        if session is None or session.play_state is None:
+            return None
+        return int(session.play_state.position_seconds)
+
+    @property
+    def media_position_updated_at(self) -> datetime | None:
+        """Return when position was last updated.
+
+        Returns:
+            Timestamp or None.
+        """
+        session = self.session
+        if session is None or session.play_state is None:
+            return None
+        now: datetime = dt_util.utcnow()
+        return now
+
+    @property
+    def volume_level(self) -> float | None:
+        """Return the volume level (0.0 to 1.0).
+
+        Returns:
+            Volume level or None.
+        """
+        session = self.session
+        if session is None or session.play_state is None:
+            return None
+        return session.play_state.volume_level
+
+    @property
+    def is_volume_muted(self) -> bool | None:
+        """Return True if volume is muted.
+
+        Returns:
+            True if muted, False if not, None if unknown.
+        """
+        session = self.session
+        if session is None or session.play_state is None:
+            return None
+        return session.play_state.is_muted
+
+    async def async_set_volume_level(self, volume: float) -> None:
+        """Set volume level (0.0 to 1.0).
+
+        Args:
+            volume: Volume level between 0.0 and 1.0.
+        """
+        session = self.session
+        if session is None:
+            return
+
+        # Convert to 0-100 range for Emby
+        volume_percent = int(volume * 100)
+        await self.coordinator.client.async_send_command(
+            session.session_id,
+            "SetVolume",
+            {"Volume": volume_percent},
+        )
+
+    async def async_mute_volume(self, mute: bool) -> None:
+        """Mute or unmute the volume.
+
+        Args:
+            mute: True to mute, False to unmute.
+        """
+        session = self.session
+        if session is None:
+            return
+
+        command = "Mute" if mute else "Unmute"
+        await self.coordinator.client.async_send_command(
+            session.session_id,
+            command,
+        )
+
+    async def async_media_play(self) -> None:
+        """Send play command."""
+        session = self.session
+        if session is None:
+            return
+
+        await self.coordinator.client.async_send_playback_command(
+            session.session_id,
+            "Unpause",
+        )
+
+    async def async_media_pause(self) -> None:
+        """Send pause command."""
+        session = self.session
+        if session is None:
+            return
+
+        await self.coordinator.client.async_send_playback_command(
+            session.session_id,
+            "Pause",
+        )
+
+    async def async_media_stop(self) -> None:
+        """Send stop command."""
+        session = self.session
+        if session is None:
+            return
+
+        await self.coordinator.client.async_send_playback_command(
+            session.session_id,
+            "Stop",
+        )
+
+    async def async_media_next_track(self) -> None:
+        """Send next track command."""
+        session = self.session
+        if session is None:
+            return
+
+        await self.coordinator.client.async_send_playback_command(
+            session.session_id,
+            "NextTrack",
+        )
+
+    async def async_media_previous_track(self) -> None:
+        """Send previous track command."""
+        session = self.session
+        if session is None:
+            return
+
+        await self.coordinator.client.async_send_playback_command(
+            session.session_id,
+            "PreviousTrack",
+        )
+
+    async def async_media_seek(self, position: float) -> None:
+        """Seek to position in seconds.
+
+        Args:
+            position: Position in seconds to seek to.
+        """
+        session = self.session
+        if session is None:
+            return
+
+        from .api import seconds_to_ticks
+
+        position_ticks = seconds_to_ticks(position)
+        await self.coordinator.client.async_send_playback_command(
+            session.session_id,
+            "Seek",
+            {"SeekPositionTicks": position_ticks},
+        )
 
 
 __all__ = ["EmbyMediaPlayer", "async_setup_entry"]

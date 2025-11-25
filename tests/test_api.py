@@ -900,3 +900,279 @@ class TestTickConversion:
         original_seconds = 123.456
         converted_seconds = ticks_to_seconds(seconds_to_ticks(original_seconds))
         assert abs(converted_seconds - original_seconds) < 0.0001
+
+
+class TestSendPlaybackCommand:
+    """Test sending playback commands."""
+
+    @pytest.mark.asyncio
+    async def test_send_playback_command_success(self) -> None:
+        """Test sending playback command successfully."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 204
+            mock_response.reason = "No Content"
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            await client.async_send_playback_command("session-123", "Pause")
+
+            # Verify POST was called with correct endpoint
+            mock_session.post.assert_called_once()
+            call_args = mock_session.post.call_args
+            assert "/Sessions/session-123/Playing/Pause" in str(call_args)
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_send_playback_command_with_args(self) -> None:
+        """Test sending playback command with arguments."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 204
+            mock_response.reason = "No Content"
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            await client.async_send_playback_command(
+                "session-123",
+                "Seek",
+                {"SeekPositionTicks": 50000000},
+            )
+
+            # Verify POST was called
+            mock_session.post.assert_called_once()
+            call_args = mock_session.post.call_args
+            # Verify JSON body contains the seek position
+            assert call_args.kwargs.get("json") == {"SeekPositionTicks": 50000000}
+            await client.close()
+
+
+class TestSendCommand:
+    """Test sending general commands."""
+
+    @pytest.mark.asyncio
+    async def test_send_command_success(self) -> None:
+        """Test sending general command successfully."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 204
+            mock_response.reason = "No Content"
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            await client.async_send_command("session-123", "Mute")
+
+            # Verify POST was called with correct endpoint
+            mock_session.post.assert_called_once()
+            call_args = mock_session.post.call_args
+            assert "/Sessions/session-123/Command/Mute" in str(call_args)
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_send_command_with_args(self) -> None:
+        """Test sending general command with arguments."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 204
+            mock_response.reason = "No Content"
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            await client.async_send_command(
+                "session-123",
+                "SetVolume",
+                {"Volume": 50},
+            )
+
+            # Verify POST was called
+            mock_session.post.assert_called_once()
+            call_args = mock_session.post.call_args
+            # Verify JSON body contains the volume
+            assert call_args.kwargs.get("json") == {"Volume": 50}
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_send_command_auth_error(self) -> None:
+        """Test authentication error when sending command."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 401
+            mock_response.reason = "Unauthorized"
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="bad-key",
+            )
+            with pytest.raises(EmbyAuthenticationError):
+                await client.async_send_command("session-123", "Mute")
+            await client.close()
+
+
+class TestRequestPostErrors:
+    """Test POST request error handling."""
+
+    @pytest.mark.asyncio
+    async def test_request_post_ssl_error(self) -> None:
+        """Test SSL error in POST request."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            ssl_error = OSError("SSL certificate verify failed")
+            mock_session.post = MagicMock(
+                side_effect=aiohttp.ClientSSLError(MagicMock(), ssl_error)
+            )
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8920,
+                api_key="test-key",
+                ssl=True,
+            )
+            with pytest.raises(EmbySSLError):
+                await client.async_send_command("session-123", "Mute")
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_request_post_timeout(self) -> None:
+        """Test timeout in POST request."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(side_effect=TimeoutError())
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            with pytest.raises(EmbyTimeoutError):
+                await client.async_send_command("session-123", "Mute")
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_request_post_connection_error(self) -> None:
+        """Test connection error in POST request."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(
+                side_effect=aiohttp.ClientConnectorError(
+                    MagicMock(), OSError("Connection refused")
+                )
+            )
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            with pytest.raises(EmbyConnectionError):
+                await client.async_send_command("session-123", "Mute")
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_request_post_client_error(self) -> None:
+        """Test generic client error in POST request."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(
+                side_effect=aiohttp.ClientError("Generic error")
+            )
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            with pytest.raises(EmbyConnectionError):
+                await client.async_send_command("session-123", "Mute")
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_request_post_raises_for_status(self) -> None:
+        """Test non-204 success status calls raise_for_status."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.reason = "OK"
+            mock_response.raise_for_status = MagicMock()
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            await client.async_send_command("session-123", "Mute")
+
+            mock_response.raise_for_status.assert_called_once()
+            await client.close()

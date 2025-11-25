@@ -363,6 +363,112 @@ class EmbyClient:
         response = await self._request(HTTP_GET, ENDPOINT_SESSIONS)
         return response  # type: ignore[return-value]
 
+    async def _request_post(
+        self,
+        endpoint: str,
+        data: dict[str, object] | None = None,
+    ) -> None:
+        """Make a POST request to the Emby API.
+
+        Args:
+            endpoint: API endpoint path.
+            data: Optional JSON body.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: Authentication failed.
+        """
+        url = f"{self.base_url}{endpoint}"
+        headers = self._get_headers()
+        ssl_context = self._get_ssl_context()
+
+        _LOGGER.debug(
+            "Emby API POST request: %s (data=%s)",
+            endpoint,
+            data,
+        )
+
+        session = await self._get_session()
+
+        try:
+            async with session.post(
+                url,
+                headers=headers,
+                json=data,
+                ssl=ssl_context,
+            ) as response:
+                _LOGGER.debug(
+                    "Emby API response: %s %s for POST %s",
+                    response.status,
+                    response.reason,
+                    endpoint,
+                )
+
+                if response.status in (401, 403):
+                    raise EmbyAuthenticationError(
+                        f"Authentication failed: {response.status}"
+                    )
+
+                # 204 No Content is success
+                if response.status == 204:
+                    return
+
+                response.raise_for_status()
+
+        except aiohttp.ClientSSLError as err:
+            raise EmbySSLError(f"SSL certificate error: {err}") from err
+
+        except TimeoutError as err:
+            raise EmbyTimeoutError(f"Request timed out after {self._timeout.total}s") from err
+
+        except aiohttp.ClientConnectorError as err:
+            raise EmbyConnectionError(
+                f"Failed to connect to {self._host}:{self._port}: {err}"
+            ) from err
+
+        except aiohttp.ClientError as err:
+            raise EmbyConnectionError(f"Client error: {err}") from err
+
+    async def async_send_playback_command(
+        self,
+        session_id: str,
+        command: str,
+        args: dict[str, object] | None = None,
+    ) -> None:
+        """Send a playback command to a session.
+
+        Args:
+            session_id: The session ID to send command to.
+            command: Playback command (Play, Pause, Stop, etc.).
+            args: Optional command arguments.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = f"/Sessions/{session_id}/Playing/{command}"
+        await self._request_post(endpoint, data=args)
+
+    async def async_send_command(
+        self,
+        session_id: str,
+        command: str,
+        args: dict[str, object] | None = None,
+    ) -> None:
+        """Send a general command to a session.
+
+        Args:
+            session_id: The session ID to send command to.
+            command: Command name (SetVolume, Mute, etc.).
+            args: Optional command arguments.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = f"/Sessions/{session_id}/Command/{command}"
+        await self._request_post(endpoint, data=args)
+
     async def close(self) -> None:
         """Close the client session.
 

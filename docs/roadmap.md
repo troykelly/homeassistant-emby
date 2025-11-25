@@ -88,48 +88,50 @@ The integration provides:
 
 ---
 
-## Phase 3: Media Player Entity - Core Features
+## Phase 3: Media Player Entity - Core Features ✅
 
 ### 3.1 Media Player Implementation (`media_player.py`)
 - [x] Extend `MediaPlayerEntity` with `EmbyEntity`
-- [ ] Implement `MediaPlayerEntityFeature` flags
-- [ ] Property implementations:
+- [x] Implement `MediaPlayerEntityFeature` flags
+- [x] Property implementations:
   - [x] `state` - OFF/IDLE/PLAYING/PAUSED mapping
-  - `media_content_id` - Current item ID
-  - `media_content_type` - Movie/Episode/Music/etc.
-  - `media_title` - Item name
-  - `media_artist` / `media_album` - Music metadata
-  - `media_series_title` / `media_season` / `media_episode` - TV metadata
-  - `media_duration` - Total length in seconds
-  - `media_position` - Current position in seconds
-  - `media_position_updated_at` - Timestamp for position tracking
+  - [x] `media_content_id` - Current item ID
+  - [x] `media_content_type` - Movie/Episode/Music/etc.
+  - [x] `media_title` - Item name
+  - [x] `media_artist` / `media_album_name` / `media_album_artist` - Music metadata
+  - [x] `media_series_title` / `media_season` / `media_episode` - TV metadata
+  - [x] `media_duration` - Total length in seconds
+  - [x] `media_position` - Current position in seconds
+  - [x] `media_position_updated_at` - Timestamp for position tracking
 
 ### 3.2 Volume Control
-- [ ] `volume_level` property (0.0-1.0)
-- [ ] `is_volume_muted` property
-- [ ] `async_set_volume_level(volume)` service
-- [ ] `async_mute_volume(mute)` service
+- [x] `volume_level` property (0.0-1.0)
+- [x] `is_volume_muted` property
+- [x] `async_set_volume_level(volume)` service
+- [x] `async_mute_volume(mute)` service
 
 ### 3.3 Playback Control
-- [ ] `async_media_play()` - Resume playback
-- [ ] `async_media_pause()` - Pause playback
-- [ ] `async_media_stop()` - Stop playback
-- [ ] `async_media_next_track()` - Next item
-- [ ] `async_media_previous_track()` - Previous item
-- [ ] `async_media_seek(position)` - Seek to position
+- [x] `async_media_play()` - Resume playback
+- [x] `async_media_pause()` - Pause playback
+- [x] `async_media_stop()` - Stop playback
+- [x] `async_media_next_track()` - Next item
+- [x] `async_media_previous_track()` - Previous item
+- [x] `async_media_seek(position)` - Seek to position
 
 ### 3.4 Playback Command Implementation
-- [ ] `POST /Sessions/{id}/Playing/PlayPause`
-- [ ] `POST /Sessions/{id}/Playing/Stop`
-- [ ] `POST /Sessions/{id}/Playing/NextTrack`
-- [ ] `POST /Sessions/{id}/Playing/PreviousTrack`
-- [ ] `POST /Sessions/{id}/Playing/Seek` with `SeekPositionTicks`
-- [ ] `POST /Sessions/{id}/Command` for volume control
+- [x] `POST /Sessions/{id}/Playing/Unpause` - Resume
+- [x] `POST /Sessions/{id}/Playing/Pause` - Pause
+- [x] `POST /Sessions/{id}/Playing/Stop` - Stop
+- [x] `POST /Sessions/{id}/Playing/NextTrack` - Next track
+- [x] `POST /Sessions/{id}/Playing/PreviousTrack` - Previous track
+- [x] `POST /Sessions/{id}/Playing/Seek` with `SeekPositionTicks`
+- [x] `POST /Sessions/{id}/Command/SetVolume` for volume control
+- [x] `POST /Sessions/{id}/Command/Mute` and `Unmute` for mute control
 
 **Deliverables:**
-- Full playback control of Emby clients
-- Volume management
-- Accurate state and metadata display
+- ✅ Full playback control of Emby clients
+- ✅ Volume management
+- ✅ Accurate state and metadata display
 
 ---
 
@@ -391,7 +393,7 @@ Phase 8 ◄───────────────────────
 ### Minimum Viable Product (Phases 1-4)
 - [x] Config flow connects to Emby server
 - [x] Media player entities created for active sessions
-- [ ] Full playback control working
+- [x] Full playback control working
 - [ ] Media artwork displayed
 
 ### Feature Complete (Phases 1-7)
