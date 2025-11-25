@@ -299,6 +299,7 @@ The integration provides:
 - [ ] Detailed error logging
 - [ ] User-friendly error messages
 - [ ] Automatic recovery mechanisms
+- [ ] Fix `via_device` warning (register server device before entities) - see [KNOWN_ISSUES.md](./KNOWN_ISSUES.md)
 
 ### 9.2 Performance Optimization
 - [ ] Connection pooling
