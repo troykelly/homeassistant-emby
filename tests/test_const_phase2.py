@@ -1,4 +1,5 @@
 """Tests for Phase 2 TypedDicts in const.py."""
+
 from __future__ import annotations
 
 

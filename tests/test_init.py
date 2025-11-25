@@ -1,4 +1,5 @@
 """Tests for Emby integration setup."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -38,9 +39,7 @@ class TestSetupEntry:
         mock_config_entry.add_to_hass(hass)
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
                 autospec=True,
@@ -79,9 +78,7 @@ class TestSetupEntry:
         mock_config_entry.add_to_hass(hass)
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
                 autospec=True,
@@ -123,9 +120,7 @@ class TestSetupEntry:
         entry.add_to_hass(hass)
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
                 autospec=True,
@@ -155,9 +150,7 @@ class TestSetupEntry:
         mock_config_entry.add_to_hass(hass)
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
                 autospec=True,
@@ -185,9 +178,7 @@ class TestSetupEntry:
         """Test setup raises ConfigEntryNotReady on connection failure."""
         mock_config_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(
                 side_effect=EmbyConnectionError("Connection refused")
@@ -207,9 +198,7 @@ class TestSetupEntry:
         """Test setup raises ConfigEntryAuthFailed on auth failure."""
         mock_config_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(
                 side_effect=EmbyAuthenticationError("Invalid API key")
@@ -235,9 +224,7 @@ class TestUnloadEntry:
         mock_config_entry.add_to_hass(hass)
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
                 autospec=True,
@@ -274,9 +261,7 @@ class TestOptionsUpdate:
         mock_config_entry.add_to_hass(hass)
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
                 autospec=True,
@@ -294,9 +279,7 @@ class TestOptionsUpdate:
             assert mock_config_entry.state is ConfigEntryState.LOADED
 
             # Update options - this should trigger reload
-            hass.config_entries.async_update_entry(
-                mock_config_entry, options={"scan_interval": 30}
-            )
+            hass.config_entries.async_update_entry(mock_config_entry, options={"scan_interval": 30})
             await hass.async_block_till_done()
 
             # Entry should be reloaded (still LOADED)
@@ -317,9 +300,7 @@ class TestMultipleEntries:
         server_info_2 = {**mock_server_info, "Id": "server-2", "ServerName": "Server 2"}
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
                 autospec=True,
@@ -402,9 +383,7 @@ class TestServerDeviceRegistration:
         mock_config_entry.add_to_hass(hass)
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
                 autospec=True,
@@ -446,9 +425,7 @@ class TestServerDeviceRegistration:
         mock_config_entry.add_to_hass(hass)
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
                 autospec=True,

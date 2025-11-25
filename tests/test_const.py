@@ -1,4 +1,5 @@
 """Tests for Emby integration constants and utilities."""
+
 from __future__ import annotations
 
 from custom_components.embymedia.const import (

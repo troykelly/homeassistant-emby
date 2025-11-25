@@ -1,4 +1,5 @@
 """Tests for Emby API client."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -137,9 +138,7 @@ class TestValidateConnection:
     """Test connection validation."""
 
     @pytest.mark.asyncio
-    async def test_validate_connection_success(
-        self, mock_server_info: dict[str, Any]
-    ) -> None:
+    async def test_validate_connection_success(self, mock_server_info: dict[str, Any]) -> None:
         """Test successful connection validation."""
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_response = MagicMock()
@@ -221,9 +220,7 @@ class TestValidateConnection:
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_session = MagicMock()
             mock_session.request = MagicMock(
-                side_effect=aiohttp.ClientConnectorError(
-                    MagicMock(), OSError("Connection refused")
-                )
+                side_effect=aiohttp.ClientConnectorError(MagicMock(), OSError("Connection refused"))
             )
             mock_session.closed = False
             mock_session.close = AsyncMock()
@@ -285,9 +282,7 @@ class TestGetServerInfo:
     """Test server info retrieval."""
 
     @pytest.mark.asyncio
-    async def test_get_server_info_success(
-        self, mock_server_info: dict[str, Any]
-    ) -> None:
+    async def test_get_server_info_success(self, mock_server_info: dict[str, Any]) -> None:
         """Test successful server info retrieval."""
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_response = MagicMock()
@@ -315,9 +310,7 @@ class TestGetServerInfo:
             await client.close()
 
     @pytest.mark.asyncio
-    async def test_get_server_info_caches_server_id(
-        self, mock_server_info: dict[str, Any]
-    ) -> None:
+    async def test_get_server_info_caches_server_id(self, mock_server_info: dict[str, Any]) -> None:
         """Test server ID is cached after retrieval."""
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_response = MagicMock()
@@ -349,9 +342,7 @@ class TestGetPublicInfo:
     """Test public server info retrieval."""
 
     @pytest.mark.asyncio
-    async def test_get_public_info_success(
-        self, mock_public_info: dict[str, Any]
-    ) -> None:
+    async def test_get_public_info_success(self, mock_public_info: dict[str, Any]) -> None:
         """Test successful public info retrieval."""
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_response = MagicMock()
@@ -378,9 +369,7 @@ class TestGetPublicInfo:
             await client.close()
 
     @pytest.mark.asyncio
-    async def test_get_public_info_no_auth(
-        self, mock_public_info: dict[str, Any]
-    ) -> None:
+    async def test_get_public_info_no_auth(self, mock_public_info: dict[str, Any]) -> None:
         """Test public info request doesn't include auth header."""
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_response = MagicMock()
@@ -826,9 +815,7 @@ class TestSessionManagement:
             mock_session.close.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_async_context_manager(
-        self, mock_server_info: dict[str, Any]
-    ) -> None:
+    async def test_async_context_manager(self, mock_server_info: dict[str, Any]) -> None:
         """Test context manager works correctly."""
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_response = MagicMock()
@@ -1458,9 +1445,7 @@ class TestGetEpisodes:
                 port=8096,
                 api_key="test-key",
             )
-            episodes = await client.async_get_episodes(
-                "user-123", "series-abc", "season-1"
-            )
+            episodes = await client.async_get_episodes("user-123", "series-abc", "season-1")
             assert len(episodes) == 2
             assert episodes[0]["Name"] == "Episode 1"
             await client.close()
@@ -1519,9 +1504,7 @@ class TestPlayItems:
                 port=8096,
                 api_key="test-key",
             )
-            await client.async_play_items(
-                "session-123", ["movie-1", "movie-2", "movie-3"]
-            )
+            await client.async_play_items("session-123", ["movie-1", "movie-2", "movie-3"])
 
             call_args = mock_session.post.call_args
             json_body = call_args.kwargs.get("json", {})
@@ -1580,9 +1563,7 @@ class TestRequestPostErrors:
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_session = MagicMock()
             mock_session.post = MagicMock(
-                side_effect=aiohttp.ClientConnectorError(
-                    MagicMock(), OSError("Connection refused")
-                )
+                side_effect=aiohttp.ClientConnectorError(MagicMock(), OSError("Connection refused"))
             )
             mock_session.closed = False
             mock_session.close = AsyncMock()
@@ -1602,9 +1583,7 @@ class TestRequestPostErrors:
         """Test generic client error in POST request."""
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_session = MagicMock()
-            mock_session.post = MagicMock(
-                side_effect=aiohttp.ClientError("Generic error")
-            )
+            mock_session.post = MagicMock(side_effect=aiohttp.ClientError("Generic error"))
             mock_session.closed = False
             mock_session.close = AsyncMock()
             mock_session_class.return_value = mock_session

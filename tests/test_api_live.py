@@ -36,9 +36,7 @@ def live_emby_api_key() -> str | None:
 
 
 @pytest.fixture
-def requires_live_server(
-    live_emby_url: str | None, live_emby_api_key: str | None
-) -> None:
+def requires_live_server(live_emby_url: str | None, live_emby_api_key: str | None) -> None:
     """Skip test if live server credentials not available."""
     if not live_emby_url or not live_emby_api_key:
         pytest.skip("EMBY_URL and EMBY_API_KEY required for live tests")
@@ -143,9 +141,7 @@ class TestLiveGetItems:
                 library_id = view["Id"]
                 print(f"\nBrowsing library: {view.get('Name')}")
 
-                result = await live_client.async_get_items(
-                    user_id, parent_id=library_id, limit=5
-                )
+                result = await live_client.async_get_items(user_id, parent_id=library_id, limit=5)
 
                 print(f"Found {result.get('TotalRecordCount', 0)} items")
                 items = result.get("Items", [])
