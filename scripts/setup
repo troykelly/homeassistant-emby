@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# Setup script for Home Assistant custom integration development
+# Reference: https://developers.home-assistant.io/docs/development_environment/
+
+set -e
+
+# Determine script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+echo "=== Setting up Home Assistant Emby Integration Development Environment ==="
+
+# Check Python version
+PYTHON_VERSION=$(python3 --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1,2)
+echo "Python version: ${PYTHON_VERSION}"
+
+if [[ "${PYTHON_VERSION}" != "3.13" ]]; then
+    echo "Warning: Home Assistant requires Python 3.13. You have ${PYTHON_VERSION}."
+fi
+
+# Install uv if not present
+if ! command -v uv &> /dev/null; then
+    echo "Installing uv..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.local/bin:$PATH"
+fi
+
+# Install pnpm if not present
+if ! command -v pnpm &> /dev/null; then
+    echo "Installing pnpm..."
+    curl -fsSL https://get.pnpm.io/install.sh | sh -
+fi
+
+# Create virtual environment if not in devcontainer
+if [ -z "${DEVCONTAINER}" ] && [ ! -d ".venv" ]; then
+    echo "Creating virtual environment..."
+    uv venv
+fi
+
+# Install dependencies
+echo "Installing dependencies..."
+if [ -f "pyproject.toml" ]; then
+    uv pip install -e ".[dev]" 2>/dev/null || uv pip install -e .
+elif [ -f "requirements.txt" ]; then
+    uv pip install -r requirements.txt
+fi
+
+# Install dev requirements
+if [ -f "requirements_dev.txt" ]; then
+    uv pip install -r requirements_dev.txt
+fi
+
+if [ -f "requirements_test.txt" ]; then
+    uv pip install -r requirements_test.txt
+fi
+
+# Setup pre-commit
+if [ -f ".pre-commit-config.yaml" ]; then
+    echo "Installing pre-commit hooks..."
+    pre-commit install
+fi
+
+echo ""
+echo "=== Setup Complete ==="
+echo "To start developing:"
+echo "  1. Run 'scripts/develop' to start Home Assistant"
+echo "  2. Access Home Assistant at http://localhost:8123"
+echo "  3. Run 'pytest' to execute tests"

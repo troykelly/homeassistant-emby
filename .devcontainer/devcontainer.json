@@ -1,0 +1,107 @@
+{
+  "name": "Home Assistant Emby Integration",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "postCreateCommand": ".devcontainer/postCreateCommand.sh",
+  "postStartCommand": ".devcontainer/postStartCommand.sh",
+  "containerEnv": {
+    "PYTHONASYNCIODEBUG": "1",
+    "UV_LINK_MODE": "copy"
+  },
+  "forwardPorts": [8123],
+  "portsAttributes": {
+    "8123": {
+      "label": "Home Assistant",
+      "onAutoForward": "notify"
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts",
+      "nodeGypDependencies": true
+    },
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
+    "ghcr.io/devcontainers-extra/features/pnpm:2": {
+      "version": "latest"
+    },
+    "ghcr.io/va-h/devcontainers-features/uv:1": {
+      "version": "latest",
+      "shellautocompletion": true
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers-extra/features/apt-packages:1": {
+      "packages": "ffmpeg,libturbojpeg0,libpcap-dev,zsh,fzf"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "charliermarsh.ruff",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy",
+        "ryanluker.vscode-coverage-gutters",
+        "github.vscode-pull-request-github",
+        "GitHub.copilot",
+        "redhat.vscode-yaml",
+        "esbenp.prettier-vscode",
+        "tamasfe.even-better-toml",
+        "eamodio.gitlens",
+        "usernamehw.errorlens",
+        "anthropic.claude-code"
+      ],
+      "settings": {
+        "files.eol": "\n",
+        "editor.tabSize": 4,
+        "editor.formatOnPaste": true,
+        "editor.formatOnSave": true,
+        "editor.formatOnType": false,
+        "files.trimTrailingWhitespace": true,
+        "python.analysis.typeCheckingMode": "basic",
+        "python.analysis.autoImportCompletions": true,
+        "python.defaultInterpreterPath": "/home/vscode/.local/ha-venv/bin/python",
+        "python.terminal.activateEnvInCurrentTerminal": true,
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": [
+          "--no-cov",
+          "tests"
+        ],
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        },
+        "[json][jsonc][yaml]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "yaml.customTags": [
+          "!input scalar",
+          "!secret scalar",
+          "!include_dir_named scalar",
+          "!include_dir_list scalar",
+          "!include_dir_merge_list scalar",
+          "!include_dir_merge_named scalar"
+        ],
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "/usr/bin/zsh"
+          }
+        }
+      }
+    }
+  },
+  "runArgs": [
+    "-e",
+    "GIT_EDITOR=code --wait",
+    "--security-opt",
+    "label=disable",
+    "--env-file",
+    "${localWorkspaceFolder}/.env"
+  ],
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=${localWorkspaceFolder}/config,target=/workspaces/config,type=bind,consistency=cached",
+    "source=ha-emby-vscode-home,target=/home/vscode,type=volume"
+  ]
+}

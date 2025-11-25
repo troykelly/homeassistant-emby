@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Start Home Assistant in development mode
+# Reference: https://developers.home-assistant.io/docs/development_environment/
+
+set -e
+
+# Determine script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Configuration directory
+CONFIG_DIR="${REPO_ROOT}/config"
+
+# Activate virtual environment if available
+if [ -d "/home/vscode/.local/ha-venv" ]; then
+    export PATH="/home/vscode/.local/ha-venv/bin:$PATH"
+fi
+
+# Ensure config directory exists
+mkdir -p "${CONFIG_DIR}/custom_components"
+
+# Link custom components
+if [ -d "${REPO_ROOT}/custom_components" ]; then
+    echo "Linking custom_components..."
+    for component in "${REPO_ROOT}/custom_components"/*; do
+        if [ -d "$component" ]; then
+            component_name=$(basename "$component")
+            ln -sf "$component" "${CONFIG_DIR}/custom_components/${component_name}"
+            echo "  Linked: ${component_name}"
+        fi
+    done
+fi
+
+# Start Home Assistant
+echo ""
+echo "Starting Home Assistant..."
+echo "Access at: http://localhost:8123"
+echo "Press Ctrl+C to stop"
+echo ""
+
+hass -c "${CONFIG_DIR}" --debug

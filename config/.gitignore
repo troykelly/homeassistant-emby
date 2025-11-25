@@ -1,0 +1,17 @@
+# Ignore Home Assistant runtime files
+*.log
+*.db
+*.db-shm
+*.db-wal
+home-assistant_v2.db*
+.storage/
+deps/
+tts/
+blueprints/
+www/
+.cloud/
+backups/
+
+# Keep custom_components and configuration.yaml
+!custom_components/
+!configuration.yaml

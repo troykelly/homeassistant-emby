@@ -1,0 +1,22 @@
+# Home Assistant Development Configuration
+# This configuration is for testing custom integrations
+
+homeassistant:
+  name: Dev Instance
+  unit_system: metric
+  time_zone: UTC
+
+# Enable default config components
+default_config:
+
+# Enable debug logging for development
+logger:
+  default: info
+  logs:
+    custom_components.emby: debug
+    homeassistant.components.media_player: debug
+
+# Debugger configuration for VS Code
+debugpy:
+  start: true
+  wait: false
