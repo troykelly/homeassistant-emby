@@ -7,20 +7,30 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from homeassistant.components.media_player import (
+    MediaClass,
     MediaPlayerEntity,
     MediaPlayerEntityFeature,
     MediaPlayerState,
     MediaType,
 )
+from homeassistant.components.media_player.browse_media import BrowseMedia
+from homeassistant.components.media_player.errors import BrowseError
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
+from .browse import (
+    can_expand_emby_type,
+    can_play_emby_type,
+    decode_content_id,
+    emby_type_to_media_class,
+    encode_content_id,
+)
 from .entity import EmbyEntity
 from .models import MediaType as EmbyMediaType
 
 if TYPE_CHECKING:
-    from .const import EmbyConfigEntry
+    from .const import EmbyBrowseItem, EmbyConfigEntry, EmbyLibraryItem
 
 from .coordinator import EmbyDataUpdateCoordinator
 
@@ -143,6 +153,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             | MediaPlayerEntityFeature.NEXT_TRACK
             | MediaPlayerEntityFeature.PREVIOUS_TRACK
             | MediaPlayerEntityFeature.PLAY_MEDIA
+            | MediaPlayerEntityFeature.BROWSE_MEDIA
         )
 
         # Volume control if supported
@@ -499,6 +510,301 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             session.session_id,
             "Seek",
             {"SeekPositionTicks": position_ticks},
+        )
+
+    async def async_play_media(
+        self,
+        media_type: MediaType | str,
+        media_id: str,
+        **kwargs: object,
+    ) -> None:
+        """Play media on this player.
+
+        Args:
+            media_type: Type of media to play.
+            media_id: Media ID, may be encoded as type:id from browse.
+            **kwargs: Additional arguments (unused).
+        """
+        session = self.session
+        if session is None:
+            return
+
+        # Extract item ID from encoded content ID format (e.g., "item:movie-123")
+        # When media_id contains ":", it's in format "type:id" from browse UI
+        if ":" in media_id:
+            _, ids = decode_content_id(media_id)
+            item_id = ids[0]
+        else:
+            item_id = media_id
+
+        await self.coordinator.client.async_play_items(
+            session.session_id,
+            [item_id],
+        )
+
+    async def async_browse_media(
+        self,
+        media_content_type: MediaType | str | None = None,
+        media_content_id: str | None = None,
+    ) -> BrowseMedia:
+        """Implement the media browsing interface.
+
+        Args:
+            media_content_type: Type of content to browse.
+            media_content_id: ID of content to browse (encoded as type:id).
+
+        Returns:
+            BrowseMedia object with browsable content.
+
+        Raises:
+            BrowseError: If browsing fails (e.g., no session/user).
+        """
+        session = self.session
+        if session is None or session.user_id is None:
+            raise BrowseError("No active session to browse media")
+
+        user_id = session.user_id
+
+        # Root level - show libraries
+        if media_content_id is None:
+            return await self._async_browse_root(user_id)
+
+        # Parse the content ID to determine what to browse
+        content_type, ids = decode_content_id(media_content_id)
+
+        if content_type == "library" and ids:
+            return await self._async_browse_library(user_id, ids[0])
+
+        if content_type == "series" and ids:
+            return await self._async_browse_series(user_id, ids[0])
+
+        if content_type == "season" and len(ids) >= 2:
+            return await self._async_browse_season(user_id, ids[0], ids[1])
+
+        # Default: try to browse as a library
+        raise BrowseError(f"Unknown content type: {content_type}")
+
+    async def _async_browse_root(self, user_id: str) -> BrowseMedia:
+        """Browse root level - show user libraries.
+
+        Args:
+            user_id: The user ID for API calls.
+
+        Returns:
+            BrowseMedia with libraries as children.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        libraries = await client.async_get_user_views(user_id)
+
+        children: list[BrowseMedia] = []
+        for library in libraries:
+            children.append(self._library_to_browse_media(library))
+
+        return BrowseMedia(
+            media_class=MediaClass.DIRECTORY,
+            media_content_id="",
+            media_content_type=MediaType.VIDEO,
+            title="Emby",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_library(self, user_id: str, library_id: str) -> BrowseMedia:
+        """Browse a library's contents.
+
+        Args:
+            user_id: The user ID for API calls.
+            library_id: The library/folder ID.
+
+        Returns:
+            BrowseMedia with library items as children.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        result = await client.async_get_items(user_id, parent_id=library_id)
+        items = result.get("Items", [])
+
+        children: list[BrowseMedia] = []
+        for item in items:
+            children.append(self._item_to_browse_media(item))
+
+        return BrowseMedia(
+            media_class=MediaClass.DIRECTORY,
+            media_content_id=encode_content_id("library", library_id),
+            media_content_type=MediaType.VIDEO,
+            title="Library",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_series(self, user_id: str, series_id: str) -> BrowseMedia:
+        """Browse a TV series - show seasons.
+
+        Args:
+            user_id: The user ID for API calls.
+            series_id: The series ID.
+
+        Returns:
+            BrowseMedia with seasons as children.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        seasons = await client.async_get_seasons(user_id, series_id)
+
+        children: list[BrowseMedia] = []
+        for season in seasons:
+            children.append(self._season_to_browse_media(season, series_id))
+
+        return BrowseMedia(
+            media_class=MediaClass.TV_SHOW,
+            media_content_id=encode_content_id("series", series_id),
+            media_content_type=MediaType.TVSHOW,
+            title="Series",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_season(
+        self, user_id: str, series_id: str, season_id: str
+    ) -> BrowseMedia:
+        """Browse a TV season - show episodes.
+
+        Args:
+            user_id: The user ID for API calls.
+            series_id: The series ID.
+            season_id: The season ID.
+
+        Returns:
+            BrowseMedia with episodes as children.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        episodes = await client.async_get_episodes(user_id, series_id, season_id)
+
+        children: list[BrowseMedia] = []
+        for episode in episodes:
+            children.append(self._item_to_browse_media(episode))
+
+        return BrowseMedia(
+            media_class=MediaClass.SEASON,
+            media_content_id=encode_content_id("season", series_id, season_id),
+            media_content_type=MediaType.TVSHOW,
+            title="Season",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    def _library_to_browse_media(self, library: EmbyLibraryItem) -> BrowseMedia:
+        """Convert a library item to BrowseMedia.
+
+        Args:
+            library: The library item from API.
+
+        Returns:
+            BrowseMedia representation of the library.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        # Get thumbnail if available
+        thumbnail: str | None = None
+        image_tags = library.get("ImageTags", {})
+        if "Primary" in image_tags:
+            thumbnail = client.get_image_url(
+                library["Id"], image_type="Primary", tag=image_tags["Primary"]
+            )
+
+        return BrowseMedia(
+            media_class=MediaClass.DIRECTORY,
+            media_content_id=encode_content_id("library", library["Id"]),
+            media_content_type=MediaType.VIDEO,
+            title=library["Name"],
+            can_play=False,
+            can_expand=True,
+            thumbnail=thumbnail,
+        )
+
+    def _item_to_browse_media(self, item: EmbyBrowseItem) -> BrowseMedia:
+        """Convert an Emby item to BrowseMedia.
+
+        Args:
+            item: The item from API.
+
+        Returns:
+            BrowseMedia representation of the item.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        item_type = item.get("Type", "Unknown")
+        media_class = emby_type_to_media_class(item_type)
+        can_play = can_play_emby_type(item_type)
+        can_expand = can_expand_emby_type(item_type)
+
+        # Determine content ID based on type
+        if item_type == "Series":
+            content_id = encode_content_id("series", item["Id"])
+        elif item_type in ("Movie", "Episode", "Audio"):
+            content_id = encode_content_id("item", item["Id"])
+        else:
+            content_id = encode_content_id("library", item["Id"])
+
+        # Get thumbnail if available
+        thumbnail: str | None = None
+        image_tags = item.get("ImageTags", {})
+        if "Primary" in image_tags:
+            thumbnail = client.get_image_url(
+                item["Id"], image_type="Primary", tag=image_tags["Primary"]
+            )
+
+        return BrowseMedia(
+            media_class=media_class,
+            media_content_id=content_id,
+            media_content_type=MediaType.VIDEO,
+            title=item["Name"],
+            can_play=can_play,
+            can_expand=can_expand,
+            thumbnail=thumbnail,
+        )
+
+    def _season_to_browse_media(self, season: EmbyBrowseItem, series_id: str) -> BrowseMedia:
+        """Convert a season item to BrowseMedia.
+
+        Args:
+            season: The season item from API.
+            series_id: The parent series ID.
+
+        Returns:
+            BrowseMedia representation of the season.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        # Get thumbnail if available
+        thumbnail: str | None = None
+        image_tags = season.get("ImageTags", {})
+        if "Primary" in image_tags:
+            thumbnail = client.get_image_url(
+                season["Id"], image_type="Primary", tag=image_tags["Primary"]
+            )
+
+        return BrowseMedia(
+            media_class=MediaClass.SEASON,
+            media_content_id=encode_content_id("season", series_id, season["Id"]),
+            media_content_type=MediaType.TVSHOW,
+            title=season["Name"],
+            can_play=False,
+            can_expand=True,
+            thumbnail=thumbnail,
         )
 
 

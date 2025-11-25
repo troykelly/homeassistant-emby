@@ -1158,6 +1158,377 @@ class TestGetImageUrl:
         assert "Items/item/123/Images/Primary" in url or "Items/item%2F123/Images/Primary" in url
 
 
+class TestGetUserViews:
+    """Test user library views retrieval."""
+
+    @pytest.mark.asyncio
+    async def test_get_user_views_success(self) -> None:
+        """Test successful user views retrieval."""
+        mock_views = {
+            "Items": [
+                {
+                    "Id": "library-movies",
+                    "Name": "Movies",
+                    "CollectionType": "movies",
+                    "ImageTags": {"Primary": "abc123"},
+                },
+                {
+                    "Id": "library-tvshows",
+                    "Name": "TV Shows",
+                    "CollectionType": "tvshows",
+                },
+            ],
+        }
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.reason = "OK"
+            mock_response.json = AsyncMock(return_value=mock_views)
+            mock_response.raise_for_status = MagicMock()
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            views = await client.async_get_user_views("user-123")
+            assert len(views) == 2
+            assert views[0]["Name"] == "Movies"
+            assert views[1]["Name"] == "TV Shows"
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_get_user_views_empty(self) -> None:
+        """Test empty user views handled."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.reason = "OK"
+            mock_response.json = AsyncMock(return_value={"Items": []})
+            mock_response.raise_for_status = MagicMock()
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            views = await client.async_get_user_views("user-123")
+            assert views == []
+            await client.close()
+
+
+class TestGetItems:
+    """Test library items retrieval."""
+
+    @pytest.mark.asyncio
+    async def test_get_items_from_library(self) -> None:
+        """Test getting items from a library."""
+        mock_items = {
+            "Items": [
+                {
+                    "Id": "movie-123",
+                    "Name": "Test Movie",
+                    "Type": "Movie",
+                    "ProductionYear": 2024,
+                },
+                {
+                    "Id": "movie-456",
+                    "Name": "Another Movie",
+                    "Type": "Movie",
+                },
+            ],
+            "TotalRecordCount": 2,
+            "StartIndex": 0,
+        }
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.reason = "OK"
+            mock_response.json = AsyncMock(return_value=mock_items)
+            mock_response.raise_for_status = MagicMock()
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            result = await client.async_get_items("user-123", parent_id="library-movies")
+            assert len(result["Items"]) == 2
+            assert result["TotalRecordCount"] == 2
+            assert result["Items"][0]["Name"] == "Test Movie"
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_get_items_with_type_filter(self) -> None:
+        """Test getting items with type filter."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.reason = "OK"
+            mock_response.json = AsyncMock(
+                return_value={"Items": [], "TotalRecordCount": 0, "StartIndex": 0}
+            )
+            mock_response.raise_for_status = MagicMock()
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            await client.async_get_items(
+                "user-123",
+                parent_id="library-123",
+                include_item_types="Movie",
+            )
+
+            # Verify the query params include IncludeItemTypes
+            call_args = mock_session.request.call_args
+            assert "IncludeItemTypes" in str(call_args)
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_get_items_pagination(self) -> None:
+        """Test pagination support."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.reason = "OK"
+            mock_response.json = AsyncMock(
+                return_value={"Items": [], "TotalRecordCount": 100, "StartIndex": 50}
+            )
+            mock_response.raise_for_status = MagicMock()
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            result = await client.async_get_items(
+                "user-123",
+                limit=25,
+                start_index=50,
+            )
+            assert result["StartIndex"] == 50
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_get_items_recursive(self) -> None:
+        """Test recursive browsing."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.reason = "OK"
+            mock_response.json = AsyncMock(
+                return_value={"Items": [], "TotalRecordCount": 0, "StartIndex": 0}
+            )
+            mock_response.raise_for_status = MagicMock()
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            await client.async_get_items(
+                "user-123",
+                parent_id="library-123",
+                recursive=True,
+            )
+
+            # Verify the query params include Recursive
+            call_args = mock_session.request.call_args
+            assert "Recursive=true" in str(call_args)
+            await client.close()
+
+
+class TestGetSeasons:
+    """Test TV show seasons retrieval."""
+
+    @pytest.mark.asyncio
+    async def test_get_seasons_success(self) -> None:
+        """Test successful seasons retrieval."""
+        mock_seasons = {
+            "Items": [
+                {"Id": "season-1", "Name": "Season 1", "IndexNumber": 1},
+                {"Id": "season-2", "Name": "Season 2", "IndexNumber": 2},
+            ],
+        }
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.reason = "OK"
+            mock_response.json = AsyncMock(return_value=mock_seasons)
+            mock_response.raise_for_status = MagicMock()
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            seasons = await client.async_get_seasons("user-123", "series-abc")
+            assert len(seasons) == 2
+            assert seasons[0]["Name"] == "Season 1"
+            await client.close()
+
+
+class TestGetEpisodes:
+    """Test TV show episodes retrieval."""
+
+    @pytest.mark.asyncio
+    async def test_get_episodes_by_season(self) -> None:
+        """Test getting episodes for a season."""
+        mock_episodes = {
+            "Items": [
+                {"Id": "ep-1", "Name": "Episode 1", "IndexNumber": 1},
+                {"Id": "ep-2", "Name": "Episode 2", "IndexNumber": 2},
+            ],
+        }
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.reason = "OK"
+            mock_response.json = AsyncMock(return_value=mock_episodes)
+            mock_response.raise_for_status = MagicMock()
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            episodes = await client.async_get_episodes(
+                "user-123", "series-abc", "season-1"
+            )
+            assert len(episodes) == 2
+            assert episodes[0]["Name"] == "Episode 1"
+            await client.close()
+
+
+class TestPlayItems:
+    """Test play items on session."""
+
+    @pytest.mark.asyncio
+    async def test_play_items_single(self) -> None:
+        """Test playing a single item."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 204
+            mock_response.reason = "No Content"
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            await client.async_play_items("session-123", ["movie-456"])
+
+            # Verify POST was called with correct endpoint
+            mock_session.post.assert_called_once()
+            call_args = mock_session.post.call_args
+            assert "/Sessions/session-123/Playing" in str(call_args)
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_play_items_multiple(self) -> None:
+        """Test playing multiple items."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 204
+            mock_response.reason = "No Content"
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            await client.async_play_items(
+                "session-123", ["movie-1", "movie-2", "movie-3"]
+            )
+
+            call_args = mock_session.post.call_args
+            json_body = call_args.kwargs.get("json", {})
+            assert "movie-1,movie-2,movie-3" in json_body.get("ItemIds", "")
+            await client.close()
+
+
 class TestRequestPostErrors:
     """Test POST request error handling."""
 
