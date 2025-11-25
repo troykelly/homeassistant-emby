@@ -1333,3 +1333,224 @@ class TestVolumeServices:
         await player.async_mute_volume(mute=True)
 
         mock_coordinator.client.async_send_command.assert_not_called()
+
+
+class TestPlaybackControlServices:
+    """Test playback control services."""
+
+    @pytest.mark.asyncio
+    async def test_async_media_play(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_media_play sends Unpause command."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.session_id = "session-xyz"
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_playback_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        await player.async_media_play()
+
+        mock_coordinator.client.async_send_playback_command.assert_called_once_with(
+            "session-xyz",
+            "Unpause",
+        )
+
+    @pytest.mark.asyncio
+    async def test_async_media_play_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_media_play does nothing when no session."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_playback_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        await player.async_media_play()
+
+        mock_coordinator.client.async_send_playback_command.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_async_media_pause(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_media_pause sends Pause command."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.session_id = "session-xyz"
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_playback_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        await player.async_media_pause()
+
+        mock_coordinator.client.async_send_playback_command.assert_called_once_with(
+            "session-xyz",
+            "Pause",
+        )
+
+    @pytest.mark.asyncio
+    async def test_async_media_stop(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_media_stop sends Stop command."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.session_id = "session-xyz"
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_playback_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        await player.async_media_stop()
+
+        mock_coordinator.client.async_send_playback_command.assert_called_once_with(
+            "session-xyz",
+            "Stop",
+        )
+
+    @pytest.mark.asyncio
+    async def test_async_media_next_track(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_media_next_track sends NextTrack command."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.session_id = "session-xyz"
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_playback_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        await player.async_media_next_track()
+
+        mock_coordinator.client.async_send_playback_command.assert_called_once_with(
+            "session-xyz",
+            "NextTrack",
+        )
+
+    @pytest.mark.asyncio
+    async def test_async_media_previous_track(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_media_previous_track sends PreviousTrack command."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.session_id = "session-xyz"
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_playback_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        await player.async_media_previous_track()
+
+        mock_coordinator.client.async_send_playback_command.assert_called_once_with(
+            "session-xyz",
+            "PreviousTrack",
+        )
+
+    @pytest.mark.asyncio
+    async def test_async_media_seek(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_media_seek sends Seek command with ticks."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.session_id = "session-xyz"
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_playback_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        # Seek to 5 seconds = 50,000,000 ticks
+        await player.async_media_seek(5.0)
+
+        mock_coordinator.client.async_send_playback_command.assert_called_once_with(
+            "session-xyz",
+            "Seek",
+            {"SeekPositionTicks": 50000000},
+        )
+
+    @pytest.mark.asyncio
+    async def test_async_media_seek_fractional(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_media_seek handles fractional seconds."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.session_id = "session-xyz"
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_playback_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        # Seek to 1.5 seconds = 15,000,000 ticks
+        await player.async_media_seek(1.5)
+
+        mock_coordinator.client.async_send_playback_command.assert_called_once_with(
+            "session-xyz",
+            "Seek",
+            {"SeekPositionTicks": 15000000},
+        )
+
+    @pytest.mark.asyncio
+    async def test_async_media_seek_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_media_seek does nothing when no session."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_playback_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        await player.async_media_seek(5.0)
+
+        mock_coordinator.client.async_send_playback_command.assert_not_called()

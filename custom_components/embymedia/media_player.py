@@ -366,5 +366,79 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             command,
         )
 
+    async def async_media_play(self) -> None:
+        """Send play command."""
+        session = self.session
+        if session is None:
+            return
+
+        await self.coordinator.client.async_send_playback_command(
+            session.session_id,
+            "Unpause",
+        )
+
+    async def async_media_pause(self) -> None:
+        """Send pause command."""
+        session = self.session
+        if session is None:
+            return
+
+        await self.coordinator.client.async_send_playback_command(
+            session.session_id,
+            "Pause",
+        )
+
+    async def async_media_stop(self) -> None:
+        """Send stop command."""
+        session = self.session
+        if session is None:
+            return
+
+        await self.coordinator.client.async_send_playback_command(
+            session.session_id,
+            "Stop",
+        )
+
+    async def async_media_next_track(self) -> None:
+        """Send next track command."""
+        session = self.session
+        if session is None:
+            return
+
+        await self.coordinator.client.async_send_playback_command(
+            session.session_id,
+            "NextTrack",
+        )
+
+    async def async_media_previous_track(self) -> None:
+        """Send previous track command."""
+        session = self.session
+        if session is None:
+            return
+
+        await self.coordinator.client.async_send_playback_command(
+            session.session_id,
+            "PreviousTrack",
+        )
+
+    async def async_media_seek(self, position: float) -> None:
+        """Seek to position in seconds.
+
+        Args:
+            position: Position in seconds to seek to.
+        """
+        session = self.session
+        if session is None:
+            return
+
+        from .api import seconds_to_ticks
+
+        position_ticks = seconds_to_ticks(position)
+        await self.coordinator.client.async_send_playback_command(
+            session.session_id,
+            "Seek",
+            {"SeekPositionTicks": position_ticks},
+        )
+
 
 __all__ = ["EmbyMediaPlayer", "async_setup_entry"]
