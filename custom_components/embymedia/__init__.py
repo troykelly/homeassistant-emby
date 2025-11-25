@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import EmbyClient
@@ -17,6 +18,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SSL,
     DEFAULT_VERIFY_SSL,
+    DOMAIN,
     PLATFORMS,
     EmbyConfigEntry,
 )
@@ -84,6 +86,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> bool
 
     # Store coordinator in runtime_data
     entry.runtime_data = coordinator
+
+    # Register server device BEFORE forwarding to platforms
+    # This prevents the via_device warning where entities reference
+    # a server device that doesn't exist yet
+    device_registry = dr.async_get(hass)
+    device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, server_id)},
+        manufacturer="Emby",
+        model="Emby Server",
+        name=server_name,
+        sw_version=str(server_info.get("Version", "Unknown")),
+    )
 
     # Forward setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
