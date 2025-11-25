@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
@@ -13,9 +14,10 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .api import EmbyClient
-from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, WEBSOCKET_POLL_INTERVAL
 from .exceptions import EmbyConnectionError, EmbyError
 from .models import EmbySession, parse_session
+from .websocket import EmbyWebSocket
 
 if TYPE_CHECKING:
     from .const import EmbySessionResponse
@@ -69,6 +71,19 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         self.server_id = server_id
         self.server_name = server_name
         self._previous_sessions: set[str] = set()
+        self._websocket: EmbyWebSocket | None = None
+        self._websocket_enabled: bool = False
+        self._configured_scan_interval = scan_interval
+
+    @property
+    def websocket(self) -> EmbyWebSocket | None:
+        """Return the WebSocket client instance."""
+        return self._websocket
+
+    @property
+    def websocket_enabled(self) -> bool:
+        """Return True if WebSocket is enabled."""
+        return self._websocket_enabled
 
     async def _async_update_data(self) -> dict[str, EmbySession]:
         """Fetch session data from Emby server.
@@ -136,6 +151,160 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
             return None
         result: EmbySession | None = self.data.get(device_id)
         return result
+
+    async def async_setup_websocket(
+        self,
+        session: aiohttp.ClientSession,
+    ) -> None:
+        """Set up WebSocket connection for real-time updates.
+
+        Args:
+            session: aiohttp ClientSession for WebSocket connection.
+        """
+        self._websocket = EmbyWebSocket(
+            host=self.client.host,
+            port=self.client.port,
+            api_key=self.client.api_key,
+            ssl=self.client.ssl,
+            device_id=f"ha-emby-{self.server_id}",
+            session=session,
+        )
+
+        # Set up callbacks
+        self._websocket.set_message_callback(self._handle_websocket_message)
+        self._websocket.set_connection_callback(self._handle_websocket_connection)
+
+        # Connect to WebSocket
+        try:
+            await self._websocket.async_connect()
+            # Subscribe to session updates
+            await self._websocket.async_subscribe_sessions()
+            self._websocket_enabled = True
+            # Reduce polling interval since we have real-time updates
+            self.update_interval = timedelta(seconds=WEBSOCKET_POLL_INTERVAL)
+            _LOGGER.info("WebSocket connected to Emby server %s", self.server_name)
+            # Start receive loop in background
+            self.hass.async_create_task(self._async_websocket_receive_loop())
+        except aiohttp.ClientError as err:
+            _LOGGER.warning(
+                "Failed to connect WebSocket to %s: %s",
+                self.server_name,
+                err,
+            )
+            self._websocket_enabled = False
+
+    async def _async_websocket_receive_loop(self) -> None:
+        """Run the WebSocket receive loop."""
+        if self._websocket is None:
+            return
+        try:
+            await self._websocket._async_receive_loop()
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            _LOGGER.warning("WebSocket receive loop error: %s", err)
+        finally:
+            # Connection lost, trigger reconnect or fallback
+            if self._websocket_enabled:
+                self._handle_websocket_connection(False)
+
+    async def async_shutdown_websocket(self) -> None:
+        """Shut down WebSocket connection."""
+        if self._websocket is not None:
+            await self._websocket.async_stop_reconnect_loop()
+            self._websocket = None
+            self._websocket_enabled = False
+            _LOGGER.info("WebSocket disconnected from Emby server %s", self.server_name)
+
+    def _handle_websocket_message(
+        self,
+        message_type: str,
+        data: Any,
+    ) -> None:
+        """Handle incoming WebSocket messages.
+
+        Args:
+            message_type: The type of message received.
+            data: The message payload.
+        """
+        if message_type == "Sessions":
+            # Direct session update from WebSocket
+            self._process_sessions_data(data)
+        elif message_type in (
+            "PlaybackStarted",
+            "PlaybackStopped",
+            "PlaybackProgress",
+            "SessionEnded",
+        ):
+            # Trigger a refresh to get latest session state
+            self.hass.async_create_task(self.async_refresh())
+        elif message_type == "ServerRestarting":
+            _LOGGER.info("Emby server %s is restarting", self.server_name)
+        elif message_type == "ServerShuttingDown":
+            _LOGGER.warning("Emby server %s is shutting down", self.server_name)
+        else:
+            _LOGGER.debug("Unhandled WebSocket message type: %s", message_type)
+
+    def _handle_websocket_connection(self, connected: bool) -> None:
+        """Handle WebSocket connection state changes.
+
+        Args:
+            connected: True if connected, False if disconnected.
+        """
+        if connected:
+            _LOGGER.info(
+                "WebSocket connected, reducing poll interval to %d seconds",
+                WEBSOCKET_POLL_INTERVAL,
+            )
+            self.update_interval = timedelta(seconds=WEBSOCKET_POLL_INTERVAL)
+        else:
+            _LOGGER.warning(
+                "WebSocket disconnected from Emby server. Using polling fallback"
+            )
+            self.update_interval = timedelta(seconds=self._configured_scan_interval)
+
+    def _process_sessions_data(
+        self,
+        sessions_data: list[EmbySessionResponse],
+    ) -> None:
+        """Process sessions data from WebSocket and update coordinator.
+
+        Args:
+            sessions_data: List of session data dictionaries from the API.
+        """
+        sessions: dict[str, EmbySession] = {}
+
+        for session_data in sessions_data:
+            try:
+                session = parse_session(session_data)
+                if session.supports_remote_control:
+                    sessions[session.device_id] = session
+            except (KeyError, ValueError) as err:
+                _LOGGER.warning(
+                    "Failed to parse session data from WebSocket: %s - %s",
+                    err,
+                    session_data.get("DeviceName", "Unknown"),
+                )
+                continue
+
+        # Log session changes
+        current_devices = set(sessions.keys())
+        added = current_devices - self._previous_sessions
+        removed = self._previous_sessions - current_devices
+
+        for device_id in added:
+            session = sessions[device_id]
+            _LOGGER.debug(
+                "New session detected: %s (%s)",
+                session.device_name,
+                session.client_name,
+            )
+
+        for device_id in removed:
+            _LOGGER.debug("Session removed: %s", device_id)
+
+        self._previous_sessions = current_devices
+
+        # Update coordinator data and notify listeners
+        self.async_set_updated_data(sessions)
 
 
 __all__ = ["EmbyDataUpdateCoordinator"]

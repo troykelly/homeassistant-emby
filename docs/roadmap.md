@@ -230,32 +230,39 @@ The integration provides:
 
 ---
 
-## Phase 7: Real-Time Updates (WebSocket)
+## Phase 7: Real-Time Updates (WebSocket) ✅
 
 ### 7.1 WebSocket Connection
-- [ ] Connect to Emby WebSocket API
-- [ ] Authentication handshake
-- [ ] Automatic reconnection with backoff
-- [ ] Connection state monitoring
+- [x] Connect to Emby WebSocket API
+- [x] Authentication via api_key query parameter
+- [x] Automatic reconnection with exponential backoff
+- [x] Connection state monitoring
 
 ### 7.2 Event Handling
-- [ ] `SessionsStart` - New session connected
-- [ ] `SessionsEnd` - Session disconnected
-- [ ] `PlaybackStart` - Playback began
-- [ ] `PlaybackStopped` - Playback ended
-- [ ] `PlaybackProgress` - Position updates
-- [ ] `UserDataChanged` - Item state changes
+- [x] `Sessions` - Periodic session updates
+- [x] `SessionEnded` - Session disconnected
+- [x] `PlaybackStarted` - Playback began
+- [x] `PlaybackStopped` - Playback ended
+- [x] `PlaybackProgress` - Position updates
+- [x] `ServerRestarting` - Server restart event
+- [x] `ServerShuttingDown` - Server shutdown event
 
 ### 7.3 Coordinator Integration
-- [ ] Push updates to coordinator
-- [ ] Reduce polling frequency with WebSocket active
-- [ ] Fallback to polling if WebSocket fails
-- [ ] Hybrid mode: WebSocket for events, polling for full sync
+- [x] Push updates to coordinator via callbacks
+- [x] Reduce polling interval when WebSocket connected (60s vs 10s)
+- [x] Fallback to polling if WebSocket fails
+- [x] Hybrid mode: WebSocket for events, polling as backup
+
+### 7.4 WebSocket Exceptions
+- [x] `EmbyWebSocketError` - Base WebSocket exception
+- [x] `EmbyWebSocketConnectionError` - Connection failures
+- [x] `EmbyWebSocketAuthError` - Authentication failures
 
 **Deliverables:**
-- Near-instant state updates
-- Reduced server load
-- Improved responsiveness
+- ✅ Near-instant state updates
+- ✅ Reduced server load (60s polling with WebSocket vs 10s without)
+- ✅ Improved responsiveness
+- ✅ Graceful fallback to polling
 
 ---
 
@@ -400,7 +407,7 @@ Phase 8 ◄───────────────────────
 ### Feature Complete (Phases 1-7)
 - [x] Media browsing functional
 - [x] Media source provider working
-- [ ] Real-time updates via WebSocket
+- [x] Real-time updates via WebSocket
 
 ### Production Ready (Phases 1-10)
 - [ ] 100% test coverage

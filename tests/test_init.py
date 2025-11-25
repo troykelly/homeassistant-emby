@@ -449,3 +449,110 @@ class TestServerDeviceRegistration:
 
             assert server_device is not None
             assert mock_config_entry.entry_id in server_device.config_entries
+
+
+class TestWebSocketSetup:
+    """Test WebSocket setup during integration initialization."""
+
+    @pytest.mark.asyncio
+    async def test_setup_starts_websocket(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_server_info: dict[str, Any],
+    ) -> None:
+        """Test WebSocket is started during setup."""
+        mock_config_entry.add_to_hass(hass)
+
+        with (
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
+            patch(
+                "custom_components.embymedia.EmbyDataUpdateCoordinator",
+                autospec=True,
+            ) as mock_coordinator_class,
+        ):
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(return_value=mock_server_info)
+
+            coordinator = mock_coordinator_class.return_value
+            coordinator.async_config_entry_first_refresh = AsyncMock()
+            coordinator.async_setup_websocket = AsyncMock()
+            coordinator.async_shutdown_websocket = AsyncMock()
+            coordinator.data = {}
+
+            await hass.config_entries.async_setup(mock_config_entry.entry_id)
+
+            # WebSocket setup should be called
+            coordinator.async_setup_websocket.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_unload_stops_websocket(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_server_info: dict[str, Any],
+    ) -> None:
+        """Test WebSocket is stopped during unload."""
+        mock_config_entry.add_to_hass(hass)
+
+        with (
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
+            patch(
+                "custom_components.embymedia.EmbyDataUpdateCoordinator",
+                autospec=True,
+            ) as mock_coordinator_class,
+        ):
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(return_value=mock_server_info)
+
+            coordinator = mock_coordinator_class.return_value
+            coordinator.async_config_entry_first_refresh = AsyncMock()
+            coordinator.async_setup_websocket = AsyncMock()
+            coordinator.async_shutdown_websocket = AsyncMock()
+            coordinator.data = {}
+
+            await hass.config_entries.async_setup(mock_config_entry.entry_id)
+            assert mock_config_entry.state is ConfigEntryState.LOADED
+
+            await hass.config_entries.async_unload(mock_config_entry.entry_id)
+
+            # WebSocket shutdown should be called via on_unload callback
+            coordinator.async_shutdown_websocket.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_setup_succeeds_if_websocket_fails(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_server_info: dict[str, Any],
+    ) -> None:
+        """Test integration setup succeeds even if WebSocket setup fails."""
+        mock_config_entry.add_to_hass(hass)
+
+        with (
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
+            patch(
+                "custom_components.embymedia.EmbyDataUpdateCoordinator",
+                autospec=True,
+            ) as mock_coordinator_class,
+        ):
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(return_value=mock_server_info)
+
+            coordinator = mock_coordinator_class.return_value
+            coordinator.async_config_entry_first_refresh = AsyncMock()
+            # WebSocket setup raises an exception
+            coordinator.async_setup_websocket = AsyncMock(
+                side_effect=Exception("WebSocket failed")
+            )
+            coordinator.async_shutdown_websocket = AsyncMock()
+            coordinator.data = {}
+
+            # Setup should still succeed
+            result = await hass.config_entries.async_setup(mock_config_entry.entry_id)
+
+            assert result is True
+            assert mock_config_entry.state is ConfigEntryState.LOADED

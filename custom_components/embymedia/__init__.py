@@ -103,8 +103,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> bool
     # Forward setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Register options update listener
+    # Start WebSocket for real-time updates
+    try:
+        await coordinator.async_setup_websocket(session)
+    except Exception:  # pylint: disable=broad-exception-caught
+        _LOGGER.warning(
+            "Failed to set up WebSocket connection to Emby server %s. "
+            "Falling back to polling only.",
+            server_name,
+        )
+
+    # Register cleanup callbacks
     entry.async_on_unload(entry.add_update_listener(async_options_updated))
+    entry.async_on_unload(coordinator.async_shutdown_websocket)
 
     _LOGGER.info(
         "Connected to Emby server: %s (version %s)",

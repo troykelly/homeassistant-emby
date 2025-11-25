@@ -34,6 +34,10 @@ DEFAULT_TIMEOUT: Final = 10  # seconds
 MIN_SCAN_INTERVAL: Final = 5
 MAX_SCAN_INTERVAL: Final = 300
 
+# WebSocket polling intervals
+WEBSOCKET_POLL_INTERVAL: Final = 60  # Reduced polling when WebSocket connected
+FALLBACK_POLL_INTERVAL: Final = 10  # Normal polling when WebSocket disconnected
+
 # API constants
 EMBY_TICKS_PER_SECOND: Final = 10_000_000
 EMBY_MIN_VERSION: Final = "4.7.0"
