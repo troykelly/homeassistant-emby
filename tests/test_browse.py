@@ -290,16 +290,17 @@ class TestBrowseMediaRoot:
         hass: HomeAssistant,
         mock_coordinator_for_browse: MagicMock,
     ) -> None:
-        """Test root browse raises when no session (no user ID)."""
+        """Test root browse when no session returns empty root."""
+        from homeassistant.components.media_player.errors import BrowseError
+
         from custom_components.embymedia.media_player import EmbyMediaPlayer
 
         mock_coordinator_for_browse.get_session.return_value = None
 
         player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-xyz")
 
-        # When no session, we have no user_id, so browsing should fail
-        # or return an empty result
-        with pytest.raises(Exception):
+        # When no session, we have no user_id, so browsing should raise BrowseError
+        with pytest.raises(BrowseError):
             await player.async_browse_media()
 
 
@@ -430,3 +431,157 @@ class TestBrowseMediaHierarchy:
         # Episodes should be playable
         assert result.children[0].can_play is True
         assert result.children[0].can_expand is False
+
+
+class TestBrowseMediaErrors:
+    """Test browse media error handling."""
+
+    @pytest.mark.asyncio
+    async def test_browse_media_unknown_content_type(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test browsing unknown content type raises error."""
+        from homeassistant.components.media_player.errors import BrowseError
+
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        with pytest.raises(BrowseError) as exc_info:
+            await player.async_browse_media(
+                media_content_type=MediaType.VIDEO,
+                media_content_id="unknown:xyz",
+            )
+        assert "Unknown content type" in str(exc_info.value)
+
+
+class TestBrowseMediaThumbnails:
+    """Test thumbnail generation in browse media."""
+
+    @pytest.mark.asyncio
+    async def test_library_thumbnail_generation(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test library thumbnails are generated correctly."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.client.async_get_user_views.return_value = [
+            {
+                "Id": "lib-1",
+                "Name": "Movies",
+                "CollectionType": "movies",
+                "ImageTags": {"Primary": "abc123"},
+            },
+        ]
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media()
+
+        assert result.children is not None
+        assert result.children[0].thumbnail == "http://emby:8096/image.jpg"
+
+    @pytest.mark.asyncio
+    async def test_item_thumbnail_generation(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test item thumbnails are generated correctly."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.client.async_get_items.return_value = {
+            "Items": [
+                {
+                    "Id": "movie-1",
+                    "Name": "Test Movie",
+                    "Type": "Movie",
+                    "ImageTags": {"Primary": "def456"},
+                },
+            ],
+            "TotalRecordCount": 1,
+            "StartIndex": 0,
+        }
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.VIDEO,
+            media_content_id="library:lib-movies",
+        )
+
+        assert result.children is not None
+        assert result.children[0].thumbnail == "http://emby:8096/image.jpg"
+
+    @pytest.mark.asyncio
+    async def test_season_thumbnail_generation(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test season thumbnails are generated correctly."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.client.async_get_seasons.return_value = [
+            {
+                "Id": "season-1",
+                "Name": "Season 1",
+                "Type": "Season",
+                "IndexNumber": 1,
+                "ImageTags": {"Primary": "ghi789"},
+            },
+        ]
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.TVSHOW,
+            media_content_id="series:series-abc",
+        )
+
+        assert result.children is not None
+        assert result.children[0].thumbnail == "http://emby:8096/image.jpg"
+
+    @pytest.mark.asyncio
+    async def test_folder_item_browse(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test browsing a folder item uses library content ID."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.client.async_get_items.return_value = {
+            "Items": [
+                {
+                    "Id": "folder-1",
+                    "Name": "TV Shows Folder",
+                    "Type": "Folder",
+                },
+            ],
+            "TotalRecordCount": 1,
+            "StartIndex": 0,
+        }
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.VIDEO,
+            media_content_id="library:lib-movies",
+        )
+
+        assert result.children is not None
+        # Folder should get library: prefix content ID
+        assert result.children[0].media_content_id == "library:folder-1"
+        # Folder should be expandable
+        assert result.children[0].can_expand is True
