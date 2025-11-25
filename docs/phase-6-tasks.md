@@ -186,14 +186,14 @@ class EmbyMediaSource(MediaSource):
 ```
 
 **Acceptance Criteria:**
-- [ ] `media_source.py` file created
-- [ ] `EmbyMediaSource` class extends `MediaSource`
-- [ ] `async_get_media_source` function defined
-- [ ] Registered in `manifest.json`
+- [x] `media_source.py` file created
+- [x] `EmbyMediaSource` class extends `MediaSource`
+- [x] `async_get_media_source` function defined
+- [x] Registered in `manifest.json`
 
 **Test Cases:**
-- [ ] `test_media_source_creation`
-- [ ] `test_media_source_name`
+- [x] `test_media_source_creation`
+- [x] `test_media_source_name`
 
 #### 6.1.2 Update manifest.json
 
@@ -206,7 +206,7 @@ Add media_source dependency.
 ```
 
 **Test Cases:**
-- [ ] `test_manifest_has_media_source_dependency`
+- [x] `test_manifest_has_media_source_dependency`
 
 ---
 
@@ -228,15 +228,15 @@ async def async_browse_media(
 ```
 
 **Acceptance Criteria:**
-- [ ] Returns list of configured Emby servers at root
-- [ ] Each server shows its libraries
-- [ ] Libraries show content
-- [ ] Full hierarchy navigation works
+- [x] Returns list of configured Emby servers at root
+- [x] Each server shows its libraries
+- [x] Libraries show content
+- [x] Full hierarchy navigation works
 
 **Test Cases:**
-- [ ] `test_browse_media_source_root`
-- [ ] `test_browse_media_source_server`
-- [ ] `test_browse_media_source_library`
+- [x] `test_browse_media_source_root`
+- [x] `test_browse_media_source_server`
+- [x] `test_browse_media_source_library`
 
 #### 6.2.2 Content ID Format for Media Source
 
@@ -253,8 +253,8 @@ async def async_browse_media(
 ```
 
 **Test Cases:**
-- [ ] `test_media_source_content_id_encoding`
-- [ ] `test_media_source_content_id_decoding`
+- [x] `test_media_source_content_id_encoding`
+- [x] `test_media_source_content_id_decoding`
 
 ---
 
@@ -284,16 +284,16 @@ async def async_resolve_media(
 ```
 
 **Acceptance Criteria:**
-- [ ] Resolves video items to stream URLs
-- [ ] Resolves audio items to stream URLs
-- [ ] Includes authentication in URL
-- [ ] Returns correct MIME type
+- [x] Resolves video items to stream URLs
+- [x] Resolves audio items to stream URLs
+- [x] Includes authentication in URL
+- [x] Returns correct MIME type
 
 **Test Cases:**
-- [ ] `test_resolve_media_video`
-- [ ] `test_resolve_media_audio`
-- [ ] `test_resolve_media_invalid`
-- [ ] `test_resolve_media_server_not_found`
+- [x] `test_resolve_media_video`
+- [x] `test_resolve_media_audio`
+- [x] `test_resolve_media_invalid`
+- [x] `test_resolve_media_server_not_found`
 
 #### 6.3.2 Add Stream URL Methods to API Client
 
@@ -347,10 +347,10 @@ def get_hls_url(
 ```
 
 **Test Cases:**
-- [ ] `test_get_video_stream_url_direct`
-- [ ] `test_get_video_stream_url_transcode`
-- [ ] `test_get_audio_stream_url`
-- [ ] `test_get_hls_url`
+- [x] `test_get_video_stream_url_direct`
+- [x] `test_get_video_stream_url_transcode`
+- [x] `test_get_audio_stream_url`
+- [x] `test_get_hls_url`
 
 ---
 
@@ -381,9 +381,9 @@ def _get_mime_type(self, content_type: str, container: str = "mp4") -> str:
 ```
 
 **Test Cases:**
-- [ ] `test_get_mime_type_video`
-- [ ] `test_get_mime_type_audio`
-- [ ] `test_get_mime_type_unknown`
+- [x] `test_get_mime_type_video`
+- [x] `test_get_mime_type_audio`
+- [x] `test_get_mime_type_unknown`
 
 ---
 
@@ -405,15 +405,15 @@ def _get_configured_servers(self) -> dict[str, EmbyCoordinator]:
 ```
 
 **Acceptance Criteria:**
-- [ ] Discovers all configured Emby servers
-- [ ] Shows all servers at media source root
-- [ ] Each server's content is browsable
-- [ ] Handles server disconnection gracefully
+- [x] Discovers all configured Emby servers
+- [x] Shows all servers at media source root
+- [x] Each server's content is browsable
+- [x] Handles server disconnection gracefully
 
 **Test Cases:**
-- [ ] `test_multi_server_discovery`
-- [ ] `test_multi_server_browsing`
-- [ ] `test_server_unavailable`
+- [x] `test_multi_server_discovery`
+- [x] `test_multi_server_browsing`
+- [x] `test_server_unavailable`
 
 ---
 
@@ -450,8 +450,8 @@ class AudioStreamParams(TypedDict, total=False):
 ```
 
 **Test Cases:**
-- [ ] `test_video_stream_params_typing`
-- [ ] `test_audio_stream_params_typing`
+- [x] `test_video_stream_params_typing`
+- [x] `test_audio_stream_params_typing`
 
 ---
 
@@ -470,8 +470,8 @@ PLATFORMS = [Platform.MEDIA_PLAYER]  # media_source loaded via manifest
 **Note:** Media Source is registered automatically via `async_get_media_source` function.
 
 **Test Cases:**
-- [ ] `test_media_source_platform_loads`
-- [ ] `test_media_source_available_after_setup`
+- [x] `test_media_source_platform_loads`
+- [x] `test_media_source_available_after_setup`
 
 ---
 
@@ -499,17 +499,17 @@ async def async_resolve_media(self, item: MediaSourceItem) -> PlayMedia:
 ```
 
 **Error Conditions:**
-- [ ] Invalid identifier format
-- [ ] Server not found
-- [ ] Server unavailable
-- [ ] Item not found
-- [ ] Permission denied
+- [x] Invalid identifier format
+- [x] Server not found
+- [x] Server unavailable
+- [x] Item not found
+- [x] Permission denied
 
 **Test Cases:**
-- [ ] `test_resolve_invalid_identifier`
-- [ ] `test_resolve_server_not_found`
-- [ ] `test_resolve_server_unavailable`
-- [ ] `test_resolve_item_not_found`
+- [x] `test_resolve_invalid_identifier`
+- [x] `test_resolve_server_not_found`
+- [x] `test_resolve_server_unavailable`
+- [x] `test_resolve_item_not_found`
 
 ---
 
@@ -609,26 +609,46 @@ Test complete media source flow:
 
 ### Required for Phase 6 Complete
 
-- [ ] `EmbyMediaSource` class implemented
-- [ ] Media source registered in manifest
-- [ ] `async_browse_media` for media source
-- [ ] `async_resolve_media` returns stream URLs
-- [ ] Stream URL generation methods in API client
-- [ ] MIME type mapping
-- [ ] Multi-server support
-- [ ] Error handling
-- [ ] All tests passing
-- [ ] 100% code coverage maintained
-- [ ] No mypy errors
-- [ ] No ruff errors
+- [x] `EmbyMediaSource` class implemented
+- [x] Media source registered in manifest
+- [x] `async_browse_media` for media source
+- [x] `async_resolve_media` returns stream URLs
+- [x] Stream URL generation methods in API client
+- [x] MIME type mapping
+- [x] Multi-server support
+- [x] Error handling
+- [x] All tests passing
+- [x] 100% code coverage maintained
+- [x] No mypy errors
+- [x] No ruff errors
 
 ### Definition of Done
 
-1. [ ] Emby appears in Media Source browser
-2. [ ] Can browse all Emby content from Media Source
-3. [ ] Can play Emby video on Chromecast
-4. [ ] Can play Emby audio on Sonos (or similar)
-5. [ ] Works with multiple Emby servers
+1. [x] Emby appears in Media Source browser
+2. [x] Can browse all Emby content from Media Source
+3. [x] Can play Emby video on Chromecast
+4. [x] Can play Emby audio on Sonos (or similar)
+5. [x] Works with multiple Emby servers
+
+---
+
+## Bug Fixes Applied
+
+### Fix 1: Coordinator Lookup (2025-11-25)
+
+**Problem:** Media source showed "No Items" when browsing.
+
+**Root Cause:** `_get_coordinators()` was looking for coordinators in `hass.data[DOMAIN][entry_id]["coordinator"]` but coordinators are stored in `entry.runtime_data` (modern HA pattern).
+
+**Solution:** Updated `_get_coordinators()` to iterate config entries and access `entry.runtime_data`.
+
+### Fix 2: Folder Browsing (2025-11-25)
+
+**Problem:** Drilling into library folders (tvshows, movies) showed "No Items".
+
+**Root Cause:** `_async_browse_item()` only handled `series` and `season` content types. When browsing a `folder` type, it fell through with empty children.
+
+**Solution:** Added fallback `else` clause for folder and other expandable types that uses `async_get_items()` with the parent_id.
 
 ---
 
