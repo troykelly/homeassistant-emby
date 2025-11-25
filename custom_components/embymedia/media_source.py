@@ -110,12 +110,12 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             Dictionary mapping server IDs to coordinators.
         """
         coordinators: dict[str, EmbyDataUpdateCoordinator] = {}
-        domain_data = self.hass.data.get(DOMAIN, {})
 
-        for entry_data in domain_data.values():
-            if isinstance(entry_data, dict):
-                coordinator = entry_data.get("coordinator")
-                if coordinator is not None:
+        # Get coordinators from config entries' runtime_data
+        for entry in self.hass.config_entries.async_entries(DOMAIN):
+            if hasattr(entry, "runtime_data") and entry.runtime_data is not None:
+                coordinator = entry.runtime_data
+                if hasattr(coordinator, "server_id"):
                     coordinators[coordinator.server_id] = coordinator
 
         return coordinators
@@ -344,6 +344,15 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
                 for episode in result.get("Items", []):
                     ep_browse = self._item_to_browse_media_source(coordinator, episode)
                     children.append(ep_browse)
+            else:
+                # Generic fallback for folders and other expandable types
+                result = await coordinator.client.async_get_items(
+                    user_id,
+                    parent_id=item_id,
+                )
+                for child_item in result.get("Items", []):
+                    child_browse = self._item_to_browse_media_source(coordinator, child_item)
+                    children.append(child_browse)
 
         return BrowseMediaSource(
             domain=DOMAIN,

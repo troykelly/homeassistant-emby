@@ -72,17 +72,14 @@ class TestBrowseMediaSource:
 
         mock_config_entry.add_to_hass(hass)
 
-        # Set up mock coordinator
+        # Set up mock coordinator in runtime_data
         mock_coordinator = MagicMock()
         mock_coordinator.server_id = mock_server_info["Id"]
         mock_coordinator.server_name = mock_server_info["ServerName"]
         mock_coordinator.client = MagicMock()
         mock_coordinator.data = {}
 
-        hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN][mock_config_entry.entry_id] = {
-            "coordinator": mock_coordinator,
-        }
+        mock_config_entry.runtime_data = mock_coordinator
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(hass, DOMAIN, None, None)
@@ -130,10 +127,7 @@ class TestBrowseMediaSource:
             "device-1": MagicMock(user_id="user-123"),
         }
 
-        hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN][mock_config_entry.entry_id] = {
-            "coordinator": mock_coordinator,
-        }
+        mock_config_entry.runtime_data = mock_coordinator
 
         media_source = EmbyMediaSource(hass)
         # Browse server by ID
@@ -175,10 +169,7 @@ class TestResolveMedia:
         mock_coordinator.server_id = mock_server_info["Id"]
         mock_coordinator.client = mock_client
 
-        hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN][mock_config_entry.entry_id] = {
-            "coordinator": mock_coordinator,
-        }
+        mock_config_entry.runtime_data = mock_coordinator
 
         media_source = EmbyMediaSource(hass)
         # Format: server_id/content_type/item_id
@@ -213,10 +204,7 @@ class TestResolveMedia:
         mock_coordinator.server_id = mock_server_info["Id"]
         mock_coordinator.client = mock_client
 
-        hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN][mock_config_entry.entry_id] = {
-            "coordinator": mock_coordinator,
-        }
+        mock_config_entry.runtime_data = mock_coordinator
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/track/track-456", None)
@@ -438,10 +426,7 @@ class TestBrowseLibraryAndItem:
             "device-1": MagicMock(user_id="user-123"),
         }
 
-        hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN][mock_config_entry.entry_id] = {
-            "coordinator": mock_coordinator,
-        }
+        mock_config_entry.runtime_data = mock_coordinator
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/library/lib-movies", None)
@@ -483,10 +468,7 @@ class TestBrowseLibraryAndItem:
             "device-1": MagicMock(user_id="user-123"),
         }
 
-        hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN][mock_config_entry.entry_id] = {
-            "coordinator": mock_coordinator,
-        }
+        mock_config_entry.runtime_data = mock_coordinator
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/series/series-123", None)
@@ -532,10 +514,7 @@ class TestBrowseLibraryAndItem:
             "device-1": MagicMock(user_id="user-123"),
         }
 
-        hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN][mock_config_entry.entry_id] = {
-            "coordinator": mock_coordinator,
-        }
+        mock_config_entry.runtime_data = mock_coordinator
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/season/season-123", None)
@@ -544,6 +523,53 @@ class TestBrowseLibraryAndItem:
 
         assert result is not None
         assert len(result.children) == 2
+
+    @pytest.mark.asyncio
+    async def test_browse_folder_contents(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_server_info: dict[str, Any],
+    ) -> None:
+        """Test browsing a folder to get its contents."""
+        from homeassistant.components.media_source import MediaSourceItem
+
+        from custom_components.embymedia.media_source import EmbyMediaSource
+
+        mock_config_entry.add_to_hass(hass)
+
+        mock_items = {
+            "Items": [
+                {"Id": "series-1", "Name": "Show 1", "Type": "Series"},
+                {"Id": "series-2", "Name": "Show 2", "Type": "Series"},
+            ],
+            "TotalRecordCount": 2,
+            "StartIndex": 0,
+        }
+
+        mock_client = MagicMock()
+        mock_client.async_get_items = AsyncMock(return_value=mock_items)
+        mock_client.get_image_url = MagicMock(return_value="http://emby.local:8096/image")
+
+        mock_coordinator = MagicMock()
+        mock_coordinator.server_id = mock_server_info["Id"]
+        mock_coordinator.server_name = mock_server_info["ServerName"]
+        mock_coordinator.client = mock_client
+        mock_coordinator.data = {
+            "device-1": MagicMock(user_id="user-123"),
+        }
+
+        mock_config_entry.runtime_data = mock_coordinator
+
+        media_source = EmbyMediaSource(hass)
+        item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/folder/folder-123", None)
+
+        result = await media_source.async_browse_media(item)
+
+        assert result is not None
+        assert len(result.children) == 2
+        assert result.children[0].title == "Show 1"
+        mock_client.async_get_items.assert_called_once_with("user-123", parent_id="folder-123")
 
     @pytest.mark.asyncio
     async def test_browse_server_not_found(
@@ -582,10 +608,7 @@ class TestBrowseLibraryAndItem:
         # Empty data means no sessions, no user ID
         mock_coordinator.data = {}
 
-        hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN][mock_config_entry.entry_id] = {
-            "coordinator": mock_coordinator,
-        }
+        mock_config_entry.runtime_data = mock_coordinator
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(hass, DOMAIN, mock_server_info["Id"], None)
@@ -759,10 +782,7 @@ class TestResolveMediaEdgeCases:
         mock_coordinator.server_id = mock_server_info["Id"]
         mock_coordinator.client = mock_client
 
-        hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN][mock_config_entry.entry_id] = {
-            "coordinator": mock_coordinator,
-        }
+        mock_config_entry.runtime_data = mock_coordinator
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/episode/ep-123", None)
