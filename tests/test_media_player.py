@@ -5,7 +5,10 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
-from homeassistant.components.media_player import MediaPlayerState
+from homeassistant.components.media_player import (
+    MediaPlayerEntityFeature,
+    MediaPlayerState,
+)
 from homeassistant.core import HomeAssistant
 
 if TYPE_CHECKING:
@@ -426,3 +429,150 @@ class TestEntityLifecycle:
         # Same entity should be available again with same unique_id
         assert player.available is True
         assert player.unique_id == original_unique_id
+
+
+class TestSupportedFeatures:
+    """Test supported_features property."""
+
+    def test_supported_features_zero_when_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test supported_features returns 0 when session is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        assert player.supported_features == MediaPlayerEntityFeature(0)
+
+    def test_supported_features_basic_when_remote_control(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test basic features when session supports remote control."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.supports_remote_control = True
+        session.supported_commands = ()
+        session.play_state = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        features = player.supported_features
+        assert features & MediaPlayerEntityFeature.PAUSE
+        assert features & MediaPlayerEntityFeature.PLAY
+        assert features & MediaPlayerEntityFeature.STOP
+        assert features & MediaPlayerEntityFeature.NEXT_TRACK
+        assert features & MediaPlayerEntityFeature.PREVIOUS_TRACK
+        assert features & MediaPlayerEntityFeature.PLAY_MEDIA
+
+    def test_supported_features_volume_when_supported(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test volume features enabled when commands supported."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.supports_remote_control = True
+        session.supported_commands = ("SetVolume", "Mute", "Unmute")
+        session.play_state = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        features = player.supported_features
+        assert features & MediaPlayerEntityFeature.VOLUME_SET
+        assert features & MediaPlayerEntityFeature.VOLUME_MUTE
+
+    def test_supported_features_no_volume_when_not_supported(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test volume features disabled when commands not supported."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.supports_remote_control = True
+        session.supported_commands = ()  # No volume commands
+        session.play_state = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        features = player.supported_features
+        assert not (features & MediaPlayerEntityFeature.VOLUME_SET)
+        assert not (features & MediaPlayerEntityFeature.VOLUME_MUTE)
+
+    def test_supported_features_seek_when_can_seek(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test seek feature enabled when can_seek is True."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.supports_remote_control = True
+        session.supported_commands = ()
+        session.play_state = MagicMock()
+        session.play_state.can_seek = True
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        features = player.supported_features
+        assert features & MediaPlayerEntityFeature.SEEK
+
+    def test_supported_features_no_seek_when_cannot_seek(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test seek feature disabled when can_seek is False."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.supports_remote_control = True
+        session.supported_commands = ()
+        session.play_state = MagicMock()
+        session.play_state.can_seek = False
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        features = player.supported_features
+        assert not (features & MediaPlayerEntityFeature.SEEK)
+
+    def test_supported_features_no_remote_control(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test no features when remote control not supported."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.supports_remote_control = False
+        session.supported_commands = ("SetVolume", "Mute")
+        session.play_state = MagicMock()
+        session.play_state.can_seek = True
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.supported_features == MediaPlayerEntityFeature(0)

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from homeassistant.components.media_player import (
     MediaPlayerEntity,
+    MediaPlayerEntityFeature,
     MediaPlayerState,
 )
 from homeassistant.core import HomeAssistant, callback
@@ -102,6 +103,43 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             return MediaPlayerState.PAUSED
 
         return MediaPlayerState.PLAYING
+
+    @property
+    def supported_features(self) -> MediaPlayerEntityFeature:
+        """Return the supported features.
+
+        Features are dynamically determined based on session capabilities.
+
+        Returns:
+            Bitmask of supported features.
+        """
+        session = self.session
+        if session is None:
+            return MediaPlayerEntityFeature(0)
+
+        if not session.supports_remote_control:
+            return MediaPlayerEntityFeature(0)
+
+        features = (
+            MediaPlayerEntityFeature.PAUSE
+            | MediaPlayerEntityFeature.PLAY
+            | MediaPlayerEntityFeature.STOP
+            | MediaPlayerEntityFeature.NEXT_TRACK
+            | MediaPlayerEntityFeature.PREVIOUS_TRACK
+            | MediaPlayerEntityFeature.PLAY_MEDIA
+        )
+
+        # Volume control if supported
+        if "SetVolume" in session.supported_commands:
+            features |= MediaPlayerEntityFeature.VOLUME_SET
+        if "Mute" in session.supported_commands:
+            features |= MediaPlayerEntityFeature.VOLUME_MUTE
+
+        # Seek if playback supports it
+        if session.play_state and session.play_state.can_seek:
+            features |= MediaPlayerEntityFeature.SEEK
+
+        return features
 
 
 __all__ = ["EmbyMediaPlayer", "async_setup_entry"]
