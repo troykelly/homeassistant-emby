@@ -1,4 +1,5 @@
 """Emby API client."""
+
 from __future__ import annotations
 
 import logging
@@ -10,6 +11,7 @@ from .const import (
     DEFAULT_TIMEOUT,
     DEFAULT_VERIFY_SSL,
     EMBY_TICKS_PER_SECOND,
+    ENDPOINT_SESSIONS,
     ENDPOINT_SYSTEM_INFO,
     ENDPOINT_SYSTEM_INFO_PUBLIC,
     ENDPOINT_USERS,
@@ -28,7 +30,7 @@ from .exceptions import (
 )
 
 if TYPE_CHECKING:
-    from .const import EmbyPublicInfo, EmbyServerInfo, EmbyUser
+    from .const import EmbyPublicInfo, EmbyServerInfo, EmbySessionResponse, EmbyUser
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -228,9 +230,7 @@ class EmbyClient:
                     raise EmbyNotFoundError(f"Resource not found: {endpoint}")
 
                 if response.status >= 500:
-                    raise EmbyServerError(
-                        f"Server error: {response.status} {response.reason}"
-                    )
+                    raise EmbyServerError(f"Server error: {response.status} {response.reason}")
 
                 response.raise_for_status()
 
@@ -251,9 +251,7 @@ class EmbyClient:
                 method,
                 endpoint,
             )
-            raise EmbyTimeoutError(
-                f"Request timed out after {self._timeout.total}s"
-            ) from err
+            raise EmbyTimeoutError(f"Request timed out after {self._timeout.total}s") from err
 
         except aiohttp.ClientConnectorError as err:
             _LOGGER.error(
@@ -275,9 +273,7 @@ class EmbyClient:
                 endpoint,
             )
             if err.status in (401, 403):
-                raise EmbyAuthenticationError(
-                    f"Authentication failed: {err.status}"
-                ) from err
+                raise EmbyAuthenticationError(f"Authentication failed: {err.status}") from err
             if err.status == 404:
                 raise EmbyNotFoundError(f"Resource not found: {endpoint}") from err
             if err.status >= 500:
@@ -352,6 +348,19 @@ class EmbyClient:
             EmbyAuthenticationError: API key is invalid.
         """
         response = await self._request(HTTP_GET, ENDPOINT_USERS)
+        return response  # type: ignore[return-value]
+
+    async def async_get_sessions(self) -> list[EmbySessionResponse]:
+        """Get list of active sessions.
+
+        Returns:
+            List of session objects representing connected clients.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        response = await self._request(HTTP_GET, ENDPOINT_SESSIONS)
         return response  # type: ignore[return-value]
 
     async def close(self) -> None:

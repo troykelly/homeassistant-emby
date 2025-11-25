@@ -7,13 +7,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 import pytest
 
-from custom_components.emby.api import (
+from custom_components.embymedia.api import (
     EmbyClient,
     seconds_to_ticks,
     ticks_to_seconds,
 )
-from custom_components.emby.const import EMBY_TICKS_PER_SECOND
-from custom_components.emby.exceptions import (
+from custom_components.embymedia.const import EMBY_TICKS_PER_SECOND
+from custom_components.embymedia.exceptions import (
     EmbyAuthenticationError,
     EmbyConnectionError,
     EmbyNotFoundError,
@@ -467,6 +467,107 @@ class TestGetUsers:
             )
             users = await client.async_get_users()
             assert users == []
+            await client.close()
+
+
+class TestGetSessions:
+    """Test session list retrieval."""
+
+    @pytest.mark.asyncio
+    async def test_get_sessions_success(self) -> None:
+        """Test successful sessions retrieval."""
+        mock_sessions = [
+            {
+                "Id": "session-1",
+                "Client": "Emby Theater",
+                "DeviceId": "device-abc",
+                "DeviceName": "Living Room TV",
+                "SupportsRemoteControl": True,
+            },
+            {
+                "Id": "session-2",
+                "Client": "Emby Mobile",
+                "DeviceId": "device-def",
+                "DeviceName": "Phone",
+                "SupportsRemoteControl": True,
+            },
+        ]
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.reason = "OK"
+            mock_response.json = AsyncMock(return_value=mock_sessions)
+            mock_response.raise_for_status = MagicMock()
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            sessions = await client.async_get_sessions()
+            assert len(sessions) == 2
+            assert sessions[0]["DeviceName"] == "Living Room TV"
+            assert sessions[1]["Client"] == "Emby Mobile"
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_get_sessions_empty(self) -> None:
+        """Test empty sessions list handled."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.reason = "OK"
+            mock_response.json = AsyncMock(return_value=[])
+            mock_response.raise_for_status = MagicMock()
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            sessions = await client.async_get_sessions()
+            assert sessions == []
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_get_sessions_auth_error(self) -> None:
+        """Test authentication error when getting sessions."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 401
+            mock_response.reason = "Unauthorized"
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="bad-key",
+            )
+            with pytest.raises(EmbyAuthenticationError):
+                await client.async_get_sessions()
             await client.close()
 
 

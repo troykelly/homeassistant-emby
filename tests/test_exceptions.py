@@ -1,7 +1,7 @@
 """Tests for Emby integration exceptions."""
 from __future__ import annotations
 
-from custom_components.emby.exceptions import (
+from custom_components.embymedia.exceptions import (
     EmbyAuthenticationError,
     EmbyConnectionError,
     EmbyError,

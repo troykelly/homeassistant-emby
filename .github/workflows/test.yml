@@ -28,13 +28,13 @@ jobs:
           pip install -r requirements_test.txt
 
       - name: Run ruff
-        run: ruff check custom_components/emby tests
+        run: ruff check custom_components/embymedia tests
 
       - name: Run mypy
-        run: mypy custom_components/emby
+        run: mypy custom_components/embymedia
 
       - name: Run tests
-        run: pytest tests/ --cov=custom_components.emby --cov-report=xml --cov-fail-under=100
+        run: pytest tests/ --cov=custom_components.embymedia --cov-report=xml --cov-fail-under=100
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4

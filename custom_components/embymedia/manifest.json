@@ -1,6 +1,6 @@
 {
-  "domain": "emby",
-  "name": "Emby",
+  "domain": "embymedia",
+  "name": "Emby Media",
   "codeowners": ["@troykelly"],
   "config_flow": true,
   "dependencies": [],

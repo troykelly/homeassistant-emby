@@ -1,6 +1,9 @@
 # Backups
 /user.tgz
 
+# HA dev config directory (contains credentials, tokens, etc.)
+config/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
