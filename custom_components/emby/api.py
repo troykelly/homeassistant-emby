@@ -10,6 +10,7 @@ from .const import (
     DEFAULT_TIMEOUT,
     DEFAULT_VERIFY_SSL,
     EMBY_TICKS_PER_SECOND,
+    ENDPOINT_SESSIONS,
     ENDPOINT_SYSTEM_INFO,
     ENDPOINT_SYSTEM_INFO_PUBLIC,
     ENDPOINT_USERS,
@@ -28,7 +29,7 @@ from .exceptions import (
 )
 
 if TYPE_CHECKING:
-    from .const import EmbyPublicInfo, EmbyServerInfo, EmbyUser
+    from .const import EmbyPublicInfo, EmbyServerInfo, EmbySessionResponse, EmbyUser
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -352,6 +353,19 @@ class EmbyClient:
             EmbyAuthenticationError: API key is invalid.
         """
         response = await self._request(HTTP_GET, ENDPOINT_USERS)
+        return response  # type: ignore[return-value]
+
+    async def async_get_sessions(self) -> list[EmbySessionResponse]:
+        """Get list of active sessions.
+
+        Returns:
+            List of session objects representing connected clients.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        response = await self._request(HTTP_GET, ENDPOINT_SESSIONS)
         return response  # type: ignore[return-value]
 
     async def close(self) -> None:
