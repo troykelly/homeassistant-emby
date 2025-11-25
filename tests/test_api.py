@@ -1644,3 +1644,120 @@ class TestRequestPostErrors:
 
             mock_response.raise_for_status.assert_called_once()
             await client.close()
+
+
+class TestStreamUrls:
+    """Test stream URL generation for media source."""
+
+    def test_get_video_stream_url_direct(self) -> None:
+        """Test video stream URL with direct play."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_video_stream_url("video-123")
+        assert "emby.local:8096" in url
+        assert "/Videos/video-123/stream" in url
+        assert "api_key=test-api-key" in url
+        assert "Static=true" in url
+        assert "Container=mp4" in url
+
+    def test_get_video_stream_url_transcode(self) -> None:
+        """Test video stream URL with transcoding parameters."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_video_stream_url(
+            "video-123",
+            container="mkv",
+            static=False,
+            video_codec="h264",
+            audio_codec="aac",
+            max_width=1920,
+            max_height=1080,
+        )
+        assert "Container=mkv" in url
+        assert "Static=false" in url
+        assert "VideoCodec=h264" in url
+        assert "AudioCodec=aac" in url
+        assert "MaxWidth=1920" in url
+        assert "MaxHeight=1080" in url
+
+    def test_get_video_stream_url_with_audio_subtitle_index(self) -> None:
+        """Test video stream URL with audio and subtitle stream indices."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_video_stream_url(
+            "video-123",
+            audio_stream_index=1,
+            subtitle_stream_index=2,
+        )
+        assert "AudioStreamIndex=1" in url
+        assert "SubtitleStreamIndex=2" in url
+
+    def test_get_audio_stream_url_direct(self) -> None:
+        """Test audio stream URL with direct play."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_audio_stream_url("audio-123")
+        assert "emby.local:8096" in url
+        assert "/Audio/audio-123/stream" in url
+        assert "api_key=test-api-key" in url
+        assert "Static=true" in url
+        assert "Container=mp3" in url
+
+    def test_get_audio_stream_url_transcode(self) -> None:
+        """Test audio stream URL with transcoding."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_audio_stream_url(
+            "audio-123",
+            container="flac",
+            static=False,
+            audio_codec="flac",
+            max_bitrate=320000,
+        )
+        assert "Container=flac" in url
+        assert "Static=false" in url
+        assert "AudioCodec=flac" in url
+        assert "MaxAudioBitRate=320000" in url
+
+    def test_get_hls_url(self) -> None:
+        """Test HLS adaptive streaming URL generation."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_hls_url("video-123")
+        assert "emby.local:8096" in url
+        assert "/Videos/video-123/master.m3u8" in url
+        assert "api_key=test-api-key" in url
+
+    def test_stream_urls_with_ssl(self) -> None:
+        """Test stream URLs with HTTPS."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8920,
+            api_key="test-api-key",
+            ssl=True,
+        )
+        video_url = client.get_video_stream_url("video-123")
+        audio_url = client.get_audio_stream_url("audio-123")
+        hls_url = client.get_hls_url("video-123")
+
+        assert video_url.startswith("https://")
+        assert audio_url.startswith("https://")
+        assert hls_url.startswith("https://")
