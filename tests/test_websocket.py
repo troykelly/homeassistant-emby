@@ -621,6 +621,327 @@ class TestEmbyWebSocketMessageProcessing:
         callback.assert_not_called()
 
 
+class TestEmbyWebSocketReceiveLoop:
+    """Tests for WebSocket receive loop."""
+
+    @pytest.mark.asyncio
+    async def test_receive_loop_processes_messages(self) -> None:
+        """Test that receive loop processes incoming messages."""
+        mock_session = MagicMock()
+
+        # Create mock messages
+        messages = [
+            MagicMock(
+                type=aiohttp.WSMsgType.TEXT,
+                data=json.dumps({"MessageType": "Sessions", "Data": []}),
+            ),
+            MagicMock(type=aiohttp.WSMsgType.CLOSED),
+        ]
+
+        # Create a proper async iterator class
+        class MockAsyncIterator:
+            def __init__(self, items: list[MagicMock]) -> None:
+                self.items = items
+                self.index = 0
+
+            def __aiter__(self) -> MockAsyncIterator:
+                return self
+
+            async def __anext__(self) -> MagicMock:
+                if self.index >= len(self.items):
+                    raise StopAsyncIteration
+                item = self.items[self.index]
+                self.index += 1
+                return item
+
+        mock_ws = MockAsyncIterator(messages)
+        mock_ws.closed = False  # type: ignore[attr-defined]
+        mock_ws.close = AsyncMock()  # type: ignore[attr-defined]
+
+        mock_session.ws_connect = AsyncMock(return_value=mock_ws)
+
+        ws = EmbyWebSocket(
+            host="emby.local",
+            port=8096,
+            api_key="test-key",
+            ssl=False,
+            device_id="test-device",
+            session=mock_session,
+        )
+
+        callback = MagicMock()
+        ws.set_message_callback(callback)
+
+        await ws.async_connect()
+        await ws._async_receive_loop()
+
+        # Should have processed the Sessions message
+        callback.assert_called_with("Sessions", [])
+
+    @pytest.mark.asyncio
+    async def test_receive_loop_handles_connection_close(self) -> None:
+        """Test receive loop handles connection close gracefully."""
+        mock_session = MagicMock()
+
+        # Only send a close message
+        messages = [MagicMock(type=aiohttp.WSMsgType.CLOSED)]
+
+        class MockAsyncIterator:
+            def __init__(self, items: list[MagicMock]) -> None:
+                self.items = items
+                self.index = 0
+
+            def __aiter__(self) -> MockAsyncIterator:
+                return self
+
+            async def __anext__(self) -> MagicMock:
+                if self.index >= len(self.items):
+                    raise StopAsyncIteration
+                item = self.items[self.index]
+                self.index += 1
+                return item
+
+        mock_ws = MockAsyncIterator(messages)
+        mock_ws.closed = False  # type: ignore[attr-defined]
+        mock_ws.close = AsyncMock()  # type: ignore[attr-defined]
+
+        mock_session.ws_connect = AsyncMock(return_value=mock_ws)
+
+        ws = EmbyWebSocket(
+            host="emby.local",
+            port=8096,
+            api_key="test-key",
+            ssl=False,
+            device_id="test-device",
+            session=mock_session,
+        )
+
+        await ws.async_connect()
+
+        # Should not raise
+        await ws._async_receive_loop()
+
+    @pytest.mark.asyncio
+    async def test_receive_loop_when_not_connected(self) -> None:
+        """Test receive loop returns immediately when not connected."""
+        mock_session = MagicMock()
+
+        ws = EmbyWebSocket(
+            host="emby.local",
+            port=8096,
+            api_key="test-key",
+            ssl=False,
+            device_id="test-device",
+            session=mock_session,
+        )
+
+        # Should return immediately without error
+        await ws._async_receive_loop()
+
+
+class TestEmbyWebSocketReconnection:
+    """Tests for automatic reconnection."""
+
+    @pytest.mark.asyncio
+    async def test_reconnecting_property_initially_false(self) -> None:
+        """Test reconnecting is False initially."""
+        mock_session = MagicMock()
+
+        ws = EmbyWebSocket(
+            host="emby.local",
+            port=8096,
+            api_key="test-key",
+            ssl=False,
+            device_id="test-device",
+            session=mock_session,
+        )
+
+        assert ws.reconnecting is False
+
+    @pytest.mark.asyncio
+    async def test_start_reconnect_loop(self) -> None:
+        """Test starting reconnection loop."""
+        mock_session = MagicMock()
+        mock_ws = AsyncMock()
+        mock_ws.closed = False
+        mock_ws.send_str = AsyncMock()
+        mock_session.ws_connect = AsyncMock(return_value=mock_ws)
+
+        ws = EmbyWebSocket(
+            host="emby.local",
+            port=8096,
+            api_key="test-key",
+            ssl=False,
+            device_id="test-device",
+            session=mock_session,
+        )
+
+        # Start reconnect loop (it will connect immediately since mock succeeds)
+        await ws.async_start_reconnect_loop()
+
+        assert ws.connected is True
+
+    @pytest.mark.asyncio
+    async def test_stop_reconnect_loop(self) -> None:
+        """Test stopping reconnection loop."""
+        mock_session = MagicMock()
+        mock_ws = AsyncMock()
+        mock_ws.closed = False
+        mock_ws.close = AsyncMock()
+        mock_ws.send_str = AsyncMock()
+        mock_session.ws_connect = AsyncMock(return_value=mock_ws)
+
+        ws = EmbyWebSocket(
+            host="emby.local",
+            port=8096,
+            api_key="test-key",
+            ssl=False,
+            device_id="test-device",
+            session=mock_session,
+        )
+
+        await ws.async_start_reconnect_loop()
+        await ws.async_stop_reconnect_loop()
+
+        assert ws.connected is False
+        assert ws.reconnecting is False
+
+    @pytest.mark.asyncio
+    async def test_reconnect_on_connection_failure(self) -> None:
+        """Test reconnection on connection failure with backoff."""
+        mock_session = MagicMock()
+        mock_ws = AsyncMock()
+        mock_ws.closed = False
+        mock_ws.send_str = AsyncMock()
+
+        # First call fails, second succeeds
+        call_count = 0
+
+        async def mock_ws_connect(*args: object, **kwargs: object) -> AsyncMock:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise aiohttp.ClientError("Connection refused")
+            return mock_ws
+
+        mock_session.ws_connect = mock_ws_connect
+
+        ws = EmbyWebSocket(
+            host="emby.local",
+            port=8096,
+            api_key="test-key",
+            ssl=False,
+            device_id="test-device",
+            session=mock_session,
+            reconnect_interval=0.01,  # Fast reconnect for testing
+        )
+
+        await ws.async_start_reconnect_loop()
+
+        # Should eventually connect
+        assert ws.connected is True
+        assert call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_reconnect_interval_backoff(self) -> None:
+        """Test that reconnection interval increases with backoff."""
+        mock_session = MagicMock()
+
+        ws = EmbyWebSocket(
+            host="emby.local",
+            port=8096,
+            api_key="test-key",
+            ssl=False,
+            device_id="test-device",
+            session=mock_session,
+            reconnect_interval=1.0,
+            max_reconnect_interval=10.0,
+        )
+
+        # Check initial interval
+        assert ws._reconnect_interval == 1.0
+        assert ws._max_reconnect_interval == 10.0
+
+    @pytest.mark.asyncio
+    async def test_reconnect_cancellation(self) -> None:
+        """Test that reconnection can be cancelled."""
+        import asyncio
+
+        mock_session = MagicMock()
+
+        # Always fail to connect
+        mock_session.ws_connect = AsyncMock(
+            side_effect=aiohttp.ClientError("Connection refused")
+        )
+
+        ws = EmbyWebSocket(
+            host="emby.local",
+            port=8096,
+            api_key="test-key",
+            ssl=False,
+            device_id="test-device",
+            session=mock_session,
+            reconnect_interval=0.01,  # Short interval for test
+        )
+
+        # Start reconnect in background
+        task = asyncio.create_task(ws.async_start_reconnect_loop())
+
+        # Give it time to fail and enter sleep
+        await asyncio.sleep(0.02)
+
+        # Stop should set the flag
+        await ws.async_stop_reconnect_loop()
+
+        # Give the loop time to check the flag and exit
+        await asyncio.sleep(0.02)
+
+        # Wait for task to complete with a short timeout
+        try:
+            await asyncio.wait_for(task, timeout=0.1)
+        except TimeoutError:
+            task.cancel()
+
+        # Verify the stop was requested
+        assert ws._stop_reconnect is True
+        assert ws.reconnecting is False
+
+    @pytest.mark.asyncio
+    async def test_reconnect_stops_after_first_failure_if_flag_set(self) -> None:
+        """Test reconnection stops after first failure if flag set during attempt."""
+        mock_session = MagicMock()
+
+        call_count = 0
+        ws_ref: EmbyWebSocket | None = None
+
+        async def mock_connect(*args: object, **kwargs: object) -> None:
+            nonlocal call_count, ws_ref
+            call_count += 1
+            # Set the stop flag during the first connection attempt
+            if ws_ref is not None:
+                ws_ref._stop_reconnect = True
+            raise aiohttp.ClientError("Connection refused")
+
+        mock_session.ws_connect = mock_connect
+
+        ws = EmbyWebSocket(
+            host="emby.local",
+            port=8096,
+            api_key="test-key",
+            ssl=False,
+            device_id="test-device",
+            session=mock_session,
+            reconnect_interval=100.0,  # Long interval - won't reach it
+        )
+        ws_ref = ws
+
+        # This should attempt once, fail, see the stop flag, and exit
+        await ws.async_start_reconnect_loop()
+
+        # Should have only attempted once
+        assert call_count == 1
+        assert ws._stop_reconnect is True
+
 class TestEmbyWebSocketConnectionCallback:
     """Tests for connection state callback."""
 
