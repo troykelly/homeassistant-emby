@@ -8,13 +8,27 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL
 from homeassistant.core import HomeAssistant
+from homeassistant.loader import Integration
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+import custom_components.emby as emby_module
 from custom_components.emby.const import (
     CONF_API_KEY,
     CONF_VERIFY_SSL,
     DOMAIN,
 )
+
+
+# Auto-use fixture to enable custom component loading for all tests
+pytest_plugins = "pytest_homeassistant_custom_component"
+
+
+@pytest.fixture(autouse=True)
+def auto_enable_custom_integrations(
+    enable_custom_integrations: None,  # noqa: ARG001
+) -> Generator[None]:
+    """Enable custom integrations in Home Assistant."""
+    yield
 
 
 @pytest.fixture
