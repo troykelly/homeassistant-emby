@@ -53,6 +53,19 @@ class TestEmbyClientInitialization:
         assert client._ssl is False
         assert client._verify_ssl is True
 
+    def test_client_properties(self) -> None:
+        """Test client exposes properties correctly."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-key",
+            ssl=True,
+        )
+        assert client.host == "emby.local"
+        assert client.port == 8096
+        assert client.api_key == "test-key"
+        assert client.ssl is True
+
 
 class TestBaseUrl:
     """Test base URL generation."""

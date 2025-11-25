@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.core import HomeAssistant
@@ -17,7 +17,7 @@ from custom_components.embymedia.exceptions import (
 )
 
 if TYPE_CHECKING:
-    pass
+    import aiohttp
 
 
 @pytest.fixture
@@ -396,3 +396,358 @@ class TestCoordinatorSessionTracking:
             await coordinator._async_update_data()
 
         assert "Session removed: device-abc" in caplog.text
+
+
+class TestCoordinatorWebSocket:
+    """Test coordinator WebSocket integration."""
+
+    @pytest.fixture
+    def mock_aiohttp_session(self) -> MagicMock:
+        """Create a mock aiohttp session."""
+        session = MagicMock()
+        session.ws_connect = AsyncMock()
+        return session
+
+    @pytest.mark.asyncio
+    async def test_setup_websocket(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        mock_aiohttp_session: MagicMock,
+    ) -> None:
+        """Test WebSocket setup creates connection."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_emby_client.host = "emby.local"
+        mock_emby_client.port = 8096
+        mock_emby_client.api_key = "test-key"
+        mock_emby_client.ssl = False
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+        )
+
+        # Setup WebSocket
+        await coordinator.async_setup_websocket(mock_aiohttp_session)
+
+        assert coordinator.websocket is not None
+        assert coordinator.websocket_enabled is True
+
+    @pytest.mark.asyncio
+    async def test_shutdown_websocket(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        mock_aiohttp_session: MagicMock,
+    ) -> None:
+        """Test WebSocket shutdown closes connection."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_emby_client.host = "emby.local"
+        mock_emby_client.port = 8096
+        mock_emby_client.api_key = "test-key"
+        mock_emby_client.ssl = False
+
+        # Mock WebSocket that succeeds
+        mock_ws = AsyncMock()
+        mock_ws.closed = False
+        mock_ws.close = AsyncMock()
+        mock_aiohttp_session.ws_connect = AsyncMock(return_value=mock_ws)
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+        )
+
+        await coordinator.async_setup_websocket(mock_aiohttp_session)
+        await coordinator.async_shutdown_websocket()
+
+        assert coordinator.websocket is None
+
+    @pytest.mark.asyncio
+    async def test_handle_sessions_message(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test handling Sessions message updates coordinator data."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_emby_client.async_get_sessions = AsyncMock(return_value=[])
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+        )
+
+        # Initialize data first
+        await coordinator.async_refresh()
+
+        # Simulate receiving Sessions message via WebSocket
+        sessions_data = [
+            {
+                "Id": "session-1",
+                "Client": "Emby Theater",
+                "DeviceId": "device-abc",
+                "DeviceName": "Living Room TV",
+                "SupportsRemoteControl": True,
+            },
+        ]
+
+        coordinator._handle_websocket_message("Sessions", sessions_data)
+
+        # Data should be updated
+        assert coordinator.data is not None
+        assert "device-abc" in coordinator.data
+
+    @pytest.mark.asyncio
+    async def test_handle_playback_started_message(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test handling PlaybackStarted triggers refresh."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_emby_client.async_get_sessions = AsyncMock(return_value=[])
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+        )
+
+        await coordinator.async_refresh()
+        mock_emby_client.async_get_sessions.reset_mock()
+
+        # Simulate PlaybackStarted event
+        coordinator._handle_websocket_message("PlaybackStarted", {"SessionId": "123"})
+
+        # Should trigger a refresh
+        mock_emby_client.async_get_sessions.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_handle_playback_stopped_message(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test handling PlaybackStopped triggers refresh."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_emby_client.async_get_sessions = AsyncMock(return_value=[])
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+        )
+
+        await coordinator.async_refresh()
+        mock_emby_client.async_get_sessions.reset_mock()
+
+        # Simulate PlaybackStopped event
+        coordinator._handle_websocket_message("PlaybackStopped", {"SessionId": "123"})
+
+        # Should trigger a refresh
+        mock_emby_client.async_get_sessions.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_websocket_connection_callback(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        mock_aiohttp_session: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Test WebSocket connection state changes are logged."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_emby_client.host = "emby.local"
+        mock_emby_client.port = 8096
+        mock_emby_client.api_key = "test-key"
+        mock_emby_client.ssl = False
+
+        # Mock WebSocket that succeeds
+        mock_ws = AsyncMock()
+        mock_ws.closed = False
+        mock_ws.close = AsyncMock()
+        mock_aiohttp_session.ws_connect = AsyncMock(return_value=mock_ws)
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+        )
+
+        with caplog.at_level("INFO"):
+            await coordinator.async_setup_websocket(mock_aiohttp_session)
+
+        assert "WebSocket connected" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_setup_websocket_connection_failure(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        mock_aiohttp_session: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Test WebSocket setup handles connection failure."""
+        import aiohttp
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_emby_client.host = "emby.local"
+        mock_emby_client.port = 8096
+        mock_emby_client.api_key = "test-key"
+        mock_emby_client.ssl = False
+
+        # Mock WebSocket that fails
+        mock_aiohttp_session.ws_connect = AsyncMock(
+            side_effect=aiohttp.ClientError("Connection refused")
+        )
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+        )
+
+        with caplog.at_level("WARNING"):
+            await coordinator.async_setup_websocket(mock_aiohttp_session)
+
+        assert coordinator.websocket_enabled is False
+        assert "Failed to connect WebSocket" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_handle_unknown_message_type(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Test handling unknown WebSocket message type logs debug."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+        )
+
+        with caplog.at_level("DEBUG"):
+            coordinator._handle_websocket_message("UnknownType", {"data": "test"})
+
+        assert "Unhandled WebSocket message type: UnknownType" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_handle_sessions_message_with_parsing_error(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Test handling Sessions message with invalid session data."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_emby_client.async_get_sessions = AsyncMock(return_value=[])
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+        )
+
+        # Initialize data first
+        await coordinator.async_refresh()
+
+        # Simulate receiving Sessions message with invalid data
+        sessions_data = [
+            {
+                # Missing required fields
+                "Id": "session-1",
+                "Client": "Emby Theater",
+                "DeviceName": "Bad Device",
+                # Missing DeviceId which is required
+            },
+        ]
+
+        with caplog.at_level("WARNING"):
+            coordinator._handle_websocket_message("Sessions", sessions_data)
+
+        assert "Failed to parse session data from WebSocket" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_handle_sessions_message_removes_session(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Test handling Sessions message logs removed sessions."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_emby_client.async_get_sessions = AsyncMock(return_value=[])
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+        )
+
+        # Initialize data first
+        await coordinator.async_refresh()
+
+        # Add a session via WebSocket
+        sessions_data = [
+            {
+                "Id": "session-1",
+                "Client": "Emby Theater",
+                "DeviceId": "device-abc",
+                "DeviceName": "Living Room TV",
+                "SupportsRemoteControl": True,
+            },
+        ]
+        coordinator._handle_websocket_message("Sessions", sessions_data)
+
+        # Now remove the session by sending empty list
+        with caplog.at_level("DEBUG"):
+            coordinator._handle_websocket_message("Sessions", [])
+
+        assert "Session removed: device-abc" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_websocket_disconnect_callback(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Test WebSocket disconnect callback logs warning."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+        )
+
+        with caplog.at_level("WARNING"):
+            coordinator._handle_websocket_connection(False)
+
+        assert "WebSocket disconnected from Emby server" in caplog.text

@@ -116,6 +116,26 @@ class EmbyClient:
         await self.close()
 
     @property
+    def host(self) -> str:
+        """Return the server hostname."""
+        return self._host
+
+    @property
+    def port(self) -> int:
+        """Return the server port."""
+        return self._port
+
+    @property
+    def api_key(self) -> str:
+        """Return the API key."""
+        return self._api_key
+
+    @property
+    def ssl(self) -> bool:
+        """Return whether SSL is enabled."""
+        return self._ssl
+
+    @property
     def base_url(self) -> str:
         """Return the base URL for API requests.
 
