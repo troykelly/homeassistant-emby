@@ -1,4 +1,5 @@
 """Tests for Emby media player platform."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

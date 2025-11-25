@@ -651,6 +651,102 @@ class EmbyClient:
         }
         await self._request_post(endpoint, data=data)
 
+    def get_video_stream_url(
+        self,
+        item_id: str,
+        container: str = "mp4",
+        static: bool = True,
+        video_codec: str | None = None,
+        audio_codec: str | None = None,
+        max_width: int | None = None,
+        max_height: int | None = None,
+        audio_stream_index: int | None = None,
+        subtitle_stream_index: int | None = None,
+    ) -> str:
+        """Generate URL for video streaming.
+
+        Args:
+            item_id: Video item ID.
+            container: Output container format (mp4, mkv, webm).
+            static: Direct play without transcoding.
+            video_codec: Video codec for transcoding (h264, hevc, vp9).
+            audio_codec: Audio codec for transcoding (aac, mp3, opus).
+            max_width: Maximum video width.
+            max_height: Maximum video height.
+            audio_stream_index: Audio track index to use.
+            subtitle_stream_index: Subtitle track index.
+
+        Returns:
+            Full streaming URL with authentication.
+        """
+        url = f"{self.base_url}/Videos/{item_id}/stream"
+        params: list[str] = [
+            f"api_key={self._api_key}",
+            f"Container={container}",
+            f"Static={'true' if static else 'false'}",
+        ]
+
+        if video_codec is not None:
+            params.append(f"VideoCodec={video_codec}")
+        if audio_codec is not None:
+            params.append(f"AudioCodec={audio_codec}")
+        if max_width is not None:
+            params.append(f"MaxWidth={max_width}")
+        if max_height is not None:
+            params.append(f"MaxHeight={max_height}")
+        if audio_stream_index is not None:
+            params.append(f"AudioStreamIndex={audio_stream_index}")
+        if subtitle_stream_index is not None:
+            params.append(f"SubtitleStreamIndex={subtitle_stream_index}")
+
+        return f"{url}?{'&'.join(params)}"
+
+    def get_audio_stream_url(
+        self,
+        item_id: str,
+        container: str = "mp3",
+        static: bool = True,
+        audio_codec: str | None = None,
+        max_bitrate: int | None = None,
+    ) -> str:
+        """Generate URL for audio streaming.
+
+        Args:
+            item_id: Audio item ID.
+            container: Output format (mp3, flac, aac).
+            static: Direct play without transcoding.
+            audio_codec: Audio codec for transcoding.
+            max_bitrate: Maximum bitrate in bps.
+
+        Returns:
+            Full streaming URL with authentication.
+        """
+        url = f"{self.base_url}/Audio/{item_id}/stream"
+        params: list[str] = [
+            f"api_key={self._api_key}",
+            f"Container={container}",
+            f"Static={'true' if static else 'false'}",
+        ]
+
+        if audio_codec is not None:
+            params.append(f"AudioCodec={audio_codec}")
+        if max_bitrate is not None:
+            params.append(f"MaxAudioBitRate={max_bitrate}")
+
+        return f"{url}?{'&'.join(params)}"
+
+    def get_hls_url(self, item_id: str) -> str:
+        """Generate HLS adaptive streaming URL.
+
+        Args:
+            item_id: Video item ID.
+
+        Returns:
+            HLS master playlist URL with authentication.
+        """
+        url = f"{self.base_url}/Videos/{item_id}/master.m3u8"
+        return f"{url}?api_key={self._api_key}"
+
     async def close(self) -> None:
         """Close the client session.
 

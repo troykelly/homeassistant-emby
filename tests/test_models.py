@@ -1,4 +1,5 @@
 """Tests for Emby integration data models."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

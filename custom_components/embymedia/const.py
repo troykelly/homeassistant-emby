@@ -233,6 +233,63 @@ class EmbySessionResponse(TypedDict):
 
 
 # =============================================================================
+# TypedDicts for Media Source Streaming (Phase 6)
+# =============================================================================
+
+
+class VideoStreamParams(TypedDict, total=False):
+    """Type definition for video streaming parameters.
+
+    All fields are optional to allow partial configuration.
+    """
+
+    container: str  # Output container format (mp4, mkv, webm)
+    static: bool  # Direct play without transcoding
+    audio_codec: str  # Audio codec for transcoding (aac, mp3, opus)
+    video_codec: str  # Video codec for transcoding (h264, hevc, vp9)
+    max_width: int  # Maximum video width
+    max_height: int  # Maximum video height
+    max_video_bitrate: int  # Maximum video bitrate in bps
+    max_audio_bitrate: int  # Maximum audio bitrate in bps
+    audio_stream_index: int  # Audio track index to use
+    subtitle_stream_index: int  # Subtitle track index
+    subtitle_method: str  # Encode, Embed, or External
+
+
+class AudioStreamParams(TypedDict, total=False):
+    """Type definition for audio streaming parameters.
+
+    All fields are optional to allow partial configuration.
+    """
+
+    container: str  # Output format (mp3, flac, aac)
+    static: bool  # Direct play without transcoding
+    audio_codec: str  # Audio codec for transcoding
+    max_bitrate: int  # Maximum bitrate in bps
+
+
+class MediaSourceIdentifier(TypedDict):
+    """Type definition for media source content identifier.
+
+    Used to identify content in the media source browser.
+    """
+
+    server_id: str  # Emby server ID
+    content_type: str  # Content type (movie, episode, track, etc.)
+    item_id: str  # Emby item ID
+
+
+# MIME type mapping for media content
+MIME_TYPES: Final[dict[str, str]] = {
+    "movie": "video/mp4",
+    "episode": "video/mp4",
+    "video": "video/mp4",
+    "track": "audio/mpeg",
+    "audio": "audio/mpeg",
+}
+
+
+# =============================================================================
 # Utility Functions
 # =============================================================================
 

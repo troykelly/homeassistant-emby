@@ -1,4 +1,5 @@
 """Tests for Emby API client."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -137,9 +138,7 @@ class TestValidateConnection:
     """Test connection validation."""
 
     @pytest.mark.asyncio
-    async def test_validate_connection_success(
-        self, mock_server_info: dict[str, Any]
-    ) -> None:
+    async def test_validate_connection_success(self, mock_server_info: dict[str, Any]) -> None:
         """Test successful connection validation."""
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_response = MagicMock()
@@ -221,9 +220,7 @@ class TestValidateConnection:
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_session = MagicMock()
             mock_session.request = MagicMock(
-                side_effect=aiohttp.ClientConnectorError(
-                    MagicMock(), OSError("Connection refused")
-                )
+                side_effect=aiohttp.ClientConnectorError(MagicMock(), OSError("Connection refused"))
             )
             mock_session.closed = False
             mock_session.close = AsyncMock()
@@ -285,9 +282,7 @@ class TestGetServerInfo:
     """Test server info retrieval."""
 
     @pytest.mark.asyncio
-    async def test_get_server_info_success(
-        self, mock_server_info: dict[str, Any]
-    ) -> None:
+    async def test_get_server_info_success(self, mock_server_info: dict[str, Any]) -> None:
         """Test successful server info retrieval."""
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_response = MagicMock()
@@ -315,9 +310,7 @@ class TestGetServerInfo:
             await client.close()
 
     @pytest.mark.asyncio
-    async def test_get_server_info_caches_server_id(
-        self, mock_server_info: dict[str, Any]
-    ) -> None:
+    async def test_get_server_info_caches_server_id(self, mock_server_info: dict[str, Any]) -> None:
         """Test server ID is cached after retrieval."""
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_response = MagicMock()
@@ -349,9 +342,7 @@ class TestGetPublicInfo:
     """Test public server info retrieval."""
 
     @pytest.mark.asyncio
-    async def test_get_public_info_success(
-        self, mock_public_info: dict[str, Any]
-    ) -> None:
+    async def test_get_public_info_success(self, mock_public_info: dict[str, Any]) -> None:
         """Test successful public info retrieval."""
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_response = MagicMock()
@@ -378,9 +369,7 @@ class TestGetPublicInfo:
             await client.close()
 
     @pytest.mark.asyncio
-    async def test_get_public_info_no_auth(
-        self, mock_public_info: dict[str, Any]
-    ) -> None:
+    async def test_get_public_info_no_auth(self, mock_public_info: dict[str, Any]) -> None:
         """Test public info request doesn't include auth header."""
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_response = MagicMock()
@@ -826,9 +815,7 @@ class TestSessionManagement:
             mock_session.close.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_async_context_manager(
-        self, mock_server_info: dict[str, Any]
-    ) -> None:
+    async def test_async_context_manager(self, mock_server_info: dict[str, Any]) -> None:
         """Test context manager works correctly."""
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_response = MagicMock()
@@ -1458,9 +1445,7 @@ class TestGetEpisodes:
                 port=8096,
                 api_key="test-key",
             )
-            episodes = await client.async_get_episodes(
-                "user-123", "series-abc", "season-1"
-            )
+            episodes = await client.async_get_episodes("user-123", "series-abc", "season-1")
             assert len(episodes) == 2
             assert episodes[0]["Name"] == "Episode 1"
             await client.close()
@@ -1519,9 +1504,7 @@ class TestPlayItems:
                 port=8096,
                 api_key="test-key",
             )
-            await client.async_play_items(
-                "session-123", ["movie-1", "movie-2", "movie-3"]
-            )
+            await client.async_play_items("session-123", ["movie-1", "movie-2", "movie-3"])
 
             call_args = mock_session.post.call_args
             json_body = call_args.kwargs.get("json", {})
@@ -1580,9 +1563,7 @@ class TestRequestPostErrors:
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_session = MagicMock()
             mock_session.post = MagicMock(
-                side_effect=aiohttp.ClientConnectorError(
-                    MagicMock(), OSError("Connection refused")
-                )
+                side_effect=aiohttp.ClientConnectorError(MagicMock(), OSError("Connection refused"))
             )
             mock_session.closed = False
             mock_session.close = AsyncMock()
@@ -1602,9 +1583,7 @@ class TestRequestPostErrors:
         """Test generic client error in POST request."""
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_session = MagicMock()
-            mock_session.post = MagicMock(
-                side_effect=aiohttp.ClientError("Generic error")
-            )
+            mock_session.post = MagicMock(side_effect=aiohttp.ClientError("Generic error"))
             mock_session.closed = False
             mock_session.close = AsyncMock()
             mock_session_class.return_value = mock_session
@@ -1644,3 +1623,120 @@ class TestRequestPostErrors:
 
             mock_response.raise_for_status.assert_called_once()
             await client.close()
+
+
+class TestStreamUrls:
+    """Test stream URL generation for media source."""
+
+    def test_get_video_stream_url_direct(self) -> None:
+        """Test video stream URL with direct play."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_video_stream_url("video-123")
+        assert "emby.local:8096" in url
+        assert "/Videos/video-123/stream" in url
+        assert "api_key=test-api-key" in url
+        assert "Static=true" in url
+        assert "Container=mp4" in url
+
+    def test_get_video_stream_url_transcode(self) -> None:
+        """Test video stream URL with transcoding parameters."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_video_stream_url(
+            "video-123",
+            container="mkv",
+            static=False,
+            video_codec="h264",
+            audio_codec="aac",
+            max_width=1920,
+            max_height=1080,
+        )
+        assert "Container=mkv" in url
+        assert "Static=false" in url
+        assert "VideoCodec=h264" in url
+        assert "AudioCodec=aac" in url
+        assert "MaxWidth=1920" in url
+        assert "MaxHeight=1080" in url
+
+    def test_get_video_stream_url_with_audio_subtitle_index(self) -> None:
+        """Test video stream URL with audio and subtitle stream indices."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_video_stream_url(
+            "video-123",
+            audio_stream_index=1,
+            subtitle_stream_index=2,
+        )
+        assert "AudioStreamIndex=1" in url
+        assert "SubtitleStreamIndex=2" in url
+
+    def test_get_audio_stream_url_direct(self) -> None:
+        """Test audio stream URL with direct play."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_audio_stream_url("audio-123")
+        assert "emby.local:8096" in url
+        assert "/Audio/audio-123/stream" in url
+        assert "api_key=test-api-key" in url
+        assert "Static=true" in url
+        assert "Container=mp3" in url
+
+    def test_get_audio_stream_url_transcode(self) -> None:
+        """Test audio stream URL with transcoding."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_audio_stream_url(
+            "audio-123",
+            container="flac",
+            static=False,
+            audio_codec="flac",
+            max_bitrate=320000,
+        )
+        assert "Container=flac" in url
+        assert "Static=false" in url
+        assert "AudioCodec=flac" in url
+        assert "MaxAudioBitRate=320000" in url
+
+    def test_get_hls_url(self) -> None:
+        """Test HLS adaptive streaming URL generation."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_hls_url("video-123")
+        assert "emby.local:8096" in url
+        assert "/Videos/video-123/master.m3u8" in url
+        assert "api_key=test-api-key" in url
+
+    def test_stream_urls_with_ssl(self) -> None:
+        """Test stream URLs with HTTPS."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8920,
+            api_key="test-api-key",
+            ssl=True,
+        )
+        video_url = client.get_video_stream_url("video-123")
+        audio_url = client.get_audio_stream_url("audio-123")
+        hls_url = client.get_hls_url("video-123")
+
+        assert video_url.startswith("https://")
+        assert audio_url.startswith("https://")
+        assert hls_url.startswith("https://")

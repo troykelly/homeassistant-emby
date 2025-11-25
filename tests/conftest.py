@@ -1,4 +1,5 @@
 """Fixtures for Emby integration tests."""
+
 from __future__ import annotations
 
 from collections.abc import Generator
@@ -111,9 +112,7 @@ def mock_emby_client_init(
     mock_users: list[dict[str, Any]],
 ) -> Generator[MagicMock]:
     """Mock EmbyClient for __init__.py testing."""
-    with patch(
-        "custom_components.embymedia.EmbyClient", autospec=True
-    ) as mock_client_class:
+    with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
         client = mock_client_class.return_value
         client.async_validate_connection = AsyncMock(return_value=True)
         client.async_get_server_info = AsyncMock(return_value=mock_server_info)
