@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
@@ -17,7 +17,7 @@ from custom_components.embymedia.exceptions import (
 )
 
 if TYPE_CHECKING:
-    import aiohttp
+    pass
 
 
 @pytest.fixture
@@ -605,6 +605,7 @@ class TestCoordinatorWebSocket:
     ) -> None:
         """Test WebSocket setup handles connection failure."""
         import aiohttp
+
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
         mock_emby_client.host = "emby.local"
