@@ -1,8 +1,6 @@
 """Tests for Emby integration constants and utilities."""
 from __future__ import annotations
 
-import pytest
-
 from custom_components.emby.const import (
     DOMAIN,
     normalize_host,

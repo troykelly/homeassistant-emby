@@ -14,8 +14,6 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.emby.const import (
     CONF_API_KEY,
     CONF_VERIFY_SSL,
-    DEFAULT_PORT,
-    DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
 from custom_components.emby.exceptions import (
@@ -377,6 +375,153 @@ class TestConfigFlow:
 
             assert result["type"] is FlowResultType.FORM
             assert result["errors"]["base"] == "unsupported_version"
+
+    @pytest.mark.asyncio
+    async def test_version_check_higher_major_supported(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test higher major version accepted."""
+        with patch(
+            "custom_components.emby.config_flow.EmbyClient"
+        ) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "server-123",
+                    "ServerName": "Test Server",
+                    "Version": "5.0.0.0",  # Higher major version
+                }
+            )
+
+            result = await hass.config_entries.flow.async_init(
+                DOMAIN, context={"source": config_entries.SOURCE_USER}
+            )
+
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {
+                    CONF_HOST: "emby.local",
+                    CONF_PORT: 8096,
+                    CONF_SSL: False,
+                    CONF_API_KEY: "test-api-key",
+                    CONF_VERIFY_SSL: True,
+                },
+            )
+
+            assert result["type"] is FlowResultType.CREATE_ENTRY
+
+    @pytest.mark.asyncio
+    async def test_version_check_invalid_version_allowed(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test invalid version string is allowed (returns True)."""
+        with patch(
+            "custom_components.emby.config_flow.EmbyClient"
+        ) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "server-123",
+                    "ServerName": "Test Server",
+                    "Version": "invalid",  # Invalid version string
+                }
+            )
+
+            result = await hass.config_entries.flow.async_init(
+                DOMAIN, context={"source": config_entries.SOURCE_USER}
+            )
+
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {
+                    CONF_HOST: "emby.local",
+                    CONF_PORT: 8096,
+                    CONF_SSL: False,
+                    CONF_API_KEY: "test-api-key",
+                    CONF_VERIFY_SSL: True,
+                },
+            )
+
+            # Invalid versions are allowed to pass
+            assert result["type"] is FlowResultType.CREATE_ENTRY
+
+    @pytest.mark.asyncio
+    async def test_invalid_api_key_empty(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test empty API key shows error."""
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "   ",  # Whitespace only
+                CONF_VERIFY_SSL: True,
+            },
+        )
+
+        assert result["type"] is FlowResultType.FORM
+        assert result["errors"][CONF_API_KEY] == "invalid_auth"
+
+
+class TestValidateInput:
+    """Test input validation directly."""
+
+    @pytest.mark.asyncio
+    async def test_invalid_port_zero(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test port value of 0 shows error."""
+        # Create flow instance manually to test _validate_input directly
+        from custom_components.emby.config_flow import EmbyConfigFlow
+
+        flow = EmbyConfigFlow()
+        flow.hass = hass
+
+        # Test with port 0 (should fail validation)
+        user_input = {
+            "host": "emby.local",
+            "port": 0,  # Invalid port
+            "ssl": False,
+            "api_key": "valid-key",
+            "verify_ssl": True,
+        }
+        errors = flow._validate_input(user_input)
+        assert errors.get("port") == "invalid_port"
+
+    @pytest.mark.asyncio
+    async def test_create_entry_without_server_info(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test entry creation uses fallback when server_info is None."""
+        from custom_components.emby.config_flow import EmbyConfigFlow
+
+        flow = EmbyConfigFlow()
+        flow.hass = hass
+        flow._server_info = None  # Defensive scenario
+
+        user_input = {
+            "host": "emby.local",
+            "port": 8096,
+            "ssl": False,
+            "api_key": "test-key",
+            "verify_ssl": True,
+        }
+
+        result = await flow._async_create_entry(user_input)
+        assert result["title"] == "Emby (emby.local)"
 
 
 class TestOptionsFlow:

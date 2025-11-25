@@ -2,10 +2,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
 
 import voluptuous as vol
-
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
@@ -30,6 +28,7 @@ from .const import (
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
     EmbyConfigFlowUserInput,
+    EmbyServerInfo,
     normalize_host,
 )
 from .exceptions import (
@@ -38,9 +37,6 @@ from .exceptions import (
     EmbySSLError,
     EmbyTimeoutError,
 )
-
-if TYPE_CHECKING:
-    from homeassistant.data_entry_flow import FlowResult
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -83,7 +79,7 @@ def _build_user_schema(
     )
 
 
-class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):
+class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
     """Handle a config flow for Emby."""
 
     VERSION = 1
@@ -91,7 +87,7 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         """Initialize the config flow."""
         self._reauth_entry: ConfigEntry | None = None
-        self._server_info: dict[str, object] = {}
+        self._server_info: EmbyServerInfo | None = None
 
     async def async_step_user(
         self,
@@ -270,9 +266,10 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):
             Config entry creation result.
         """
         server_info = self._server_info
-        server_name = str(
-            server_info.get("ServerName") or f"Emby ({user_input['host']})"
-        )
+        if server_info is not None:
+            server_name = server_info.get("ServerName") or f"Emby ({user_input['host']})"
+        else:
+            server_name = f"Emby ({user_input['host']})"
 
         if self._reauth_entry is not None:
             # Update existing entry for reauth
@@ -365,7 +362,7 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):
         )
 
     @staticmethod
-    @callback
+    @callback  # type: ignore[misc]
     def async_get_options_flow(
         config_entry: ConfigEntry,
     ) -> EmbyOptionsFlowHandler:
@@ -380,7 +377,7 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):
         return EmbyOptionsFlowHandler(config_entry)
 
 
-class EmbyOptionsFlowHandler(OptionsFlow):
+class EmbyOptionsFlowHandler(OptionsFlow):  # type: ignore[misc]
     """Handle Emby options."""
 
     def __init__(self, config_entry: ConfigEntry) -> None:

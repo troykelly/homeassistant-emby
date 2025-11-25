@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import EmbyConfigEntry
+    from .const import EmbyConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 

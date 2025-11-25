@@ -1,8 +1,6 @@
 """Tests for Emby integration exceptions."""
 from __future__ import annotations
 
-import pytest
-
 from custom_components.emby.exceptions import (
     EmbyAuthenticationError,
     EmbyConnectionError,

@@ -1,7 +1,6 @@
 """Tests for Emby API client."""
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -244,7 +243,7 @@ class TestValidateConnection:
         """Test timeout raises EmbyTimeoutError."""
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_session = MagicMock()
-            mock_session.request = MagicMock(side_effect=asyncio.TimeoutError())
+            mock_session.request = MagicMock(side_effect=TimeoutError())
             mock_session.closed = False
             mock_session.close = AsyncMock()
             mock_session_class.return_value = mock_session
@@ -525,6 +524,155 @@ class TestHttpErrors:
             await client.close()
 
 
+class TestClientResponseError:
+    """Test ClientResponseError handling in exception handler."""
+
+    @pytest.mark.asyncio
+    async def test_client_response_error_401(self) -> None:
+        """Test ClientResponseError with 401 raises auth error."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(
+                side_effect=aiohttp.ClientResponseError(
+                    request_info=MagicMock(),
+                    history=(),
+                    status=401,
+                    message="Unauthorized",
+                )
+            )
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            with pytest.raises(EmbyAuthenticationError):
+                await client.async_validate_connection()
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_client_response_error_404(self) -> None:
+        """Test ClientResponseError with 404 raises not found error."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(
+                side_effect=aiohttp.ClientResponseError(
+                    request_info=MagicMock(),
+                    history=(),
+                    status=404,
+                    message="Not Found",
+                )
+            )
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            with pytest.raises(EmbyNotFoundError):
+                await client.async_validate_connection()
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_client_response_error_500(self) -> None:
+        """Test ClientResponseError with 500 raises server error."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(
+                side_effect=aiohttp.ClientResponseError(
+                    request_info=MagicMock(),
+                    history=(),
+                    status=500,
+                    message="Internal Server Error",
+                )
+            )
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            with pytest.raises(EmbyServerError):
+                await client.async_validate_connection()
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_client_response_error_other(self) -> None:
+        """Test ClientResponseError with other status raises connection error."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(
+                side_effect=aiohttp.ClientResponseError(
+                    request_info=MagicMock(),
+                    history=(),
+                    status=400,
+                    message="Bad Request",
+                )
+            )
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            with pytest.raises(EmbyConnectionError):
+                await client.async_validate_connection()
+            await client.close()
+
+
+class TestClientError:
+    """Test generic ClientError handling."""
+
+    @pytest.mark.asyncio
+    async def test_client_error_raises_connection_error(self) -> None:
+        """Test ClientError raises EmbyConnectionError."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(
+                side_effect=aiohttp.ClientError("Generic client error")
+            )
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            with pytest.raises(EmbyConnectionError):
+                await client.async_validate_connection()
+            await client.close()
+
+
+class TestSslContext:
+    """Test SSL context generation."""
+
+    def test_ssl_enabled_verify_disabled(self) -> None:
+        """Test SSL context when SSL enabled but verify disabled."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8920,
+            api_key="test-key",
+            ssl=True,
+            verify_ssl=False,
+        )
+        ssl_context = client._get_ssl_context()
+        assert ssl_context is False
+
+
 class TestSessionManagement:
     """Test session management."""
 
@@ -571,7 +719,7 @@ class TestSessionManagement:
                 api_key="test-key",
             )
             # Force session creation
-            session = await client._get_session()
+            await client._get_session()
             assert client._owns_session is True
             await client.close()
             mock_session.close.assert_called_once()

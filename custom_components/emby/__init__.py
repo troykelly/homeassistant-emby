@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL
-from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -20,6 +19,9 @@ from .const import (
     EmbyConfigEntry,
 )
 from .exceptions import EmbyAuthenticationError, EmbyConnectionError
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,7 +97,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> boo
     Returns:
         True if unload was successful.
     """
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unload_ok: bool = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
         # Clean up stored data

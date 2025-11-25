@@ -8,10 +8,8 @@ import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.emby import async_setup_entry, async_unload_entry
 from custom_components.emby.const import (
     CONF_API_KEY,
     CONF_VERIFY_SSL,
@@ -148,6 +146,39 @@ class TestUnloadEntry:
 
             # Entry should be removed from hass.data
             assert mock_config_entry.entry_id not in hass.data.get(DOMAIN, {})
+
+
+class TestOptionsUpdate:
+    """Test options update handling."""
+
+    @pytest.mark.asyncio
+    async def test_options_update_reloads_entry(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_server_info: dict[str, Any],
+    ) -> None:
+        """Test options update triggers reload."""
+        mock_config_entry.add_to_hass(hass)
+
+        with patch(
+            "custom_components.emby.EmbyClient", autospec=True
+        ) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(return_value=mock_server_info)
+
+            await hass.config_entries.async_setup(mock_config_entry.entry_id)
+            assert mock_config_entry.state is ConfigEntryState.LOADED
+
+            # Update options - this should trigger reload
+            hass.config_entries.async_update_entry(
+                mock_config_entry, options={"scan_interval": 30}
+            )
+            await hass.async_block_till_done()
+
+            # Entry should be reloaded (still LOADED)
+            assert mock_config_entry.state is ConfigEntryState.LOADED
 
 
 class TestMultipleEntries:

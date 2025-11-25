@@ -1,7 +1,6 @@
 """Emby API client."""
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import TYPE_CHECKING, Self
 
@@ -246,7 +245,7 @@ class EmbyClient:
             )
             raise EmbySSLError(f"SSL certificate error: {err}") from err
 
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
             _LOGGER.error(
                 "Emby API timeout for %s %s",
                 method,
