@@ -704,6 +704,39 @@ Test complete WebSocket workflow:
 
 All acceptance criteria have been met. WebSocket real-time updates are now fully implemented.
 
+### Bug Fix: WebSocket Receive Loop (2025-11-25)
+
+**Issue:** After initial implementation, WebSocket connected but never received messages. The UI showed stale data.
+
+**Root Cause:** The `async_setup_websocket` method in `coordinator.py` was missing two critical steps:
+1. Never called `async_subscribe_sessions()` to tell Emby to send session updates
+2. Never started the receive loop (`_async_receive_loop()`) to process incoming messages
+
+**Fix:** Added to `coordinator.py`:
+```python
+# After connect:
+await self._websocket.async_subscribe_sessions()
+self.hass.async_create_task(self._async_websocket_receive_loop())
+
+# New method:
+async def _async_websocket_receive_loop(self) -> None:
+    """Run the WebSocket receive loop."""
+    if self._websocket is None:
+        return
+    try:
+        await self._websocket._async_receive_loop()
+    except Exception as err:
+        _LOGGER.warning("WebSocket receive loop error: %s", err)
+    finally:
+        if self._websocket_enabled:
+            self._handle_websocket_connection(False)
+```
+
+**Verification:** After fix, logs show:
+- `Subscribed to session updates (interval: 1500ms)`
+- `Received WebSocket message: Sessions` every ~1.5 seconds
+- `Manually updated embymedia data` confirming real-time updates
+
 ---
 
 ## Message Type Reference
