@@ -95,11 +95,11 @@ def supported_features(self) -> MediaPlayerEntityFeature:
 ```
 
 **Acceptance Criteria:**
-- [ ] `supported_features` property returns correct flags
-- [ ] Features dynamically determined from session capabilities
-- [ ] Returns 0 when session is None
-- [ ] Volume features only enabled when commands supported
-- [ ] Seek only enabled when `can_seek` is True
+- [x] `supported_features` property returns correct flags
+- [x] Features dynamically determined from session capabilities
+- [x] Returns 0 when session is None
+- [x] Volume features only enabled when commands supported
+- [x] Seek only enabled when `can_seek` is True
 
 ---
 
@@ -144,10 +144,10 @@ def media_content_type(self) -> MediaType | str | None:
 ```
 
 **Acceptance Criteria:**
-- [ ] `media_content_id` returns item ID when playing
-- [ ] `media_content_id` returns None when not playing
-- [ ] `media_content_type` maps Emby types to HA types correctly
-- [ ] `media_content_type` returns None when not playing
+- [x] `media_content_id` returns item ID when playing
+- [x] `media_content_id` returns None when not playing
+- [x] `media_content_type` maps Emby types to HA types correctly
+- [x] `media_content_type` returns None when not playing
 
 ---
 
@@ -193,11 +193,11 @@ def media_episode(self) -> str | None:
 ```
 
 **Acceptance Criteria:**
-- [ ] `media_title` returns item name
-- [ ] `media_series_title` returns series name for episodes
-- [ ] `media_season` returns season number as string
-- [ ] `media_episode` returns episode number as string
-- [ ] All return None when not playing or not applicable
+- [x] `media_title` returns item name
+- [x] `media_series_title` returns series name for episodes
+- [x] `media_season` returns season number as string
+- [x] `media_episode` returns episode number as string
+- [x] All return None when not playing or not applicable
 
 ---
 
@@ -237,11 +237,11 @@ def media_album_artist(self) -> str | None:
 ```
 
 **Acceptance Criteria:**
-- [ ] `media_artist` joins multiple artists with comma
-- [ ] `media_artist` falls back to album_artist if no artists
-- [ ] `media_album_name` returns album name
-- [ ] `media_album_artist` returns album artist
-- [ ] All return None when not playing music
+- [x] `media_artist` joins multiple artists with comma
+- [x] `media_artist` falls back to album_artist if no artists
+- [x] `media_album_name` returns album name
+- [x] `media_album_artist` returns album artist
+- [x] All return None when not playing music
 
 ---
 
@@ -282,10 +282,10 @@ def media_position_updated_at(self) -> datetime | None:
 ```
 
 **Acceptance Criteria:**
-- [ ] `media_duration` returns total duration in seconds as int
-- [ ] `media_position` returns current position in seconds as int
-- [ ] `media_position_updated_at` returns update timestamp
-- [ ] All return None when not playing
+- [x] `media_duration` returns total duration in seconds as int
+- [x] `media_position` returns current position in seconds as int
+- [x] `media_position_updated_at` returns update timestamp
+- [x] All return None when not playing
 
 ---
 
@@ -321,9 +321,9 @@ def is_volume_muted(self) -> bool | None:
 ```
 
 **Acceptance Criteria:**
-- [ ] `volume_level` returns 0.0-1.0 range
-- [ ] `is_volume_muted` returns boolean
-- [ ] Both return None when session/play_state is None
+- [x] `volume_level` returns 0.0-1.0 range
+- [x] `is_volume_muted` returns boolean
+- [x] Both return None when session/play_state is None
 
 ---
 
@@ -361,10 +361,10 @@ async def async_mute_volume(self, mute: bool) -> None:
 ```
 
 **Acceptance Criteria:**
-- [ ] `async_set_volume_level` converts to 0-100 range
-- [ ] `async_set_volume_level` calls API correctly
-- [ ] `async_mute_volume` sends Mute/Unmute command
-- [ ] Methods handle missing session gracefully
+- [x] `async_set_volume_level` converts to 0-100 range
+- [x] `async_set_volume_level` calls API correctly
+- [x] `async_mute_volume` sends Mute/Unmute command
+- [x] Methods handle missing session gracefully
 
 ---
 
@@ -417,10 +417,10 @@ async def async_media_stop(self) -> None:
 ```
 
 **Acceptance Criteria:**
-- [ ] `async_media_play` sends Unpause command
-- [ ] `async_media_pause` sends Pause command
-- [ ] `async_media_stop` sends Stop command
-- [ ] All methods handle missing session gracefully
+- [x] `async_media_play` sends Unpause command
+- [x] `async_media_pause` sends Pause command
+- [x] `async_media_stop` sends Stop command
+- [x] All methods handle missing session gracefully
 
 ---
 
@@ -454,9 +454,9 @@ async def async_media_previous_track(self) -> None:
 ```
 
 **Acceptance Criteria:**
-- [ ] `async_media_next_track` sends NextTrack command
-- [ ] `async_media_previous_track` sends PreviousTrack command
-- [ ] Both handle missing session gracefully
+- [x] `async_media_next_track` sends NextTrack command
+- [x] `async_media_previous_track` sends PreviousTrack command
+- [x] Both handle missing session gracefully
 
 ---
 
@@ -483,9 +483,9 @@ async def async_media_seek(self, position: float) -> None:
 ```
 
 **Acceptance Criteria:**
-- [ ] `async_media_seek` converts seconds to ticks
-- [ ] Sends Seek command with SeekPositionTicks
-- [ ] Handles missing session gracefully
+- [x] `async_media_seek` converts seconds to ticks
+- [x] Sends Seek command with SeekPositionTicks
+- [x] Handles missing session gracefully
 
 ---
 
@@ -545,10 +545,10 @@ async def async_send_command(
 ```
 
 **Acceptance Criteria:**
-- [ ] `async_send_playback_command` sends to correct endpoint
-- [ ] `async_send_command` sends to correct endpoint
-- [ ] Both handle errors appropriately
-- [ ] Arguments passed as POST body
+- [x] `async_send_playback_command` sends to correct endpoint
+- [x] `async_send_command` sends to correct endpoint
+- [x] Both handle errors appropriately
+- [x] Arguments passed as POST body
 
 ---
 
@@ -626,10 +626,10 @@ async def _request_post(
 ```
 
 **Acceptance Criteria:**
-- [ ] POST requests send JSON body
-- [ ] Handles 204 No Content response
-- [ ] Handles empty response body
-- [ ] Proper error handling
+- [x] POST requests send JSON body
+- [x] Handles 204 No Content response
+- [x] Handles empty response body
+- [x] Proper error handling
 
 ---
 
@@ -638,45 +638,45 @@ async def _request_post(
 ### Phase 3 Complete When:
 
 1. **Media Properties**
-   - [ ] `supported_features` dynamically determined
-   - [ ] `media_content_id` returns item ID
-   - [ ] `media_content_type` maps to HA types
-   - [ ] `media_title` returns item name
-   - [ ] `media_series_title` for TV episodes
-   - [ ] `media_season` and `media_episode` for TV
-   - [ ] `media_artist`, `media_album_name`, `media_album_artist` for music
-   - [ ] `media_duration` and `media_position` in seconds
-   - [ ] `media_position_updated_at` timestamp
-   - [ ] 100% test coverage
+   - [x] `supported_features` dynamically determined
+   - [x] `media_content_id` returns item ID
+   - [x] `media_content_type` maps to HA types
+   - [x] `media_title` returns item name
+   - [x] `media_series_title` for TV episodes
+   - [x] `media_season` and `media_episode` for TV
+   - [x] `media_artist`, `media_album_name`, `media_album_artist` for music
+   - [x] `media_duration` and `media_position` in seconds
+   - [x] `media_position_updated_at` timestamp
+   - [x] 100% test coverage
 
 2. **Volume Control**
-   - [ ] `volume_level` returns 0.0-1.0
-   - [ ] `is_volume_muted` returns boolean
-   - [ ] `async_set_volume_level` works
-   - [ ] `async_mute_volume` works
-   - [ ] 100% test coverage
+   - [x] `volume_level` returns 0.0-1.0
+   - [x] `is_volume_muted` returns boolean
+   - [x] `async_set_volume_level` works
+   - [x] `async_mute_volume` works
+   - [x] 100% test coverage
 
 3. **Playback Control**
-   - [ ] `async_media_play` works
-   - [ ] `async_media_pause` works
-   - [ ] `async_media_stop` works
-   - [ ] `async_media_next_track` works
-   - [ ] `async_media_previous_track` works
-   - [ ] `async_media_seek` works
-   - [ ] 100% test coverage
+   - [x] `async_media_play` works
+   - [x] `async_media_pause` works
+   - [x] `async_media_stop` works
+   - [x] `async_media_next_track` works
+   - [x] `async_media_previous_track` works
+   - [x] `async_media_seek` works
+   - [x] 100% test coverage
 
 4. **API Extensions**
-   - [ ] POST request support added
-   - [ ] `async_send_playback_command` works
-   - [ ] `async_send_command` works
-   - [ ] 100% test coverage
+   - [x] POST request support added
+   - [x] `async_send_playback_command` works
+   - [x] `async_send_command` works
+   - [x] 100% test coverage
 
 5. **Code Quality**
-   - [ ] mypy strict passes
-   - [ ] ruff passes
-   - [ ] No `Any` types (except required HA overrides)
-   - [ ] All functions have type annotations
-   - [ ] Google-style docstrings on all public functions
+   - [x] mypy strict passes
+   - [x] ruff passes
+   - [x] No `Any` types (except required HA overrides)
+   - [x] All functions have type annotations
+   - [x] Google-style docstrings on all public functions
 
 ---
 
