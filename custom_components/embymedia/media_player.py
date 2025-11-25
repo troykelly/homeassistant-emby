@@ -21,7 +21,8 @@ from .models import MediaType as EmbyMediaType
 
 if TYPE_CHECKING:
     from .const import EmbyConfigEntry
-    from .coordinator import EmbyDataUpdateCoordinator
+
+from .coordinator import EmbyDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -294,9 +295,14 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
         # Check if item has a Primary image tag
         primary_tag = image_tags_dict.get("Primary")
 
+        # Get the client for image URL generation
+        # Type cast needed due to CoordinatorEntity generic type erasure
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
         if primary_tag:
             # Item has its own Primary image
-            return self.coordinator.client.get_image_url(
+            return client.get_image_url(
                 now_playing.item_id,
                 image_type="Primary",
                 tag=primary_tag,
@@ -304,7 +310,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
 
         # Fallback: Episode -> Series
         if now_playing.series_id:
-            return self.coordinator.client.get_image_url(
+            return client.get_image_url(
                 now_playing.series_id,
                 image_type="Primary",
                 tag=None,
@@ -312,14 +318,14 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
 
         # Fallback: Audio -> Album
         if now_playing.album_id:
-            return self.coordinator.client.get_image_url(
+            return client.get_image_url(
                 now_playing.album_id,
                 image_type="Primary",
                 tag=None,
             )
 
         # Final fallback: Use item ID without tag
-        return self.coordinator.client.get_image_url(
+        return client.get_image_url(
             now_playing.item_id,
             image_type="Primary",
             tag=None,
