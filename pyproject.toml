@@ -86,10 +86,10 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["custom_components.emby"]
+known-first-party = ["custom_components.embymedia"]
 
 [tool.coverage.run]
-source = ["custom_components/emby"]
+source = ["custom_components/embymedia"]
 omit = [
     "tests/*",
 ]

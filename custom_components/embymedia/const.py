@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from .coordinator import EmbyDataUpdateCoordinator
 
 # Integration domain
-DOMAIN: Final = "emby"
+DOMAIN: Final = "embymedia"
 
 # Type alias for config entry with runtime data
 type EmbyConfigEntry = ConfigEntry[EmbyDataUpdateCoordinator]

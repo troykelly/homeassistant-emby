@@ -9,7 +9,7 @@ import pytest
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.emby.const import (
+from custom_components.embymedia.const import (
     CONF_API_KEY,
     CONF_VERIFY_SSL,
     DOMAIN,
@@ -92,7 +92,7 @@ def mock_emby_client(
 ) -> Generator[MagicMock]:
     """Mock EmbyClient for testing."""
     with patch(
-        "custom_components.emby.config_flow.EmbyClient", autospec=True
+        "custom_components.embymedia.config_flow.EmbyClient", autospec=True
     ) as mock_client_class:
         client = mock_client_class.return_value
         client.async_validate_connection = AsyncMock(return_value=True)
@@ -112,7 +112,7 @@ def mock_emby_client_init(
 ) -> Generator[MagicMock]:
     """Mock EmbyClient for __init__.py testing."""
     with patch(
-        "custom_components.emby.EmbyClient", autospec=True
+        "custom_components.embymedia.EmbyClient", autospec=True
     ) as mock_client_class:
         client = mock_client_class.return_value
         client.async_validate_connection = AsyncMock(return_value=True)

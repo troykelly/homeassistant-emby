@@ -1,23 +1,19 @@
 """Tests for Phase 2 TypedDicts in const.py."""
 from __future__ import annotations
 
-from typing import get_type_hints
-
-import pytest
-
 
 class TestEmbyNowPlayingItemTypedDict:
     """Test EmbyNowPlayingItem TypedDict definition."""
 
     def test_typeddict_exists(self) -> None:
         """Test EmbyNowPlayingItem TypedDict is defined."""
-        from custom_components.emby.const import EmbyNowPlayingItem
+        from custom_components.embymedia.const import EmbyNowPlayingItem
 
         assert EmbyNowPlayingItem is not None
 
     def test_required_fields(self) -> None:
         """Test required fields are defined."""
-        from custom_components.emby.const import EmbyNowPlayingItem
+        from custom_components.embymedia.const import EmbyNowPlayingItem
 
         # Create instance with required fields only
         item: EmbyNowPlayingItem = {
@@ -31,7 +27,7 @@ class TestEmbyNowPlayingItemTypedDict:
 
     def test_optional_fields(self) -> None:
         """Test optional fields can be included."""
-        from custom_components.emby.const import EmbyNowPlayingItem
+        from custom_components.embymedia.const import EmbyNowPlayingItem
 
         item: EmbyNowPlayingItem = {
             "Id": "item-123",
@@ -59,13 +55,13 @@ class TestEmbyPlayStateTypedDict:
 
     def test_typeddict_exists(self) -> None:
         """Test EmbyPlayState TypedDict is defined."""
-        from custom_components.emby.const import EmbyPlayState
+        from custom_components.embymedia.const import EmbyPlayState
 
         assert EmbyPlayState is not None
 
     def test_all_fields_optional(self) -> None:
         """Test all fields are optional (can create empty dict)."""
-        from custom_components.emby.const import EmbyPlayState
+        from custom_components.embymedia.const import EmbyPlayState
 
         # Empty PlayState is valid (all fields NotRequired)
         state: EmbyPlayState = {}
@@ -73,7 +69,7 @@ class TestEmbyPlayStateTypedDict:
 
     def test_full_play_state(self) -> None:
         """Test full PlayState with all fields."""
-        from custom_components.emby.const import EmbyPlayState
+        from custom_components.embymedia.const import EmbyPlayState
 
         state: EmbyPlayState = {
             "PositionTicks": 5000000000,
@@ -97,13 +93,13 @@ class TestEmbySessionResponseTypedDict:
 
     def test_typeddict_exists(self) -> None:
         """Test EmbySessionResponse TypedDict is defined."""
-        from custom_components.emby.const import EmbySessionResponse
+        from custom_components.embymedia.const import EmbySessionResponse
 
         assert EmbySessionResponse is not None
 
     def test_required_fields(self) -> None:
         """Test required fields are defined."""
-        from custom_components.emby.const import EmbySessionResponse
+        from custom_components.embymedia.const import EmbySessionResponse
 
         session: EmbySessionResponse = {
             "Id": "session-123",
@@ -120,7 +116,7 @@ class TestEmbySessionResponseTypedDict:
 
     def test_optional_fields(self) -> None:
         """Test optional fields can be included."""
-        from custom_components.emby.const import (
+        from custom_components.embymedia.const import (
             EmbyNowPlayingItem,
             EmbyPlayState,
             EmbySessionResponse,
@@ -162,6 +158,6 @@ class TestConfScanIntervalConstant:
 
     def test_constant_exists(self) -> None:
         """Test CONF_SCAN_INTERVAL is defined."""
-        from custom_components.emby.const import CONF_SCAN_INTERVAL
+        from custom_components.embymedia.const import CONF_SCAN_INTERVAL
 
         assert CONF_SCAN_INTERVAL == "scan_interval"

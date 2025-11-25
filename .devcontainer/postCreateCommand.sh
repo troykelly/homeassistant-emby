@@ -67,7 +67,7 @@ default_config:
 logger:
   default: info
   logs:
-    custom_components.emby: debug
+    custom_components.embymedia: debug
     homeassistant.components.media_player: debug
 
 # Debugger configuration for VS Code

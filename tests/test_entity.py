@@ -2,16 +2,15 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
 
-from custom_components.emby.const import DOMAIN
+from custom_components.embymedia.const import DOMAIN
 
 if TYPE_CHECKING:
-    from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
-    from custom_components.emby.models import EmbySession
+    pass
 
 
 @pytest.fixture
@@ -46,7 +45,7 @@ class TestEmbyEntityInit:
         mock_coordinator: MagicMock,
     ) -> None:
         """Test entity initializes with correct attributes."""
-        from custom_components.emby.entity import EmbyEntity
+        from custom_components.embymedia.entity import EmbyEntity
 
         entity = EmbyEntity(
             coordinator=mock_coordinator,
@@ -62,7 +61,7 @@ class TestEmbyEntityInit:
         mock_coordinator: MagicMock,
     ) -> None:
         """Test entity has _attr_has_entity_name = True."""
-        from custom_components.emby.entity import EmbyEntity
+        from custom_components.embymedia.entity import EmbyEntity
 
         entity = EmbyEntity(
             coordinator=mock_coordinator,
@@ -82,7 +81,7 @@ class TestEmbyEntitySession:
         mock_session: MagicMock,
     ) -> None:
         """Test session property returns session from coordinator."""
-        from custom_components.emby.entity import EmbyEntity
+        from custom_components.embymedia.entity import EmbyEntity
 
         entity = EmbyEntity(
             coordinator=mock_coordinator,
@@ -103,7 +102,7 @@ class TestEmbyEntityAvailability:
         mock_session: MagicMock,
     ) -> None:
         """Test entity is available when session exists and coordinator succeeded."""
-        from custom_components.emby.entity import EmbyEntity
+        from custom_components.embymedia.entity import EmbyEntity
 
         mock_coordinator.last_update_success = True
         mock_coordinator.get_session.return_value = mock_session
@@ -121,7 +120,7 @@ class TestEmbyEntityAvailability:
         mock_coordinator: MagicMock,
     ) -> None:
         """Test entity is unavailable when session doesn't exist."""
-        from custom_components.emby.entity import EmbyEntity
+        from custom_components.embymedia.entity import EmbyEntity
 
         mock_coordinator.last_update_success = True
         mock_coordinator.get_session.return_value = None
@@ -140,7 +139,7 @@ class TestEmbyEntityAvailability:
         mock_session: MagicMock,
     ) -> None:
         """Test entity is unavailable when coordinator failed."""
-        from custom_components.emby.entity import EmbyEntity
+        from custom_components.embymedia.entity import EmbyEntity
 
         mock_coordinator.last_update_success = False
         mock_coordinator.get_session.return_value = mock_session
@@ -163,7 +162,7 @@ class TestEmbyEntityDeviceInfo:
         mock_session: MagicMock,
     ) -> None:
         """Test device info when session is available."""
-        from custom_components.emby.entity import EmbyEntity
+        from custom_components.embymedia.entity import EmbyEntity
 
         mock_coordinator.get_session.return_value = mock_session
 
@@ -187,7 +186,7 @@ class TestEmbyEntityDeviceInfo:
         mock_coordinator: MagicMock,
     ) -> None:
         """Test device info fallback when session is not available."""
-        from custom_components.emby.entity import EmbyEntity
+        from custom_components.embymedia.entity import EmbyEntity
 
         mock_coordinator.get_session.return_value = None
 
@@ -215,7 +214,7 @@ class TestEmbyEntityUniqueId:
         mock_coordinator: MagicMock,
     ) -> None:
         """Test unique_id combines server_id and device_id."""
-        from custom_components.emby.entity import EmbyEntity
+        from custom_components.embymedia.entity import EmbyEntity
 
         entity = EmbyEntity(
             coordinator=mock_coordinator,

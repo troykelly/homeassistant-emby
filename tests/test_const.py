@@ -1,7 +1,7 @@
 """Tests for Emby integration constants and utilities."""
 from __future__ import annotations
 
-from custom_components.emby.const import (
+from custom_components.embymedia.const import (
     DOMAIN,
     normalize_host,
     sanitize_api_key,
@@ -124,4 +124,4 @@ class TestDomainConstant:
 
     def test_domain_value(self) -> None:
         """Test domain constant has correct value."""
-        assert DOMAIN == "emby"
+        assert DOMAIN == "embymedia"

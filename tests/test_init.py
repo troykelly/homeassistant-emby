@@ -8,17 +8,16 @@ import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import UpdateFailed
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.emby.const import (
+from custom_components.embymedia.const import (
     CONF_API_KEY,
     CONF_SCAN_INTERVAL,
     CONF_VERIFY_SSL,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
-from custom_components.emby.exceptions import (
+from custom_components.embymedia.exceptions import (
     EmbyAuthenticationError,
     EmbyConnectionError,
 )
@@ -35,16 +34,15 @@ class TestSetupEntry:
         mock_server_info: dict[str, Any],
     ) -> None:
         """Test entry sets up correctly with coordinator."""
-        from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
 
         mock_config_entry.add_to_hass(hass)
 
         with (
             patch(
-                "custom_components.emby.EmbyClient", autospec=True
+                "custom_components.embymedia.EmbyClient", autospec=True
             ) as mock_client_class,
             patch(
-                "custom_components.emby.EmbyDataUpdateCoordinator",
+                "custom_components.embymedia.EmbyDataUpdateCoordinator",
                 autospec=True,
             ) as mock_coordinator_class,
         ):
@@ -82,10 +80,10 @@ class TestSetupEntry:
 
         with (
             patch(
-                "custom_components.emby.EmbyClient", autospec=True
+                "custom_components.embymedia.EmbyClient", autospec=True
             ) as mock_client_class,
             patch(
-                "custom_components.emby.EmbyDataUpdateCoordinator",
+                "custom_components.embymedia.EmbyDataUpdateCoordinator",
                 autospec=True,
             ) as mock_coordinator_class,
         ):
@@ -126,10 +124,10 @@ class TestSetupEntry:
 
         with (
             patch(
-                "custom_components.emby.EmbyClient", autospec=True
+                "custom_components.embymedia.EmbyClient", autospec=True
             ) as mock_client_class,
             patch(
-                "custom_components.emby.EmbyDataUpdateCoordinator",
+                "custom_components.embymedia.EmbyDataUpdateCoordinator",
                 autospec=True,
             ) as mock_coordinator_class,
         ):
@@ -158,10 +156,10 @@ class TestSetupEntry:
 
         with (
             patch(
-                "custom_components.emby.EmbyClient", autospec=True
+                "custom_components.embymedia.EmbyClient", autospec=True
             ) as mock_client_class,
             patch(
-                "custom_components.emby.EmbyDataUpdateCoordinator",
+                "custom_components.embymedia.EmbyDataUpdateCoordinator",
                 autospec=True,
             ) as mock_coordinator_class,
         ):
@@ -188,7 +186,7 @@ class TestSetupEntry:
         mock_config_entry.add_to_hass(hass)
 
         with patch(
-            "custom_components.emby.EmbyClient", autospec=True
+            "custom_components.embymedia.EmbyClient", autospec=True
         ) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(
@@ -210,7 +208,7 @@ class TestSetupEntry:
         mock_config_entry.add_to_hass(hass)
 
         with patch(
-            "custom_components.emby.EmbyClient", autospec=True
+            "custom_components.embymedia.EmbyClient", autospec=True
         ) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(
@@ -238,10 +236,10 @@ class TestUnloadEntry:
 
         with (
             patch(
-                "custom_components.emby.EmbyClient", autospec=True
+                "custom_components.embymedia.EmbyClient", autospec=True
             ) as mock_client_class,
             patch(
-                "custom_components.emby.EmbyDataUpdateCoordinator",
+                "custom_components.embymedia.EmbyDataUpdateCoordinator",
                 autospec=True,
             ) as mock_coordinator_class,
         ):
@@ -277,10 +275,10 @@ class TestOptionsUpdate:
 
         with (
             patch(
-                "custom_components.emby.EmbyClient", autospec=True
+                "custom_components.embymedia.EmbyClient", autospec=True
             ) as mock_client_class,
             patch(
-                "custom_components.emby.EmbyDataUpdateCoordinator",
+                "custom_components.embymedia.EmbyDataUpdateCoordinator",
                 autospec=True,
             ) as mock_coordinator_class,
         ):
@@ -320,10 +318,10 @@ class TestMultipleEntries:
 
         with (
             patch(
-                "custom_components.emby.EmbyClient", autospec=True
+                "custom_components.embymedia.EmbyClient", autospec=True
             ) as mock_client_class,
             patch(
-                "custom_components.emby.EmbyDataUpdateCoordinator",
+                "custom_components.embymedia.EmbyDataUpdateCoordinator",
                 autospec=True,
             ) as mock_coordinator_class,
         ):

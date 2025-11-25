@@ -11,12 +11,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.emby.const import (
+from custom_components.embymedia.const import (
     CONF_API_KEY,
     CONF_VERIFY_SSL,
     DOMAIN,
 )
-from custom_components.emby.exceptions import (
+from custom_components.embymedia.exceptions import (
     EmbyAuthenticationError,
     EmbyConnectionError,
     EmbySSLError,
@@ -73,7 +73,7 @@ class TestConfigFlow:
     ) -> None:
         """Test connection error shows message."""
         with patch(
-            "custom_components.emby.config_flow.EmbyClient"
+            "custom_components.embymedia.config_flow.EmbyClient"
         ) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(
@@ -105,7 +105,7 @@ class TestConfigFlow:
     ) -> None:
         """Test auth error shows message."""
         with patch(
-            "custom_components.emby.config_flow.EmbyClient"
+            "custom_components.embymedia.config_flow.EmbyClient"
         ) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(
@@ -137,7 +137,7 @@ class TestConfigFlow:
     ) -> None:
         """Test timeout error shows message."""
         with patch(
-            "custom_components.emby.config_flow.EmbyClient"
+            "custom_components.embymedia.config_flow.EmbyClient"
         ) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(
@@ -169,7 +169,7 @@ class TestConfigFlow:
     ) -> None:
         """Test SSL error shows message."""
         with patch(
-            "custom_components.emby.config_flow.EmbyClient"
+            "custom_components.embymedia.config_flow.EmbyClient"
         ) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(
@@ -201,7 +201,7 @@ class TestConfigFlow:
     ) -> None:
         """Test unknown error handled gracefully."""
         with patch(
-            "custom_components.emby.config_flow.EmbyClient"
+            "custom_components.embymedia.config_flow.EmbyClient"
         ) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(
@@ -310,7 +310,7 @@ class TestConfigFlow:
     ) -> None:
         """Test supported version accepted."""
         with patch(
-            "custom_components.emby.config_flow.EmbyClient"
+            "custom_components.embymedia.config_flow.EmbyClient"
         ) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
@@ -346,7 +346,7 @@ class TestConfigFlow:
     ) -> None:
         """Test unsupported version rejected."""
         with patch(
-            "custom_components.emby.config_flow.EmbyClient"
+            "custom_components.embymedia.config_flow.EmbyClient"
         ) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
@@ -383,7 +383,7 @@ class TestConfigFlow:
     ) -> None:
         """Test higher major version accepted."""
         with patch(
-            "custom_components.emby.config_flow.EmbyClient"
+            "custom_components.embymedia.config_flow.EmbyClient"
         ) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
@@ -419,7 +419,7 @@ class TestConfigFlow:
     ) -> None:
         """Test invalid version string is allowed (returns True)."""
         with patch(
-            "custom_components.emby.config_flow.EmbyClient"
+            "custom_components.embymedia.config_flow.EmbyClient"
         ) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
@@ -484,7 +484,7 @@ class TestValidateInput:
     ) -> None:
         """Test port value of 0 shows error."""
         # Create flow instance manually to test _validate_input directly
-        from custom_components.emby.config_flow import EmbyConfigFlow
+        from custom_components.embymedia.config_flow import EmbyConfigFlow
 
         flow = EmbyConfigFlow()
         flow.hass = hass
@@ -506,7 +506,7 @@ class TestValidateInput:
         hass: HomeAssistant,
     ) -> None:
         """Test entry creation uses fallback when server_info is None."""
-        from custom_components.emby.config_flow import EmbyConfigFlow
+        from custom_components.embymedia.config_flow import EmbyConfigFlow
 
         flow = EmbyConfigFlow()
         flow.hass = hass
@@ -604,7 +604,7 @@ class TestReauthFlow:
         mock_config_entry.add_to_hass(hass)
 
         with patch(
-            "custom_components.emby.config_flow.EmbyClient"
+            "custom_components.embymedia.config_flow.EmbyClient"
         ) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)

@@ -7,13 +7,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import aiohttp
 import pytest
 
-from custom_components.emby.api import (
+from custom_components.embymedia.api import (
     EmbyClient,
     seconds_to_ticks,
     ticks_to_seconds,
 )
-from custom_components.emby.const import EMBY_TICKS_PER_SECOND
-from custom_components.emby.exceptions import (
+from custom_components.embymedia.const import EMBY_TICKS_PER_SECOND
+from custom_components.embymedia.exceptions import (
     EmbyAuthenticationError,
     EmbyConnectionError,
     EmbyNotFoundError,

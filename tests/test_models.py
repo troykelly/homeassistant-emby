@@ -1,7 +1,7 @@
 """Tests for Emby integration data models."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -11,13 +11,13 @@ class TestMediaTypeEnum:
 
     def test_enum_exists(self) -> None:
         """Test MediaType enum is defined."""
-        from custom_components.emby.models import MediaType
+        from custom_components.embymedia.models import MediaType
 
         assert MediaType is not None
 
     def test_enum_values(self) -> None:
         """Test MediaType has expected values."""
-        from custom_components.emby.models import MediaType
+        from custom_components.embymedia.models import MediaType
 
         assert MediaType.MOVIE == "Movie"
         assert MediaType.EPISODE == "Episode"
@@ -30,7 +30,7 @@ class TestMediaTypeEnum:
 
     def test_enum_from_string(self) -> None:
         """Test MediaType can be created from string."""
-        from custom_components.emby.models import MediaType
+        from custom_components.embymedia.models import MediaType
 
         assert MediaType("Movie") == MediaType.MOVIE
         assert MediaType("Episode") == MediaType.EPISODE
@@ -41,7 +41,7 @@ class TestEmbyMediaItem:
 
     def test_creation_minimal(self) -> None:
         """Test creating EmbyMediaItem with minimal fields."""
-        from custom_components.emby.models import EmbyMediaItem, MediaType
+        from custom_components.embymedia.models import EmbyMediaItem, MediaType
 
         item = EmbyMediaItem(
             item_id="item-123",
@@ -58,7 +58,7 @@ class TestEmbyMediaItem:
 
     def test_creation_full(self) -> None:
         """Test creating EmbyMediaItem with all fields."""
-        from custom_components.emby.models import EmbyMediaItem, MediaType
+        from custom_components.embymedia.models import EmbyMediaItem, MediaType
 
         item = EmbyMediaItem(
             item_id="item-123",
@@ -84,7 +84,7 @@ class TestEmbyMediaItem:
 
     def test_frozen(self) -> None:
         """Test EmbyMediaItem is immutable."""
-        from custom_components.emby.models import EmbyMediaItem, MediaType
+        from custom_components.embymedia.models import EmbyMediaItem, MediaType
 
         item = EmbyMediaItem(
             item_id="item-123",
@@ -100,7 +100,7 @@ class TestEmbyPlaybackState:
 
     def test_creation_default(self) -> None:
         """Test creating EmbyPlaybackState with defaults."""
-        from custom_components.emby.models import EmbyPlaybackState
+        from custom_components.embymedia.models import EmbyPlaybackState
 
         state = EmbyPlaybackState()
         assert state.position_seconds == 0.0
@@ -112,7 +112,7 @@ class TestEmbyPlaybackState:
 
     def test_creation_full(self) -> None:
         """Test creating EmbyPlaybackState with all fields."""
-        from custom_components.emby.models import EmbyPlaybackState
+        from custom_components.embymedia.models import EmbyPlaybackState
 
         state = EmbyPlaybackState(
             position_seconds=1234.5,
@@ -130,7 +130,7 @@ class TestEmbyPlaybackState:
 
     def test_frozen(self) -> None:
         """Test EmbyPlaybackState is immutable."""
-        from custom_components.emby.models import EmbyPlaybackState
+        from custom_components.embymedia.models import EmbyPlaybackState
 
         state = EmbyPlaybackState()
         with pytest.raises(AttributeError):
@@ -142,7 +142,7 @@ class TestEmbySession:
 
     def test_creation_minimal(self) -> None:
         """Test creating EmbySession with minimal fields."""
-        from custom_components.emby.models import EmbySession
+        from custom_components.embymedia.models import EmbySession
 
         session = EmbySession(
             session_id="session-123",
@@ -161,7 +161,7 @@ class TestEmbySession:
 
     def test_creation_full(self) -> None:
         """Test creating EmbySession with all fields."""
-        from custom_components.emby.models import (
+        from custom_components.embymedia.models import (
             EmbyMediaItem,
             EmbyPlaybackState,
             EmbySession,
@@ -174,7 +174,7 @@ class TestEmbySession:
             media_type=MediaType.MOVIE,
         )
         play_state = EmbyPlaybackState(is_paused=False, can_seek=True)
-        last_activity = datetime(2024, 1, 15, 10, 30, 0, tzinfo=timezone.utc)
+        last_activity = datetime(2024, 1, 15, 10, 30, 0, tzinfo=UTC)
 
         session = EmbySession(
             session_id="session-123",
@@ -199,7 +199,7 @@ class TestEmbySession:
 
     def test_is_playing_true(self) -> None:
         """Test is_playing returns True when media is playing."""
-        from custom_components.emby.models import (
+        from custom_components.embymedia.models import (
             EmbyMediaItem,
             EmbySession,
             MediaType,
@@ -221,7 +221,7 @@ class TestEmbySession:
 
     def test_is_playing_false(self) -> None:
         """Test is_playing returns False when nothing playing."""
-        from custom_components.emby.models import EmbySession
+        from custom_components.embymedia.models import EmbySession
 
         session = EmbySession(
             session_id="session-123",
@@ -233,7 +233,7 @@ class TestEmbySession:
 
     def test_unique_id_returns_device_id(self) -> None:
         """Test unique_id returns device_id for entity stability."""
-        from custom_components.emby.models import EmbySession
+        from custom_components.embymedia.models import EmbySession
 
         session = EmbySession(
             session_id="session-123",
@@ -245,10 +245,10 @@ class TestEmbySession:
 
     def test_is_active_with_recent_activity(self) -> None:
         """Test is_active returns True for recent activity."""
-        from custom_components.emby.models import EmbySession
+        from custom_components.embymedia.models import EmbySession
 
         # Activity 1 minute ago
-        recent = datetime.now(timezone.utc)
+        recent = datetime.now(UTC)
         session = EmbySession(
             session_id="session-123",
             device_id="device-abc",
@@ -262,10 +262,10 @@ class TestEmbySession:
         """Test is_active returns False for old activity."""
         from datetime import timedelta
 
-        from custom_components.emby.models import EmbySession
+        from custom_components.embymedia.models import EmbySession
 
         # Activity 10 minutes ago (beyond 5 minute threshold)
-        old = datetime.now(timezone.utc) - timedelta(minutes=10)
+        old = datetime.now(UTC) - timedelta(minutes=10)
         session = EmbySession(
             session_id="session-123",
             device_id="device-abc",
@@ -277,7 +277,7 @@ class TestEmbySession:
 
     def test_is_active_with_no_activity(self) -> None:
         """Test is_active returns False when no activity recorded."""
-        from custom_components.emby.models import EmbySession
+        from custom_components.embymedia.models import EmbySession
 
         session = EmbySession(
             session_id="session-123",
@@ -294,8 +294,8 @@ class TestParseMediaItem:
 
     def test_parse_minimal(self) -> None:
         """Test parsing minimal NowPlayingItem data."""
-        from custom_components.emby.const import EmbyNowPlayingItem
-        from custom_components.emby.models import MediaType, parse_media_item
+        from custom_components.embymedia.const import EmbyNowPlayingItem
+        from custom_components.embymedia.models import MediaType, parse_media_item
 
         data: EmbyNowPlayingItem = {
             "Id": "item-123",
@@ -310,8 +310,8 @@ class TestParseMediaItem:
 
     def test_parse_with_duration(self) -> None:
         """Test parsing item with duration in ticks."""
-        from custom_components.emby.const import EmbyNowPlayingItem
-        from custom_components.emby.models import parse_media_item
+        from custom_components.embymedia.const import EmbyNowPlayingItem
+        from custom_components.embymedia.models import parse_media_item
 
         data: EmbyNowPlayingItem = {
             "Id": "item-123",
@@ -324,8 +324,8 @@ class TestParseMediaItem:
 
     def test_parse_episode(self) -> None:
         """Test parsing episode data."""
-        from custom_components.emby.const import EmbyNowPlayingItem
-        from custom_components.emby.models import MediaType, parse_media_item
+        from custom_components.embymedia.const import EmbyNowPlayingItem
+        from custom_components.embymedia.models import MediaType, parse_media_item
 
         data: EmbyNowPlayingItem = {
             "Id": "episode-123",
@@ -347,8 +347,8 @@ class TestParseMediaItem:
 
     def test_parse_audio(self) -> None:
         """Test parsing audio track data."""
-        from custom_components.emby.const import EmbyNowPlayingItem
-        from custom_components.emby.models import MediaType, parse_media_item
+        from custom_components.embymedia.const import EmbyNowPlayingItem
+        from custom_components.embymedia.models import MediaType, parse_media_item
 
         data: EmbyNowPlayingItem = {
             "Id": "track-123",
@@ -366,8 +366,8 @@ class TestParseMediaItem:
 
     def test_parse_unknown_type(self) -> None:
         """Test parsing unknown media type falls back to UNKNOWN."""
-        from custom_components.emby.const import EmbyNowPlayingItem
-        from custom_components.emby.models import MediaType, parse_media_item
+        from custom_components.embymedia.const import EmbyNowPlayingItem
+        from custom_components.embymedia.models import MediaType, parse_media_item
 
         data: EmbyNowPlayingItem = {
             "Id": "item-123",
@@ -379,8 +379,8 @@ class TestParseMediaItem:
 
     def test_parse_with_image_tags(self) -> None:
         """Test parsing item with image tags."""
-        from custom_components.emby.const import EmbyNowPlayingItem
-        from custom_components.emby.models import parse_media_item
+        from custom_components.embymedia.const import EmbyNowPlayingItem
+        from custom_components.embymedia.models import parse_media_item
 
         data: EmbyNowPlayingItem = {
             "Id": "item-123",
@@ -398,8 +398,8 @@ class TestParsePlayState:
 
     def test_parse_empty(self) -> None:
         """Test parsing empty PlayState."""
-        from custom_components.emby.const import EmbyPlayState
-        from custom_components.emby.models import parse_play_state
+        from custom_components.embymedia.const import EmbyPlayState
+        from custom_components.embymedia.models import parse_play_state
 
         data: EmbyPlayState = {}
         state = parse_play_state(data)
@@ -410,8 +410,8 @@ class TestParsePlayState:
 
     def test_parse_full(self) -> None:
         """Test parsing full PlayState."""
-        from custom_components.emby.const import EmbyPlayState
-        from custom_components.emby.models import parse_play_state
+        from custom_components.embymedia.const import EmbyPlayState
+        from custom_components.embymedia.models import parse_play_state
 
         data: EmbyPlayState = {
             "PositionTicks": 50000000000,  # 5000 seconds
@@ -435,8 +435,8 @@ class TestParseSession:
 
     def test_parse_minimal(self) -> None:
         """Test parsing minimal session data."""
-        from custom_components.emby.const import EmbySessionResponse
-        from custom_components.emby.models import parse_session
+        from custom_components.embymedia.const import EmbySessionResponse
+        from custom_components.embymedia.models import parse_session
 
         data: EmbySessionResponse = {
             "Id": "session-123",
@@ -456,8 +456,8 @@ class TestParseSession:
 
     def test_parse_with_now_playing(self) -> None:
         """Test parsing session with now playing item."""
-        from custom_components.emby.const import EmbySessionResponse
-        from custom_components.emby.models import parse_session
+        from custom_components.embymedia.const import EmbySessionResponse
+        from custom_components.embymedia.models import parse_session
 
         data: EmbySessionResponse = {
             "Id": "session-123",
@@ -485,8 +485,8 @@ class TestParseSession:
 
     def test_parse_with_last_activity(self) -> None:
         """Test parsing session with last activity date."""
-        from custom_components.emby.const import EmbySessionResponse
-        from custom_components.emby.models import parse_session
+        from custom_components.embymedia.const import EmbySessionResponse
+        from custom_components.embymedia.models import parse_session
 
         data: EmbySessionResponse = {
             "Id": "session-123",
@@ -504,8 +504,8 @@ class TestParseSession:
 
     def test_parse_full(self) -> None:
         """Test parsing full session data."""
-        from custom_components.emby.const import EmbySessionResponse
-        from custom_components.emby.models import parse_session
+        from custom_components.embymedia.const import EmbySessionResponse
+        from custom_components.embymedia.models import parse_session
 
         data: EmbySessionResponse = {
             "Id": "session-123",

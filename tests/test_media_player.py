@@ -2,16 +2,14 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from homeassistant.components.media_player import MediaPlayerState
 from homeassistant.core import HomeAssistant
 
-from custom_components.emby.const import DOMAIN
-
 if TYPE_CHECKING:
-    from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
+    pass
 
 
 @pytest.fixture
@@ -77,7 +75,7 @@ class TestEmbyMediaPlayerState:
         mock_coordinator: MagicMock,
     ) -> None:
         """Test state is OFF when session is None."""
-        from custom_components.emby.media_player import EmbyMediaPlayer
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
 
         mock_coordinator.get_session.return_value = None
 
@@ -92,7 +90,7 @@ class TestEmbyMediaPlayerState:
         mock_session_idle: MagicMock,
     ) -> None:
         """Test state is IDLE when session exists but nothing playing."""
-        from custom_components.emby.media_player import EmbyMediaPlayer
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
 
         mock_coordinator.get_session.return_value = mock_session_idle
 
@@ -107,7 +105,7 @@ class TestEmbyMediaPlayerState:
         mock_session_paused: MagicMock,
     ) -> None:
         """Test state is PAUSED when playback is paused."""
-        from custom_components.emby.media_player import EmbyMediaPlayer
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
 
         mock_coordinator.get_session.return_value = mock_session_paused
 
@@ -122,7 +120,7 @@ class TestEmbyMediaPlayerState:
         mock_session_playing: MagicMock,
     ) -> None:
         """Test state is PLAYING when actively playing."""
-        from custom_components.emby.media_player import EmbyMediaPlayer
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
 
         mock_coordinator.get_session.return_value = mock_session_playing
 
@@ -140,8 +138,8 @@ class TestEmbyMediaPlayerInit:
         mock_coordinator: MagicMock,
     ) -> None:
         """Test media player inherits EmbyEntity functionality."""
-        from custom_components.emby.entity import EmbyEntity
-        from custom_components.emby.media_player import EmbyMediaPlayer
+        from custom_components.embymedia.entity import EmbyEntity
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
 
         player = EmbyMediaPlayer(mock_coordinator, "device-abc-123")
 
@@ -154,7 +152,7 @@ class TestEmbyMediaPlayerInit:
         mock_coordinator: MagicMock,
     ) -> None:
         """Test media player uses device name (name is None)."""
-        from custom_components.emby.media_player import EmbyMediaPlayer
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
 
         player = EmbyMediaPlayer(mock_coordinator, "device-abc-123")
 
@@ -172,9 +170,8 @@ class TestAsyncSetupEntry:
         mock_session_idle: MagicMock,
     ) -> None:
         """Test entities are created for sessions that exist at setup time."""
-        from unittest.mock import MagicMock as MockEntry
 
-        from custom_components.emby.media_player import async_setup_entry
+        from custom_components.embymedia.media_player import async_setup_entry
 
         # Setup coordinator with existing session
         mock_coordinator.data = {"device-abc-123": mock_session_idle}
@@ -202,7 +199,7 @@ class TestAsyncSetupEntry:
         mock_coordinator: MagicMock,
     ) -> None:
         """Test no entities created when coordinator has no sessions."""
-        from custom_components.emby.media_player import async_setup_entry
+        from custom_components.embymedia.media_player import async_setup_entry
 
         mock_coordinator.data = {}
 
@@ -226,7 +223,7 @@ class TestAsyncSetupEntry:
         mock_coordinator: MagicMock,
     ) -> None:
         """Test coordinator listener is registered for new sessions."""
-        from custom_components.emby.media_player import async_setup_entry
+        from custom_components.embymedia.media_player import async_setup_entry
 
         mock_coordinator.data = {}
 
@@ -247,7 +244,7 @@ class TestAsyncSetupEntry:
         mock_session_idle: MagicMock,
     ) -> None:
         """Test new entities are added when coordinator discovers new sessions."""
-        from custom_components.emby.media_player import async_setup_entry
+        from custom_components.embymedia.media_player import async_setup_entry
 
         # Start with no sessions
         mock_coordinator.data = {}
@@ -292,7 +289,7 @@ class TestAsyncSetupEntry:
         mock_session_idle: MagicMock,
     ) -> None:
         """Test same device doesn't create duplicate entities."""
-        from custom_components.emby.media_player import async_setup_entry
+        from custom_components.embymedia.media_player import async_setup_entry
 
         mock_coordinator.data = {"device-abc-123": mock_session_idle}
 
@@ -333,7 +330,7 @@ class TestAsyncSetupEntry:
         mock_coordinator: MagicMock,
     ) -> None:
         """Test handles case when coordinator.data is None."""
-        from custom_components.emby.media_player import async_setup_entry
+        from custom_components.embymedia.media_player import async_setup_entry
 
         mock_coordinator.data = None
 
@@ -362,7 +359,7 @@ class TestEntityLifecycle:
         mock_session_idle: MagicMock,
     ) -> None:
         """Test entity becomes unavailable when session disappears."""
-        from custom_components.emby.media_player import EmbyMediaPlayer
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
 
         # Initially session exists
         mock_coordinator.get_session.return_value = mock_session_idle
@@ -382,7 +379,7 @@ class TestEntityLifecycle:
         mock_session_idle: MagicMock,
     ) -> None:
         """Test entity becomes available when session returns."""
-        from custom_components.emby.media_player import EmbyMediaPlayer
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
 
         # Initially session is gone
         mock_coordinator.get_session.return_value = None
@@ -402,7 +399,7 @@ class TestEntityLifecycle:
         mock_session_idle: MagicMock,
     ) -> None:
         """Test reconnecting client (same device_id) uses the same entity."""
-        from custom_components.emby.media_player import EmbyMediaPlayer
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
 
         # First session
         mock_coordinator.get_session.return_value = mock_session_idle

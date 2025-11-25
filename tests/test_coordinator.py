@@ -3,20 +3,20 @@ from __future__ import annotations
 
 from datetime import timedelta
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
 
-from custom_components.emby.const import DEFAULT_SCAN_INTERVAL, DOMAIN
-from custom_components.emby.exceptions import (
+from custom_components.embymedia.const import DEFAULT_SCAN_INTERVAL, DOMAIN
+from custom_components.embymedia.exceptions import (
     EmbyAuthenticationError,
     EmbyConnectionError,
 )
 
 if TYPE_CHECKING:
-    from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
+    pass
 
 
 @pytest.fixture
@@ -66,7 +66,7 @@ class TestCoordinatorInitialization:
         mock_emby_client: MagicMock,
     ) -> None:
         """Test coordinator initializes with correct parameters."""
-        from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
         coordinator = EmbyDataUpdateCoordinator(
             hass=hass,
@@ -88,7 +88,7 @@ class TestCoordinatorInitialization:
         mock_emby_client: MagicMock,
     ) -> None:
         """Test coordinator uses default scan interval."""
-        from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
         coordinator = EmbyDataUpdateCoordinator(
             hass=hass,
@@ -111,7 +111,7 @@ class TestCoordinatorDataFetch:
         mock_session_data: list[dict],
     ) -> None:
         """Test successful session data fetch."""
-        from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
         mock_emby_client.async_get_sessions = AsyncMock(return_value=mock_session_data)
 
@@ -142,7 +142,7 @@ class TestCoordinatorDataFetch:
         mock_emby_client: MagicMock,
     ) -> None:
         """Test handling empty sessions list."""
-        from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
         mock_emby_client.async_get_sessions = AsyncMock(return_value=[])
 
@@ -163,7 +163,7 @@ class TestCoordinatorDataFetch:
         mock_emby_client: MagicMock,
     ) -> None:
         """Test connection error raises UpdateFailed."""
-        from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
         mock_emby_client.async_get_sessions = AsyncMock(
             side_effect=EmbyConnectionError("Connection refused")
@@ -187,7 +187,7 @@ class TestCoordinatorDataFetch:
         mock_emby_client: MagicMock,
     ) -> None:
         """Test authentication error raises UpdateFailed."""
-        from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
         mock_emby_client.async_get_sessions = AsyncMock(
             side_effect=EmbyAuthenticationError("Invalid API key")
@@ -211,7 +211,7 @@ class TestCoordinatorDataFetch:
         mock_emby_client: MagicMock,
     ) -> None:
         """Test sessions with parsing errors are skipped."""
-        from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
         # One valid session, one with missing required fields
         mock_emby_client.async_get_sessions = AsyncMock(
@@ -257,7 +257,7 @@ class TestCoordinatorGetSession:
         mock_session_data: list[dict],
     ) -> None:
         """Test getting existing session."""
-        from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
         mock_emby_client.async_get_sessions = AsyncMock(return_value=mock_session_data)
 
@@ -283,7 +283,7 @@ class TestCoordinatorGetSession:
         mock_session_data: list[dict],
     ) -> None:
         """Test getting non-existent session."""
-        from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
         mock_emby_client.async_get_sessions = AsyncMock(return_value=mock_session_data)
 
@@ -306,7 +306,7 @@ class TestCoordinatorGetSession:
         mock_emby_client: MagicMock,
     ) -> None:
         """Test getting session when no data fetched yet."""
-        from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
         coordinator = EmbyDataUpdateCoordinator(
             hass=hass,
@@ -331,7 +331,7 @@ class TestCoordinatorSessionTracking:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test new sessions are logged."""
-        from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
         mock_emby_client.async_get_sessions = AsyncMock(
             return_value=[
@@ -365,7 +365,7 @@ class TestCoordinatorSessionTracking:
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test removed sessions are logged."""
-        from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
         coordinator = EmbyDataUpdateCoordinator(
             hass=hass,
