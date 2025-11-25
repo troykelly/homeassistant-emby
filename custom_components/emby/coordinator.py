@@ -1,4 +1,5 @@
 """Data update coordinator for Emby integration."""
+
 from __future__ import annotations
 
 import logging
@@ -75,9 +76,7 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
             UpdateFailed: If fetching data fails.
         """
         try:
-            sessions_data: list[EmbySessionResponse] = (
-                await self.client.async_get_sessions()
-            )
+            sessions_data: list[EmbySessionResponse] = await self.client.async_get_sessions()
         except EmbyConnectionError as err:
             raise UpdateFailed(f"Failed to connect to Emby server: {err}") from err
         except EmbyError as err:

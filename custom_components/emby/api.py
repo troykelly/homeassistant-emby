@@ -1,4 +1,5 @@
 """Emby API client."""
+
 from __future__ import annotations
 
 import logging
@@ -229,9 +230,7 @@ class EmbyClient:
                     raise EmbyNotFoundError(f"Resource not found: {endpoint}")
 
                 if response.status >= 500:
-                    raise EmbyServerError(
-                        f"Server error: {response.status} {response.reason}"
-                    )
+                    raise EmbyServerError(f"Server error: {response.status} {response.reason}")
 
                 response.raise_for_status()
 
@@ -252,9 +251,7 @@ class EmbyClient:
                 method,
                 endpoint,
             )
-            raise EmbyTimeoutError(
-                f"Request timed out after {self._timeout.total}s"
-            ) from err
+            raise EmbyTimeoutError(f"Request timed out after {self._timeout.total}s") from err
 
         except aiohttp.ClientConnectorError as err:
             _LOGGER.error(
@@ -276,9 +273,7 @@ class EmbyClient:
                 endpoint,
             )
             if err.status in (401, 403):
-                raise EmbyAuthenticationError(
-                    f"Authentication failed: {err.status}"
-                ) from err
+                raise EmbyAuthenticationError(f"Authentication failed: {err.status}") from err
             if err.status == 404:
                 raise EmbyNotFoundError(f"Resource not found: {endpoint}") from err
             if err.status >= 500:

@@ -1,8 +1,9 @@
 """Data models for Emby integration."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
@@ -140,12 +141,12 @@ class EmbySession:
         if self.last_activity is None:
             return False
         # Use UTC for comparison
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         # Handle naive datetimes by assuming UTC
         last = (
             self.last_activity
             if self.last_activity.tzinfo is not None
-            else self.last_activity.replace(tzinfo=timezone.utc)
+            else self.last_activity.replace(tzinfo=UTC)
         )
         age = now - last
         return age.total_seconds() < 300  # 5 minutes
@@ -254,9 +255,7 @@ def parse_session(data: EmbySessionResponse) -> EmbySession:
     last_activity = None
     if last_activity_str:
         # Parse ISO format datetime, handle Z suffix
-        last_activity = datetime.fromisoformat(
-            last_activity_str.replace("Z", "+00:00")
-        )
+        last_activity = datetime.fromisoformat(last_activity_str.replace("Z", "+00:00"))
 
     return EmbySession(
         session_id=data["Id"],
@@ -276,10 +275,10 @@ def parse_session(data: EmbySessionResponse) -> EmbySession:
 
 
 __all__ = [
-    "MediaType",
     "EmbyMediaItem",
     "EmbyPlaybackState",
     "EmbySession",
+    "MediaType",
     "parse_media_item",
     "parse_play_state",
     "parse_session",

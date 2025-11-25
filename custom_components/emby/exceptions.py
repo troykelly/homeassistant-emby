@@ -1,4 +1,5 @@
 """Exceptions for the Emby integration."""
+
 from __future__ import annotations
 
 

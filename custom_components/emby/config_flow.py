@@ -1,4 +1,5 @@
 """Config flow for Emby integration."""
+
 from __future__ import annotations
 
 import logging
@@ -309,9 +310,7 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
         Returns:
             Config flow result for reauth confirmation.
         """
-        self._reauth_entry = self.hass.config_entries.async_get_entry(
-            self.context["entry_id"]
-        )
+        self._reauth_entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(
@@ -355,9 +354,7 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
             ),
             errors=errors,
             description_placeholders={
-                "server_name": (
-                    self._reauth_entry.title if self._reauth_entry else "Emby Server"
-                ),
+                "server_name": (self._reauth_entry.title if self._reauth_entry else "Emby Server"),
             },
         )
 
