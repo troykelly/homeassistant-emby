@@ -272,6 +272,60 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
         return session.now_playing.album_artist
 
     @property
+    def media_image_url(self) -> str | None:
+        """Return the image URL of current playing media.
+
+        Implements fallback hierarchy:
+        1. Item's Primary image (if available)
+        2. Series Primary image (for episodes without images)
+        3. Album Primary image (for audio without images)
+        4. Item Primary image without tag (fallback)
+
+        Returns:
+            Full URL to the image or None if not playing.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+
+        now_playing = session.now_playing
+        image_tags_dict = dict(now_playing.image_tags)
+
+        # Check if item has a Primary image tag
+        primary_tag = image_tags_dict.get("Primary")
+
+        if primary_tag:
+            # Item has its own Primary image
+            return self.coordinator.client.get_image_url(
+                now_playing.item_id,
+                image_type="Primary",
+                tag=primary_tag,
+            )
+
+        # Fallback: Episode -> Series
+        if now_playing.series_id:
+            return self.coordinator.client.get_image_url(
+                now_playing.series_id,
+                image_type="Primary",
+                tag=None,
+            )
+
+        # Fallback: Audio -> Album
+        if now_playing.album_id:
+            return self.coordinator.client.get_image_url(
+                now_playing.album_id,
+                image_type="Primary",
+                tag=None,
+            )
+
+        # Final fallback: Use item ID without tag
+        return self.coordinator.client.get_image_url(
+            now_playing.item_id,
+            image_type="Primary",
+            tag=None,
+        )
+
+    @property
     def media_duration(self) -> int | None:
         """Return the duration of current playing media in seconds.
 
