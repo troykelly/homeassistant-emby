@@ -392,6 +392,64 @@ class TestParseMediaItem:
         assert ("Primary", "abc123") in item.image_tags
         assert ("Backdrop", "def456") in item.image_tags
 
+    def test_parse_with_series_id(self) -> None:
+        """Test parsing episode with SeriesId for image fallback."""
+        from custom_components.embymedia.const import EmbyNowPlayingItem
+        from custom_components.embymedia.models import parse_media_item
+
+        data: EmbyNowPlayingItem = {
+            "Id": "episode-123",
+            "Name": "Pilot",
+            "Type": "Episode",
+            "SeriesId": "series-456",
+            "SeriesName": "Test Series",
+        }
+        item = parse_media_item(data)
+        assert item.series_id == "series-456"
+
+    def test_parse_with_season_id(self) -> None:
+        """Test parsing episode with SeasonId for image fallback."""
+        from custom_components.embymedia.const import EmbyNowPlayingItem
+        from custom_components.embymedia.models import parse_media_item
+
+        data: EmbyNowPlayingItem = {
+            "Id": "episode-123",
+            "Name": "Pilot",
+            "Type": "Episode",
+            "SeasonId": "season-789",
+        }
+        item = parse_media_item(data)
+        assert item.season_id == "season-789"
+
+    def test_parse_with_album_id(self) -> None:
+        """Test parsing audio track with AlbumId for image fallback."""
+        from custom_components.embymedia.const import EmbyNowPlayingItem
+        from custom_components.embymedia.models import parse_media_item
+
+        data: EmbyNowPlayingItem = {
+            "Id": "track-123",
+            "Name": "Test Song",
+            "Type": "Audio",
+            "AlbumId": "album-456",
+            "Album": "Test Album",
+        }
+        item = parse_media_item(data)
+        assert item.album_id == "album-456"
+
+    def test_parse_with_parent_backdrop_image_tags(self) -> None:
+        """Test parsing item with ParentBackdropImageTags."""
+        from custom_components.embymedia.const import EmbyNowPlayingItem
+        from custom_components.embymedia.models import parse_media_item
+
+        data: EmbyNowPlayingItem = {
+            "Id": "episode-123",
+            "Name": "Pilot",
+            "Type": "Episode",
+            "ParentBackdropImageTags": ["tag1", "tag2", "tag3"],
+        }
+        item = parse_media_item(data)
+        assert item.parent_backdrop_image_tags == ("tag1", "tag2", "tag3")
+
 
 class TestParsePlayState:
     """Test parse_play_state function."""

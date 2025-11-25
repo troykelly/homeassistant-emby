@@ -1632,6 +1632,169 @@ class TestPlaybackControlServices:
         mock_coordinator.client.async_send_playback_command.assert_not_called()
 
 
+class TestMediaImageUrl:
+    """Test media_image_url property."""
+
+    def test_media_image_url_when_playing_movie(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_image_url returns valid URL when playing a movie."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.item_id = "movie-123"
+        session.now_playing.image_tags = (("Primary", "abc123"),)
+        session.now_playing.series_id = None
+        session.now_playing.album_id = None
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.get_image_url.return_value = (
+            "http://emby:8096/Items/movie-123/Images/Primary?api_key=key&tag=abc123"
+        )
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        url = player.media_image_url
+        assert url is not None
+        assert "movie-123" in url
+        mock_coordinator.client.get_image_url.assert_called_once_with(
+            "movie-123",
+            image_type="Primary",
+            tag="abc123",
+        )
+
+    def test_media_image_url_when_not_playing(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_image_url returns None when not playing."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_image_url is None
+
+    def test_media_image_url_when_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_image_url returns None when session is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        assert player.media_image_url is None
+
+    def test_media_image_url_without_primary_tag(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_image_url works without Primary tag."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.item_id = "movie-123"
+        session.now_playing.image_tags = ()  # No tags
+        session.now_playing.series_id = None
+        session.now_playing.album_id = None
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.get_image_url.return_value = (
+            "http://emby:8096/Items/movie-123/Images/Primary?api_key=key"
+        )
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        url = player.media_image_url
+        assert url is not None
+        # Called without tag when no Primary tag
+        mock_coordinator.client.get_image_url.assert_called_once_with(
+            "movie-123",
+            image_type="Primary",
+            tag=None,
+        )
+
+    def test_media_image_url_episode_fallback_to_series(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_image_url falls back to series for episodes without images."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.item_id = "episode-123"
+        session.now_playing.image_tags = ()  # No episode image
+        session.now_playing.series_id = "series-456"
+        session.now_playing.album_id = None
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.get_image_url.return_value = (
+            "http://emby:8096/Items/series-456/Images/Primary?api_key=key"
+        )
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        url = player.media_image_url
+        assert url is not None
+        # Should use series_id since episode has no Primary image tag
+        mock_coordinator.client.get_image_url.assert_called_once_with(
+            "series-456",
+            image_type="Primary",
+            tag=None,
+        )
+
+    def test_media_image_url_audio_fallback_to_album(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_image_url falls back to album for audio without images."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.item_id = "track-123"
+        session.now_playing.image_tags = ()  # No track image
+        session.now_playing.series_id = None
+        session.now_playing.album_id = "album-456"
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.get_image_url.return_value = (
+            "http://emby:8096/Items/album-456/Images/Primary?api_key=key"
+        )
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        url = player.media_image_url
+        assert url is not None
+        # Should use album_id since track has no Primary image tag
+        mock_coordinator.client.get_image_url.assert_called_once_with(
+            "album-456",
+            image_type="Primary",
+            tag=None,
+        )
+
+
 class TestMediaPropertiesNoSession:
     """Test media properties when session is None (coverage for return None paths)."""
 

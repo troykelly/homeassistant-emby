@@ -12,12 +12,12 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 
+from .api import EmbyClient
 from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
 from .exceptions import EmbyConnectionError, EmbyError
 from .models import EmbySession, parse_session
 
 if TYPE_CHECKING:
-    from .api import EmbyClient
     from .const import EmbySessionResponse
 
 _LOGGER = logging.getLogger(__name__)
@@ -37,6 +37,10 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         server_id: The Emby server ID.
         server_name: The Emby server name.
     """
+
+    client: EmbyClient
+    server_id: str
+    server_name: str
 
     def __init__(
         self,

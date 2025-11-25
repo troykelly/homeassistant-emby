@@ -449,6 +449,38 @@ class EmbyClient:
         endpoint = f"/Sessions/{session_id}/Playing/{command}"
         await self._request_post(endpoint, data=args)
 
+    def get_image_url(
+        self,
+        item_id: str,
+        image_type: str = "Primary",
+        max_width: int | None = None,
+        max_height: int | None = None,
+        tag: str | None = None,
+    ) -> str:
+        """Generate URL for item image.
+
+        Args:
+            item_id: The item ID.
+            image_type: Image type (Primary, Backdrop, Thumb, etc.).
+            max_width: Optional maximum width.
+            max_height: Optional maximum height.
+            tag: Optional image tag for cache busting.
+
+        Returns:
+            Full URL to the image with authentication.
+        """
+        url = f"{self.base_url}/Items/{item_id}/Images/{image_type}"
+        params: list[str] = [f"api_key={self._api_key}"]
+
+        if tag is not None:
+            params.append(f"tag={tag}")
+        if max_width is not None:
+            params.append(f"maxWidth={max_width}")
+        if max_height is not None:
+            params.append(f"maxHeight={max_height}")
+
+        return f"{url}?{'&'.join(params)}"
+
     async def async_send_command(
         self,
         session_id: str,

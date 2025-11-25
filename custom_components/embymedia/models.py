@@ -51,6 +51,10 @@ class EmbyMediaItem:
         year: Production year.
         overview: Description/overview text.
         image_tags: Tuple of (tag_type, tag_value) pairs for image cache busting.
+        series_id: ID of the parent series (for episodes) for image fallback.
+        season_id: ID of the parent season (for episodes) for image fallback.
+        album_id: ID of the parent album (for audio) for image fallback.
+        parent_backdrop_image_tags: Tuple of backdrop image tags from parent.
     """
 
     item_id: str
@@ -67,6 +71,10 @@ class EmbyMediaItem:
     year: int | None = None
     overview: str | None = None
     image_tags: tuple[tuple[str, str], ...] = field(default_factory=tuple)
+    series_id: str | None = None
+    season_id: str | None = None
+    album_id: str | None = None
+    parent_backdrop_image_tags: tuple[str, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True, slots=True)
@@ -196,6 +204,8 @@ def parse_media_item(data: EmbyNowPlayingItem) -> EmbyMediaItem:
     except ValueError:
         media_type = MediaType.UNKNOWN
 
+    parent_backdrop_tags = data.get("ParentBackdropImageTags", [])
+
     return EmbyMediaItem(
         item_id=data["Id"],
         name=data["Name"],
@@ -211,6 +221,10 @@ def parse_media_item(data: EmbyNowPlayingItem) -> EmbyMediaItem:
         year=data.get("ProductionYear"),
         overview=data.get("Overview"),
         image_tags=tuple(data.get("ImageTags", {}).items()),
+        series_id=data.get("SeriesId"),
+        season_id=data.get("SeasonId"),
+        album_id=data.get("AlbumId"),
+        parent_backdrop_image_tags=tuple(parent_backdrop_tags),
     )
 
 

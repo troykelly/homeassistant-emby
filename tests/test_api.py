@@ -1061,6 +1061,103 @@ class TestSendCommand:
             await client.close()
 
 
+class TestGetImageUrl:
+    """Test image URL generation."""
+
+    def test_get_image_url_basic(self) -> None:
+        """Test basic image URL generation."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_image_url("item-123")
+        assert url == "http://emby.local:8096/Items/item-123/Images/Primary?api_key=test-api-key"
+
+    def test_get_image_url_with_image_type(self) -> None:
+        """Test URL generation with different image type."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_image_url("item-123", image_type="Backdrop")
+        assert "/Images/Backdrop?" in url
+
+    def test_get_image_url_with_max_width(self) -> None:
+        """Test URL generation with maxWidth parameter."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_image_url("item-123", max_width=300)
+        assert "maxWidth=300" in url
+
+    def test_get_image_url_with_max_height(self) -> None:
+        """Test URL generation with maxHeight parameter."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_image_url("item-123", max_height=400)
+        assert "maxHeight=400" in url
+
+    def test_get_image_url_with_tag(self) -> None:
+        """Test URL generation with cache tag."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_image_url("item-123", tag="abc123def456")
+        assert "tag=abc123def456" in url
+
+    def test_get_image_url_with_all_params(self) -> None:
+        """Test URL generation with all parameters."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_image_url(
+            "item-123",
+            image_type="Thumb",
+            max_width=300,
+            max_height=200,
+            tag="mytag",
+        )
+        assert "/Items/item-123/Images/Thumb?" in url
+        assert "api_key=test-api-key" in url
+        assert "maxWidth=300" in url
+        assert "maxHeight=200" in url
+        assert "tag=mytag" in url
+
+    def test_get_image_url_with_ssl(self) -> None:
+        """Test URL generation with HTTPS."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8920,
+            api_key="test-api-key",
+            ssl=True,
+        )
+        url = client.get_image_url("item-123")
+        assert url.startswith("https://")
+
+    def test_get_image_url_special_characters_in_item_id(self) -> None:
+        """Test URL encoding of special characters in item_id."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        # Item IDs shouldn't have special chars but test encoding anyway
+        url = client.get_image_url("item/123")
+        # The URL should be properly constructed
+        assert "Items/item/123/Images/Primary" in url or "Items/item%2F123/Images/Primary" in url
+
+
 class TestRequestPostErrors:
     """Test POST request error handling."""
 
