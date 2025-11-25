@@ -153,6 +153,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             | MediaPlayerEntityFeature.NEXT_TRACK
             | MediaPlayerEntityFeature.PREVIOUS_TRACK
             | MediaPlayerEntityFeature.PLAY_MEDIA
+            | MediaPlayerEntityFeature.BROWSE_MEDIA
         )
 
         # Volume control if supported
