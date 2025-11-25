@@ -1351,6 +1351,42 @@ class TestGetItems:
             assert result["StartIndex"] == 50
             await client.close()
 
+    @pytest.mark.asyncio
+    async def test_get_items_recursive(self) -> None:
+        """Test recursive browsing."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.reason = "OK"
+            mock_response.json = AsyncMock(
+                return_value={"Items": [], "TotalRecordCount": 0, "StartIndex": 0}
+            )
+            mock_response.raise_for_status = MagicMock()
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            await client.async_get_items(
+                "user-123",
+                parent_id="library-123",
+                recursive=True,
+            )
+
+            # Verify the query params include Recursive
+            call_args = mock_session.request.call_args
+            assert "Recursive=true" in str(call_args)
+            await client.close()
+
 
 class TestGetSeasons:
     """Test TV show seasons retrieval."""

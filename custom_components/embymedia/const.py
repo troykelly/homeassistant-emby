@@ -116,6 +116,48 @@ class EmbyConfigFlowUserInput(TypedDict):
 
 
 # =============================================================================
+# TypedDicts for Library Browsing API (Phase 5)
+# =============================================================================
+
+
+class EmbyLibraryItem(TypedDict):
+    """Type definition for library item from user views.
+
+    Returned by /Users/{userId}/Views endpoint.
+    """
+
+    Id: str
+    Name: str
+    CollectionType: NotRequired[str]  # "movies", "tvshows", "music", etc.
+    ImageTags: NotRequired[dict[str, str]]
+
+
+class EmbyBrowseItem(TypedDict):
+    """Type definition for item from browse response.
+
+    Returned by /Users/{userId}/Items endpoint.
+    """
+
+    Id: str
+    Name: str
+    Type: str  # "Movie", "Series", "Episode", "Audio", etc.
+    ImageTags: NotRequired[dict[str, str]]
+    ProductionYear: NotRequired[int]
+    SeriesName: NotRequired[str]
+    SeasonName: NotRequired[str]
+    IndexNumber: NotRequired[int]  # Episode/track number
+    ParentIndexNumber: NotRequired[int]  # Season number
+
+
+class EmbyItemsResponse(TypedDict):
+    """Type definition for response from /Users/{id}/Items endpoint."""
+
+    Items: list[EmbyBrowseItem]
+    TotalRecordCount: int
+    StartIndex: int
+
+
+# =============================================================================
 # TypedDicts for /Sessions API Response (Phase 2)
 # =============================================================================
 
