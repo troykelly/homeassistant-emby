@@ -1,8 +1,8 @@
 # Backups
 /user.tgz
 
-# HA
-config/home-assistant.log*
+# HA dev config directory (contains credentials, tokens, etc.)
+config/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
