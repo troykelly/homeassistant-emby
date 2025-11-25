@@ -8,11 +8,14 @@ import pytest
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import UpdateFailed
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.emby.const import (
     CONF_API_KEY,
+    CONF_SCAN_INTERVAL,
     CONF_VERIFY_SSL,
+    DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
 from custom_components.emby.exceptions import (
@@ -31,22 +34,149 @@ class TestSetupEntry:
         mock_config_entry: MockConfigEntry,
         mock_server_info: dict[str, Any],
     ) -> None:
-        """Test entry sets up correctly."""
+        """Test entry sets up correctly with coordinator."""
+        from custom_components.emby.coordinator import EmbyDataUpdateCoordinator
+
         mock_config_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.emby.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with (
+            patch(
+                "custom_components.emby.EmbyClient", autospec=True
+            ) as mock_client_class,
+            patch(
+                "custom_components.emby.EmbyDataUpdateCoordinator",
+                autospec=True,
+            ) as mock_coordinator_class,
+        ):
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(return_value=mock_server_info)
+            client.async_get_sessions = AsyncMock(return_value=[])
+
+            coordinator = mock_coordinator_class.return_value
+            coordinator.async_config_entry_first_refresh = AsyncMock()
+            coordinator.data = {}
 
             result = await hass.config_entries.async_setup(mock_config_entry.entry_id)
 
             assert result is True
             assert mock_config_entry.state is ConfigEntryState.LOADED
-            assert DOMAIN in hass.data
-            assert mock_config_entry.entry_id in hass.data[DOMAIN]
+            # Verify coordinator was created with correct params
+            mock_coordinator_class.assert_called_once()
+            call_kwargs = mock_coordinator_class.call_args.kwargs
+            assert call_kwargs["hass"] is hass
+            assert call_kwargs["server_id"] == mock_server_info["Id"]
+            assert call_kwargs["server_name"] == mock_server_info["ServerName"]
+            # Verify runtime_data is the coordinator
+            assert mock_config_entry.runtime_data is coordinator
+
+    @pytest.mark.asyncio
+    async def test_setup_entry_coordinator_first_refresh(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_server_info: dict[str, Any],
+    ) -> None:
+        """Test coordinator first refresh is called during setup."""
+        mock_config_entry.add_to_hass(hass)
+
+        with (
+            patch(
+                "custom_components.emby.EmbyClient", autospec=True
+            ) as mock_client_class,
+            patch(
+                "custom_components.emby.EmbyDataUpdateCoordinator",
+                autospec=True,
+            ) as mock_coordinator_class,
+        ):
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(return_value=mock_server_info)
+
+            coordinator = mock_coordinator_class.return_value
+            coordinator.async_config_entry_first_refresh = AsyncMock()
+            coordinator.data = {}
+
+            await hass.config_entries.async_setup(mock_config_entry.entry_id)
+
+            coordinator.async_config_entry_first_refresh.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_setup_entry_scan_interval_from_options(
+        self,
+        hass: HomeAssistant,
+        mock_server_info: dict[str, Any],
+    ) -> None:
+        """Test scan interval is taken from options."""
+        custom_scan_interval = 60
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            title="Test Server",
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            options={CONF_SCAN_INTERVAL: custom_scan_interval},
+            unique_id="test-server-id",
+        )
+        entry.add_to_hass(hass)
+
+        with (
+            patch(
+                "custom_components.emby.EmbyClient", autospec=True
+            ) as mock_client_class,
+            patch(
+                "custom_components.emby.EmbyDataUpdateCoordinator",
+                autospec=True,
+            ) as mock_coordinator_class,
+        ):
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(return_value=mock_server_info)
+
+            coordinator = mock_coordinator_class.return_value
+            coordinator.async_config_entry_first_refresh = AsyncMock()
+            coordinator.data = {}
+
+            await hass.config_entries.async_setup(entry.entry_id)
+
+            call_kwargs = mock_coordinator_class.call_args.kwargs
+            assert call_kwargs["scan_interval"] == custom_scan_interval
+
+    @pytest.mark.asyncio
+    async def test_setup_entry_default_scan_interval(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_server_info: dict[str, Any],
+    ) -> None:
+        """Test default scan interval when not in options."""
+        mock_config_entry.add_to_hass(hass)
+
+        with (
+            patch(
+                "custom_components.emby.EmbyClient", autospec=True
+            ) as mock_client_class,
+            patch(
+                "custom_components.emby.EmbyDataUpdateCoordinator",
+                autospec=True,
+            ) as mock_coordinator_class,
+        ):
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(return_value=mock_server_info)
+
+            coordinator = mock_coordinator_class.return_value
+            coordinator.async_config_entry_first_refresh = AsyncMock()
+            coordinator.data = {}
+
+            await hass.config_entries.async_setup(mock_config_entry.entry_id)
+
+            call_kwargs = mock_coordinator_class.call_args.kwargs
+            assert call_kwargs["scan_interval"] == DEFAULT_SCAN_INTERVAL
 
     @pytest.mark.asyncio
     async def test_setup_entry_connection_failure(
@@ -106,12 +236,22 @@ class TestUnloadEntry:
         """Test entry unloads cleanly."""
         mock_config_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.emby.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with (
+            patch(
+                "custom_components.emby.EmbyClient", autospec=True
+            ) as mock_client_class,
+            patch(
+                "custom_components.emby.EmbyDataUpdateCoordinator",
+                autospec=True,
+            ) as mock_coordinator_class,
+        ):
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(return_value=mock_server_info)
+
+            coordinator = mock_coordinator_class.return_value
+            coordinator.async_config_entry_first_refresh = AsyncMock()
+            coordinator.data = {}
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             assert mock_config_entry.state is ConfigEntryState.LOADED
@@ -120,32 +260,6 @@ class TestUnloadEntry:
 
             assert result is True
             assert mock_config_entry.state is ConfigEntryState.NOT_LOADED
-
-    @pytest.mark.asyncio
-    async def test_unload_entry_cleans_data(
-        self,
-        hass: HomeAssistant,
-        mock_config_entry: MockConfigEntry,
-        mock_server_info: dict[str, Any],
-    ) -> None:
-        """Test hass.data cleaned after unload."""
-        mock_config_entry.add_to_hass(hass)
-
-        with patch(
-            "custom_components.emby.EmbyClient", autospec=True
-        ) as mock_client_class:
-            client = mock_client_class.return_value
-            client.async_validate_connection = AsyncMock(return_value=True)
-            client.async_get_server_info = AsyncMock(return_value=mock_server_info)
-
-            await hass.config_entries.async_setup(mock_config_entry.entry_id)
-            assert DOMAIN in hass.data
-            assert mock_config_entry.entry_id in hass.data[DOMAIN]
-
-            await hass.config_entries.async_unload(mock_config_entry.entry_id)
-
-            # Entry should be removed from hass.data
-            assert mock_config_entry.entry_id not in hass.data.get(DOMAIN, {})
 
 
 class TestOptionsUpdate:
@@ -161,12 +275,22 @@ class TestOptionsUpdate:
         """Test options update triggers reload."""
         mock_config_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.emby.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with (
+            patch(
+                "custom_components.emby.EmbyClient", autospec=True
+            ) as mock_client_class,
+            patch(
+                "custom_components.emby.EmbyDataUpdateCoordinator",
+                autospec=True,
+            ) as mock_coordinator_class,
+        ):
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(return_value=mock_server_info)
+
+            coordinator = mock_coordinator_class.return_value
+            coordinator.async_config_entry_first_refresh = AsyncMock()
+            coordinator.data = {}
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             assert mock_config_entry.state is ConfigEntryState.LOADED
@@ -194,9 +318,15 @@ class TestMultipleEntries:
         server_info_1 = {**mock_server_info, "Id": "server-1", "ServerName": "Server 1"}
         server_info_2 = {**mock_server_info, "Id": "server-2", "ServerName": "Server 2"}
 
-        with patch(
-            "custom_components.emby.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with (
+            patch(
+                "custom_components.emby.EmbyClient", autospec=True
+            ) as mock_client_class,
+            patch(
+                "custom_components.emby.EmbyDataUpdateCoordinator",
+                autospec=True,
+            ) as mock_coordinator_class,
+        ):
             # Mock to return different info based on host
             def create_client(*args: object, **kwargs: object) -> MagicMock:
                 client = MagicMock()
@@ -209,6 +339,10 @@ class TestMultipleEntries:
                 return client
 
             mock_client_class.side_effect = create_client
+
+            coordinator = mock_coordinator_class.return_value
+            coordinator.async_config_entry_first_refresh = AsyncMock()
+            coordinator.data = {}
 
             # Create and add entries one at a time to ensure they setup properly
             entry1 = MockConfigEntry(
@@ -245,5 +379,6 @@ class TestMultipleEntries:
             assert result2 is True
             assert entry1.state is ConfigEntryState.LOADED
             assert entry2.state is ConfigEntryState.LOADED
-            assert entry1.entry_id in hass.data[DOMAIN]
-            assert entry2.entry_id in hass.data[DOMAIN]
+            # Both entries have coordinators in runtime_data
+            assert entry1.runtime_data is not None
+            assert entry2.runtime_data is not None
