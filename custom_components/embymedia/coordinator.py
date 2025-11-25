@@ -14,7 +14,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .api import EmbyClient
-from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, WEBSOCKET_POLL_INTERVAL
 from .exceptions import EmbyConnectionError, EmbyError
 from .models import EmbySession, parse_session
 from .websocket import EmbyWebSocket
@@ -73,6 +73,7 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         self._previous_sessions: set[str] = set()
         self._websocket: EmbyWebSocket | None = None
         self._websocket_enabled: bool = False
+        self._configured_scan_interval = scan_interval
 
     @property
     def websocket(self) -> EmbyWebSocket | None:
@@ -177,6 +178,8 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         try:
             await self._websocket.async_connect()
             self._websocket_enabled = True
+            # Reduce polling interval since we have real-time updates
+            self.update_interval = timedelta(seconds=WEBSOCKET_POLL_INTERVAL)
             _LOGGER.info("WebSocket connected to Emby server %s", self.server_name)
         except aiohttp.ClientError as err:
             _LOGGER.warning(
@@ -221,9 +224,16 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
             connected: True if connected, False if disconnected.
         """
         if connected:
-            _LOGGER.info("WebSocket reconnected to Emby server")
+            _LOGGER.info(
+                "WebSocket connected, reducing poll interval to %d seconds",
+                WEBSOCKET_POLL_INTERVAL,
+            )
+            self.update_interval = timedelta(seconds=WEBSOCKET_POLL_INTERVAL)
         else:
-            _LOGGER.warning("WebSocket disconnected from Emby server")
+            _LOGGER.warning(
+                "WebSocket disconnected from Emby server. Using polling fallback"
+            )
+            self.update_interval = timedelta(seconds=self._configured_scan_interval)
 
     def _process_sessions_data(
         self,
