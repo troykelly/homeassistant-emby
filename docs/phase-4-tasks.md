@@ -99,17 +99,17 @@ def get_image_url(
 ```
 
 **Acceptance Criteria:**
-- [ ] Returns URL with base_url + endpoint
-- [ ] Includes api_key query parameter for authentication
-- [ ] Includes optional maxWidth, maxHeight parameters
-- [ ] Includes tag parameter when provided
-- [ ] URL-encodes all parameters correctly
+- [x] Returns URL with base_url + endpoint
+- [x] Includes api_key query parameter for authentication
+- [x] Includes optional maxWidth, maxHeight parameters
+- [x] Includes tag parameter when provided
+- [x] URL-encodes all parameters correctly
 
 **Test Cases:**
-- [ ] `test_get_image_url_basic` - Basic URL generation
-- [ ] `test_get_image_url_with_dimensions` - URL with maxWidth/maxHeight
-- [ ] `test_get_image_url_with_tag` - URL with cache tag
-- [ ] `test_get_image_url_with_all_params` - URL with all parameters
+- [x] `test_get_image_url_basic` - Basic URL generation
+- [x] `test_get_image_url_with_dimensions` - URL with maxWidth/maxHeight
+- [x] `test_get_image_url_with_tag` - URL with cache tag
+- [x] `test_get_image_url_with_all_params` - URL with all parameters
 
 ---
 
@@ -130,16 +130,16 @@ The `EmbyMediaItem` already has `image_tags: tuple[tuple[str, str], ...]` which 
 - `parent_backdrop_image_tags: tuple[str, ...] | None` - Backdrop tags from parent
 
 **Acceptance Criteria:**
-- [ ] `series_id` field added
-- [ ] `season_id` field added
-- [ ] `album_id` field added
-- [ ] `parent_backdrop_image_tags` field added
-- [ ] `parse_media_item` updated to extract these fields
+- [x] `series_id` field added
+- [x] `season_id` field added
+- [x] `album_id` field added
+- [x] `parent_backdrop_image_tags` field added
+- [x] `parse_media_item` updated to extract these fields
 
 **Test Cases:**
-- [ ] `test_parse_media_item_with_series_id` - Parses SeriesId
-- [ ] `test_parse_media_item_with_album_id` - Parses AlbumId
-- [ ] `test_parse_media_item_with_parent_backdrop_tags` - Parses ParentBackdropImageTags
+- [x] `test_parse_media_item_with_series_id` - Parses SeriesId
+- [x] `test_parse_media_item_with_album_id` - Parses AlbumId
+- [x] `test_parse_media_item_with_parent_backdrop_tags` - Parses ParentBackdropImageTags
 
 ---
 
@@ -158,16 +158,16 @@ Add the `media_image_url` property to `EmbyMediaPlayer`.
 4. Return URL
 
 **Acceptance Criteria:**
-- [ ] Returns None when no session
-- [ ] Returns None when not playing
-- [ ] Returns URL with Primary image when available
-- [ ] Includes image tag for cache busting
+- [x] Returns None when no session
+- [x] Returns None when not playing
+- [x] Returns URL with Primary image when available
+- [x] Includes image tag for cache busting
 
 **Test Cases:**
-- [ ] `test_media_image_url_when_playing` - Returns valid URL
-- [ ] `test_media_image_url_when_not_playing` - Returns None
-- [ ] `test_media_image_url_when_no_session` - Returns None
-- [ ] `test_media_image_url_includes_tag` - URL contains image tag
+- [x] `test_media_image_url_when_playing` - Returns valid URL
+- [x] `test_media_image_url_when_not_playing` - Returns None
+- [x] `test_media_image_url_when_no_session` - Returns None
+- [x] `test_media_image_url_includes_tag` - URL contains image tag
 
 ---
 
@@ -189,14 +189,14 @@ For audio without artwork, fall back to:
 2. Album Primary image (using album_id)
 
 **Acceptance Criteria:**
-- [ ] Episode falls back to series when no episode image
-- [ ] Audio falls back to album when no track image
-- [ ] Returns None only when all fallbacks exhausted
+- [x] Episode falls back to series when no episode image
+- [x] Audio falls back to album when no track image
+- [x] Returns None only when all fallbacks exhausted
 
 **Test Cases:**
-- [ ] `test_media_image_url_episode_fallback_to_series`
-- [ ] `test_media_image_url_audio_fallback_to_album`
-- [ ] `test_media_image_url_no_fallback_available`
+- [x] `test_media_image_url_episode_fallback_to_series`
+- [x] `test_media_image_url_audio_fallback_to_album`
+- [x] `test_media_image_url_no_fallback_available`
 
 ---
 
@@ -214,8 +214,8 @@ Ensure the TypedDict includes all image-related fields.
 - `ParentBackdropImageTags: NotRequired[list[str]]`
 
 **Acceptance Criteria:**
-- [ ] All image-related fields present in TypedDict
-- [ ] No mypy errors
+- [x] All image-related fields present in TypedDict
+- [x] No mypy errors
 
 ---
 
@@ -230,7 +230,7 @@ Test that the complete flow works:
 4. URL contains all expected parameters
 
 **Test Cases:**
-- [ ] `test_media_image_url_full_integration`
+- [x] `test_media_image_url_full_integration`
 
 ---
 
@@ -258,14 +258,14 @@ This would allow:
 
 ### Required for Phase 4 Complete
 
-- [ ] `get_image_url` method in EmbyClient
-- [ ] `media_image_url` property in EmbyMediaPlayer
-- [ ] Image tags used for cache busting
-- [ ] Fallback hierarchy for episodes/audio
-- [ ] All tests passing
-- [ ] 100% code coverage maintained
-- [ ] No mypy errors
-- [ ] No ruff errors
+- [x] `get_image_url` method in EmbyClient
+- [x] `media_image_url` property in EmbyMediaPlayer
+- [x] Image tags used for cache busting
+- [x] Fallback hierarchy for episodes/audio
+- [x] All tests passing
+- [x] 100% code coverage maintained
+- [x] No mypy errors
+- [x] No ruff errors
 
 ### Definition of Done
 
