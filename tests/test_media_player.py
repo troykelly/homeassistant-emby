@@ -1554,3 +1554,167 @@ class TestPlaybackControlServices:
         await player.async_media_seek(5.0)
 
         mock_coordinator.client.async_send_playback_command.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_async_media_pause_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_media_pause does nothing when no session."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_playback_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        await player.async_media_pause()
+
+        mock_coordinator.client.async_send_playback_command.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_async_media_stop_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_media_stop does nothing when no session."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_playback_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        await player.async_media_stop()
+
+        mock_coordinator.client.async_send_playback_command.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_async_media_next_track_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_media_next_track does nothing when no session."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_playback_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        await player.async_media_next_track()
+
+        mock_coordinator.client.async_send_playback_command.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_async_media_previous_track_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_media_previous_track does nothing when no session."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_playback_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        await player.async_media_previous_track()
+
+        mock_coordinator.client.async_send_playback_command.assert_not_called()
+
+
+class TestMediaPropertiesNoSession:
+    """Test media properties when session is None (coverage for return None paths)."""
+
+    def test_media_series_title_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_series_title returns None when session is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        assert player.media_series_title is None
+
+    def test_media_season_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_season returns None when session is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        assert player.media_season is None
+
+    def test_media_episode_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_episode returns None when session is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        assert player.media_episode is None
+
+    def test_media_artist_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_artist returns None when session is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        assert player.media_artist is None
+
+    def test_media_album_name_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_album_name returns None when session is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        assert player.media_album_name is None
+
+    def test_media_album_artist_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_album_artist returns None when session is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        assert player.media_album_artist is None

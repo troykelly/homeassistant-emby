@@ -1059,3 +1059,120 @@ class TestSendCommand:
             with pytest.raises(EmbyAuthenticationError):
                 await client.async_send_command("session-123", "Mute")
             await client.close()
+
+
+class TestRequestPostErrors:
+    """Test POST request error handling."""
+
+    @pytest.mark.asyncio
+    async def test_request_post_ssl_error(self) -> None:
+        """Test SSL error in POST request."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            ssl_error = OSError("SSL certificate verify failed")
+            mock_session.post = MagicMock(
+                side_effect=aiohttp.ClientSSLError(MagicMock(), ssl_error)
+            )
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8920,
+                api_key="test-key",
+                ssl=True,
+            )
+            with pytest.raises(EmbySSLError):
+                await client.async_send_command("session-123", "Mute")
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_request_post_timeout(self) -> None:
+        """Test timeout in POST request."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(side_effect=TimeoutError())
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            with pytest.raises(EmbyTimeoutError):
+                await client.async_send_command("session-123", "Mute")
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_request_post_connection_error(self) -> None:
+        """Test connection error in POST request."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(
+                side_effect=aiohttp.ClientConnectorError(
+                    MagicMock(), OSError("Connection refused")
+                )
+            )
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            with pytest.raises(EmbyConnectionError):
+                await client.async_send_command("session-123", "Mute")
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_request_post_client_error(self) -> None:
+        """Test generic client error in POST request."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(
+                side_effect=aiohttp.ClientError("Generic error")
+            )
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            with pytest.raises(EmbyConnectionError):
+                await client.async_send_command("session-123", "Mute")
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_request_post_raises_for_status(self) -> None:
+        """Test non-204 success status calls raise_for_status."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.reason = "OK"
+            mock_response.raise_for_status = MagicMock()
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.post = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            await client.async_send_command("session-123", "Mute")
+
+            mock_response.raise_for_status.assert_called_once()
+            await client.close()

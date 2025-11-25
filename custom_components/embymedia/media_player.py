@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 import logging
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from homeassistant.components.media_player import (
@@ -306,7 +306,8 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
         session = self.session
         if session is None or session.play_state is None:
             return None
-        return dt_util.utcnow()
+        now: datetime = dt_util.utcnow()
+        return now
 
     @property
     def volume_level(self) -> float | None:
