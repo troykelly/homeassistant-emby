@@ -423,6 +423,22 @@ class TestCoordinatorWebSocket:
         mock_emby_client.api_key = "test-key"
         mock_emby_client.ssl = False
 
+        # Mock WebSocket that succeeds and stays connected
+        mock_ws = AsyncMock()
+        mock_ws.closed = False
+        mock_ws.close = AsyncMock()
+        mock_ws.send_str = AsyncMock()
+
+        # Make it an async iterator that never yields (stays connected)
+        async def infinite_wait() -> None:
+            import asyncio
+
+            await asyncio.sleep(1000)
+
+        mock_ws.__aiter__ = lambda self: self
+        mock_ws.__anext__ = lambda self: infinite_wait()
+        mock_aiohttp_session.ws_connect = AsyncMock(return_value=mock_ws)
+
         coordinator = EmbyDataUpdateCoordinator(
             hass=hass,
             client=mock_emby_client,
@@ -451,10 +467,20 @@ class TestCoordinatorWebSocket:
         mock_emby_client.api_key = "test-key"
         mock_emby_client.ssl = False
 
-        # Mock WebSocket that succeeds
+        # Mock WebSocket that succeeds and stays connected
         mock_ws = AsyncMock()
         mock_ws.closed = False
         mock_ws.close = AsyncMock()
+        mock_ws.send_str = AsyncMock()
+
+        # Make it an async iterator that never yields (stays connected)
+        async def infinite_wait() -> None:
+            import asyncio
+
+            await asyncio.sleep(1000)
+
+        mock_ws.__aiter__ = lambda self: self
+        mock_ws.__anext__ = lambda self: infinite_wait()
         mock_aiohttp_session.ws_connect = AsyncMock(return_value=mock_ws)
 
         coordinator = EmbyDataUpdateCoordinator(
@@ -577,10 +603,21 @@ class TestCoordinatorWebSocket:
         mock_emby_client.api_key = "test-key"
         mock_emby_client.ssl = False
 
-        # Mock WebSocket that succeeds
+        # Mock WebSocket that succeeds and stays connected
         mock_ws = AsyncMock()
         mock_ws.closed = False
         mock_ws.close = AsyncMock()
+        mock_ws.send_str = AsyncMock()
+
+        # Make it an async iterator that never yields (stays connected)
+        async def infinite_wait() -> None:
+            import asyncio
+
+            await asyncio.sleep(1000)
+
+        mock_ws.__aiter__ = lambda self: self
+        mock_ws.__anext__ = lambda self: infinite_wait()
+
         mock_aiohttp_session.ws_connect = AsyncMock(return_value=mock_ws)
 
         coordinator = EmbyDataUpdateCoordinator(
@@ -594,6 +631,7 @@ class TestCoordinatorWebSocket:
             await coordinator.async_setup_websocket(mock_aiohttp_session)
 
         assert "WebSocket connected" in caplog.text
+        assert coordinator.websocket_enabled is True
 
     @pytest.mark.asyncio
     async def test_setup_websocket_connection_failure(
@@ -782,10 +820,21 @@ class TestCoordinatorHybridPolling:
         mock_emby_client.api_key = "test-key"
         mock_emby_client.ssl = False
 
-        # Mock WebSocket that succeeds
+        # Mock WebSocket that succeeds and stays connected
         mock_ws = AsyncMock()
         mock_ws.closed = False
         mock_ws.close = AsyncMock()
+        mock_ws.send_str = AsyncMock()
+
+        # Make it an async iterator that never yields (stays connected)
+        async def infinite_wait() -> None:
+            import asyncio
+
+            await asyncio.sleep(1000)
+
+        mock_ws.__aiter__ = lambda self: self
+        mock_ws.__anext__ = lambda self: infinite_wait()
+
         mock_aiohttp_session.ws_connect = AsyncMock(return_value=mock_ws)
 
         coordinator = EmbyDataUpdateCoordinator(
@@ -843,10 +892,20 @@ class TestCoordinatorHybridPolling:
         mock_emby_client.api_key = "test-key"
         mock_emby_client.ssl = False
 
-        # Mock WebSocket that succeeds
+        # Mock WebSocket that succeeds and stays connected
         mock_ws = AsyncMock()
         mock_ws.closed = False
         mock_ws.close = AsyncMock()
+        mock_ws.send_str = AsyncMock()
+
+        # Make it an async iterator that never yields (stays connected)
+        async def infinite_wait() -> None:
+            import asyncio
+
+            await asyncio.sleep(1000)
+
+        mock_ws.__aiter__ = lambda self: self
+        mock_ws.__anext__ = lambda self: infinite_wait()
         mock_aiohttp_session.ws_connect = AsyncMock(return_value=mock_ws)
 
         coordinator = EmbyDataUpdateCoordinator(

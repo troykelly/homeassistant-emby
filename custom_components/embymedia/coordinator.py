@@ -177,10 +177,14 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         # Connect to WebSocket
         try:
             await self._websocket.async_connect()
+            # Subscribe to session updates
+            await self._websocket.async_subscribe_sessions()
             self._websocket_enabled = True
             # Reduce polling interval since we have real-time updates
             self.update_interval = timedelta(seconds=WEBSOCKET_POLL_INTERVAL)
             _LOGGER.info("WebSocket connected to Emby server %s", self.server_name)
+            # Start receive loop in background
+            self.hass.async_create_task(self._async_websocket_receive_loop())
         except aiohttp.ClientError as err:
             _LOGGER.warning(
                 "Failed to connect WebSocket to %s: %s",
@@ -188,6 +192,19 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
                 err,
             )
             self._websocket_enabled = False
+
+    async def _async_websocket_receive_loop(self) -> None:
+        """Run the WebSocket receive loop."""
+        if self._websocket is None:
+            return
+        try:
+            await self._websocket._async_receive_loop()
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            _LOGGER.warning("WebSocket receive loop error: %s", err)
+        finally:
+            # Connection lost, trigger reconnect or fallback
+            if self._websocket_enabled:
+                self._handle_websocket_connection(False)
 
     async def async_shutdown_websocket(self) -> None:
         """Shut down WebSocket connection."""
