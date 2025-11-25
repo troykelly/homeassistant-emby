@@ -47,3 +47,22 @@ class EmbySSLError(EmbyConnectionError):
 
     Inherits from EmbyConnectionError as SSL errors prevent connection.
     """
+
+
+class EmbyWebSocketError(EmbyError):
+    """Base exception for WebSocket operations."""
+
+
+class EmbyWebSocketConnectionError(EmbyWebSocketError):
+    """Exception raised when WebSocket connection fails.
+
+    This includes connection failures, unexpected disconnections,
+    and network errors specific to WebSocket.
+    """
+
+
+class EmbyWebSocketAuthError(EmbyWebSocketError):
+    """Exception raised when WebSocket authentication fails.
+
+    Raised when the server rejects the API key during WebSocket handshake.
+    """

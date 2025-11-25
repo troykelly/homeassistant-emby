@@ -948,3 +948,78 @@ class TestCoordinatorHybridPolling:
             coordinator._handle_websocket_connection(True)
 
         assert "reducing poll interval" in caplog.text
+
+
+class TestCoordinatorServerEvents:
+    """Test coordinator handling of server events."""
+
+    @pytest.mark.asyncio
+    async def test_handle_server_restarting(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Test handling ServerRestarting event."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+        )
+
+        with caplog.at_level("INFO"):
+            coordinator._handle_websocket_message("ServerRestarting", None)
+
+        assert "Server is restarting" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_handle_server_shutting_down(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Test handling ServerShuttingDown event."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+        )
+
+        with caplog.at_level("WARNING"):
+            coordinator._handle_websocket_message("ServerShuttingDown", None)
+
+        assert "Server is shutting down" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_handle_session_ended(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test handling SessionEnded event triggers refresh."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_emby_client.async_get_sessions = AsyncMock(return_value=[])
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+        )
+
+        await coordinator.async_refresh()
+        mock_emby_client.async_get_sessions.reset_mock()
+
+        # Simulate SessionEnded event
+        coordinator._handle_websocket_message("SessionEnded", {"SessionId": "123"})
+
+        # Should trigger a refresh
+        mock_emby_client.async_get_sessions.assert_called_once()

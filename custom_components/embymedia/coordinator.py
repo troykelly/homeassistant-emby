@@ -211,9 +211,18 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         if message_type == "Sessions":
             # Direct session update from WebSocket
             self._process_sessions_data(data)
-        elif message_type in ("PlaybackStarted", "PlaybackStopped", "PlaybackProgress"):
+        elif message_type in (
+            "PlaybackStarted",
+            "PlaybackStopped",
+            "PlaybackProgress",
+            "SessionEnded",
+        ):
             # Trigger a refresh to get latest session state
             self.hass.async_create_task(self.async_refresh())
+        elif message_type == "ServerRestarting":
+            _LOGGER.info("Emby server %s is restarting", self.server_name)
+        elif message_type == "ServerShuttingDown":
+            _LOGGER.warning("Emby server %s is shutting down", self.server_name)
         else:
             _LOGGER.debug("Unhandled WebSocket message type: %s", message_type)
 

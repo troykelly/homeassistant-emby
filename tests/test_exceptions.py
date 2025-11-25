@@ -10,6 +10,9 @@ from custom_components.embymedia.exceptions import (
     EmbyServerError,
     EmbySSLError,
     EmbyTimeoutError,
+    EmbyWebSocketAuthError,
+    EmbyWebSocketConnectionError,
+    EmbyWebSocketError,
 )
 
 
@@ -57,6 +60,28 @@ class TestExceptionHierarchy:
         """Test EmbySSLError inherits from EmbyConnectionError."""
         err = EmbySSLError("ssl error")
         assert isinstance(err, EmbyConnectionError)
+        assert isinstance(err, EmbyError)
+        assert isinstance(err, Exception)
+
+    def test_emby_websocket_error_inherits_from_emby_error(self) -> None:
+        """Test EmbyWebSocketError inherits from EmbyError."""
+        err = EmbyWebSocketError("websocket error")
+        assert isinstance(err, EmbyError)
+        assert isinstance(err, Exception)
+
+    def test_emby_websocket_connection_error_inherits_from_websocket_error(
+        self,
+    ) -> None:
+        """Test EmbyWebSocketConnectionError inherits from EmbyWebSocketError."""
+        err = EmbyWebSocketConnectionError("websocket connection failed")
+        assert isinstance(err, EmbyWebSocketError)
+        assert isinstance(err, EmbyError)
+        assert isinstance(err, Exception)
+
+    def test_emby_websocket_auth_error_inherits_from_websocket_error(self) -> None:
+        """Test EmbyWebSocketAuthError inherits from EmbyWebSocketError."""
+        err = EmbyWebSocketAuthError("websocket auth failed")
+        assert isinstance(err, EmbyWebSocketError)
         assert isinstance(err, EmbyError)
         assert isinstance(err, Exception)
 
