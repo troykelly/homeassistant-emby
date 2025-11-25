@@ -585,3 +585,107 @@ class TestBrowseMediaThumbnails:
         assert result.children[0].media_content_id == "library:folder-1"
         # Folder should be expandable
         assert result.children[0].can_expand is True
+
+
+# =============================================================================
+# Tests for async_play_media in EmbyMediaPlayer
+# =============================================================================
+
+
+class TestAsyncPlayMedia:
+    """Test play media functionality from browse."""
+
+    @pytest.mark.asyncio
+    async def test_play_media_movie(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test playing a movie from browse."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+        mock_coordinator_for_browse.client.async_play_items = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        await player.async_play_media(
+            media_type=MediaType.MOVIE,
+            media_id="movie-123",
+        )
+
+        mock_coordinator_for_browse.client.async_play_items.assert_called_once_with(
+            "session-xyz",
+            ["movie-123"],
+        )
+
+    @pytest.mark.asyncio
+    async def test_play_media_episode(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test playing an episode from browse."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+        mock_coordinator_for_browse.client.async_play_items = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        await player.async_play_media(
+            media_type=MediaType.TVSHOW,
+            media_id="episode-456",
+        )
+
+        mock_coordinator_for_browse.client.async_play_items.assert_called_once_with(
+            "session-xyz",
+            ["episode-456"],
+        )
+
+    @pytest.mark.asyncio
+    async def test_play_media_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+    ) -> None:
+        """Test play media when no session is available does nothing."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.get_session.return_value = None
+        mock_coordinator_for_browse.client.async_play_items = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-xyz")
+        # Should not raise, just silently return
+        await player.async_play_media(
+            media_type=MediaType.MOVIE,
+            media_id="movie-123",
+        )
+
+        # API should not be called
+        mock_coordinator_for_browse.client.async_play_items.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_play_media_with_item_content_id(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test play media extracts item ID from content ID format."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+        mock_coordinator_for_browse.client.async_play_items = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        # Content ID format from browse: "item:movie-789"
+        await player.async_play_media(
+            media_type=MediaType.MOVIE,
+            media_id="item:movie-789",
+        )
+
+        mock_coordinator_for_browse.client.async_play_items.assert_called_once_with(
+            "session-xyz",
+            ["movie-789"],
+        )
