@@ -791,6 +791,62 @@ class TestCoordinatorWebSocket:
 
         assert "WebSocket disconnected from Emby server" in caplog.text
 
+    @pytest.mark.asyncio
+    async def test_websocket_receive_loop_no_websocket(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test receive loop returns early when websocket is None."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+        )
+
+        # Websocket is None by default
+        assert coordinator._websocket is None
+
+        # Should return early without error
+        await coordinator._async_websocket_receive_loop()
+
+    @pytest.mark.asyncio
+    async def test_websocket_receive_loop_exception(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Test receive loop handles exceptions from websocket."""
+        from unittest.mock import MagicMock as SyncMagicMock
+
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+        )
+
+        # Create a mock websocket that raises an exception
+        mock_ws = SyncMagicMock()
+        mock_ws._async_receive_loop = AsyncMock(
+            side_effect=RuntimeError("Connection lost")
+        )
+
+        coordinator._websocket = mock_ws
+        coordinator._websocket_enabled = True
+
+        with caplog.at_level("WARNING"):
+            await coordinator._async_websocket_receive_loop()
+
+        assert "WebSocket receive loop error" in caplog.text
+        assert "Connection lost" in caplog.text
+
 
 class TestCoordinatorHybridPolling:
     """Test coordinator hybrid polling mode."""
