@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
+from homeassistant.components.media_player import MediaClass, MediaType
+from homeassistant.components.media_player.browse_media import BrowseMedia
+from homeassistant.core import HomeAssistant
 
 from custom_components.embymedia.browse import (
     decode_content_id,
@@ -201,3 +206,227 @@ class TestCanExpandLogic:
         from custom_components.embymedia.browse import can_expand_emby_type
 
         assert can_expand_emby_type("Audio") is False
+
+
+# =============================================================================
+# Tests for async_browse_media in EmbyMediaPlayer
+# =============================================================================
+
+
+@pytest.fixture
+def mock_coordinator_for_browse(hass: HomeAssistant) -> MagicMock:
+    """Create a mock coordinator for browse testing."""
+    coordinator = MagicMock()
+    coordinator.server_id = "server-123"
+    coordinator.server_name = "My Emby Server"
+    coordinator.last_update_success = True
+    coordinator.data = {}
+    coordinator.get_session = MagicMock(return_value=None)
+    coordinator.async_add_listener = MagicMock(return_value=MagicMock())
+
+    # Mock the client
+    client = MagicMock()
+    client.async_get_user_views = AsyncMock()
+    client.async_get_items = AsyncMock()
+    client.async_get_seasons = AsyncMock()
+    client.async_get_episodes = AsyncMock()
+    client.get_image_url = MagicMock(return_value="http://emby:8096/image.jpg")
+    coordinator.client = client
+
+    return coordinator
+
+
+@pytest.fixture
+def mock_session_with_user() -> MagicMock:
+    """Create a mock session with user ID."""
+    session = MagicMock()
+    session.device_id = "device-abc-123"
+    session.device_name = "Living Room TV"
+    session.client_name = "Emby Theater"
+    session.app_version = "4.8.0.0"
+    session.is_playing = False
+    session.play_state = None
+    session.supports_remote_control = True
+    session.supported_commands = ["SetVolume", "Mute"]
+    session.user_id = "user-xyz-789"
+    return session
+
+
+class TestBrowseMediaRoot:
+    """Test browsing at root level (libraries)."""
+
+    @pytest.mark.asyncio
+    async def test_browse_media_root_returns_libraries(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test root level browse returns library list."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        # Setup mock to return user views (libraries)
+        mock_coordinator_for_browse.client.async_get_user_views.return_value = [
+            {"Id": "lib-movies", "Name": "Movies", "CollectionType": "movies"},
+            {"Id": "lib-tvshows", "Name": "TV Shows", "CollectionType": "tvshows"},
+        ]
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media()
+
+        assert isinstance(result, BrowseMedia)
+        assert result.title == "Emby"
+        assert result.can_expand is True
+        assert result.can_play is False
+        assert result.children is not None
+        assert len(result.children) == 2
+        assert result.children[0].title == "Movies"
+        assert result.children[1].title == "TV Shows"
+
+    @pytest.mark.asyncio
+    async def test_browse_media_root_with_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+    ) -> None:
+        """Test root browse raises when no session (no user ID)."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.get_session.return_value = None
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-xyz")
+
+        # When no session, we have no user_id, so browsing should fail
+        # or return an empty result
+        with pytest.raises(Exception):
+            await player.async_browse_media()
+
+
+class TestBrowseMediaLibrary:
+    """Test browsing library contents."""
+
+    @pytest.mark.asyncio
+    async def test_browse_media_movies_library(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test browsing movies library returns movies."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.client.async_get_items.return_value = {
+            "Items": [
+                {"Id": "movie-1", "Name": "Test Movie 1", "Type": "Movie"},
+                {"Id": "movie-2", "Name": "Test Movie 2", "Type": "Movie"},
+            ],
+            "TotalRecordCount": 2,
+            "StartIndex": 0,
+        }
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.VIDEO,
+            media_content_id="library:lib-movies",
+        )
+
+        assert isinstance(result, BrowseMedia)
+        assert result.children is not None
+        assert len(result.children) == 2
+        # Movies should be playable
+        assert result.children[0].can_play is True
+        assert result.children[0].can_expand is False
+
+    @pytest.mark.asyncio
+    async def test_browse_media_tvshows_library(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test browsing TV shows library returns series."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.client.async_get_items.return_value = {
+            "Items": [
+                {"Id": "series-1", "Name": "Test Series", "Type": "Series"},
+            ],
+            "TotalRecordCount": 1,
+            "StartIndex": 0,
+        }
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.TVSHOW,
+            media_content_id="library:lib-tvshows",
+        )
+
+        assert isinstance(result, BrowseMedia)
+        assert result.children is not None
+        # Series should be expandable, not directly playable
+        assert result.children[0].can_play is False
+        assert result.children[0].can_expand is True
+
+
+class TestBrowseMediaHierarchy:
+    """Test hierarchical browsing (series -> season -> episode)."""
+
+    @pytest.mark.asyncio
+    async def test_browse_media_series_returns_seasons(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test browsing a series returns its seasons."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.client.async_get_seasons.return_value = [
+            {"Id": "season-1", "Name": "Season 1", "Type": "Season", "IndexNumber": 1},
+            {"Id": "season-2", "Name": "Season 2", "Type": "Season", "IndexNumber": 2},
+        ]
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.TVSHOW,
+            media_content_id="series:series-abc",
+        )
+
+        assert isinstance(result, BrowseMedia)
+        assert result.children is not None
+        assert len(result.children) == 2
+        # Seasons should be expandable
+        assert result.children[0].can_expand is True
+
+    @pytest.mark.asyncio
+    async def test_browse_media_season_returns_episodes(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test browsing a season returns its episodes."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.client.async_get_episodes.return_value = [
+            {"Id": "ep-1", "Name": "Episode 1", "Type": "Episode", "IndexNumber": 1},
+            {"Id": "ep-2", "Name": "Episode 2", "Type": "Episode", "IndexNumber": 2},
+        ]
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.TVSHOW,
+            media_content_id="season:series-abc:season-1",
+        )
+
+        assert isinstance(result, BrowseMedia)
+        assert result.children is not None
+        assert len(result.children) == 2
+        # Episodes should be playable
+        assert result.children[0].can_play is True
+        assert result.children[0].can_expand is False
