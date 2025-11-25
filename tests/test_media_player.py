@@ -472,6 +472,7 @@ class TestSupportedFeatures:
         assert features & MediaPlayerEntityFeature.NEXT_TRACK
         assert features & MediaPlayerEntityFeature.PREVIOUS_TRACK
         assert features & MediaPlayerEntityFeature.PLAY_MEDIA
+        assert features & MediaPlayerEntityFeature.BROWSE_MEDIA
 
     def test_supported_features_volume_when_supported(
         self,
