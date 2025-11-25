@@ -261,13 +261,13 @@ If change affects multiple files or core architecture:
 
 ```bash
 # Run complete test suite
-pytest tests/ --cov=custom_components.emby --cov-report=term-missing --cov-fail-under=100
+pytest tests/ --cov=custom_components.embymedia --cov-report=term-missing --cov-fail-under=100
 
 # Run type checking
-mypy custom_components/emby/
+mypy custom_components/embymedia/
 
 # Run linting
-ruff check custom_components/emby/ tests/
+ruff check custom_components/embymedia/ tests/
 ```
 
 **ALL tests must pass. ALL issues must be resolved.**

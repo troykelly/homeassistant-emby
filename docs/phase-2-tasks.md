@@ -38,7 +38,7 @@ Define TypedDicts in `const.py` for the raw API responses from the `/Sessions` e
 
 #### 2.1.1 Add EmbySessionResponse TypedDict
 
-**File:** `custom_components/emby/const.py`
+**File:** `custom_components/embymedia/const.py`
 
 ```python
 class EmbyNowPlayingItem(TypedDict):
@@ -129,7 +129,7 @@ Create dataclasses in `models.py` for internal representation of session/player 
 
 #### 2.2.1 Create EmbyMediaItem Dataclass
 
-**File:** `custom_components/emby/models.py`
+**File:** `custom_components/embymedia/models.py`
 
 ```python
 from dataclasses import dataclass, field
@@ -415,7 +415,7 @@ Add the `/Sessions` endpoint to the API client for fetching active sessions.
 
 #### 2.3.1 Add async_get_sessions Method
 
-**File:** `custom_components/emby/api.py`
+**File:** `custom_components/embymedia/api.py`
 
 Add to `EmbyClient` class:
 
@@ -434,7 +434,7 @@ async def async_get_sessions(self) -> list[EmbySessionResponse]:
     return response  # type: ignore[return-value]
 ```
 
-**File:** `custom_components/emby/const.py`
+**File:** `custom_components/embymedia/const.py`
 
 Constants needed (some may already exist):
 ```python
@@ -460,7 +460,7 @@ Implement `EmbyDataUpdateCoordinator` extending Home Assistant's `DataUpdateCoor
 
 #### 2.4.1 Implement EmbyDataUpdateCoordinator
 
-**File:** `custom_components/emby/coordinator.py`
+**File:** `custom_components/embymedia/coordinator.py`
 
 ```python
 """Data update coordinator for Emby integration."""
@@ -619,7 +619,7 @@ Create `EmbyEntity` base class that extends `CoordinatorEntity` and provides com
 
 #### 2.5.1 Create EmbyEntity Base Class
 
-**File:** `custom_components/emby/entity.py`
+**File:** `custom_components/embymedia/entity.py`
 
 ```python
 """Base entity for Emby integration."""
@@ -743,7 +743,7 @@ Create the basic `EmbyMediaPlayer` class structure. Full implementation happens 
 
 #### 2.6.1 Create EmbyMediaPlayer Shell
 
-**File:** `custom_components/emby/media_player.py`
+**File:** `custom_components/embymedia/media_player.py`
 
 ```python
 """Media player platform for Emby integration."""
@@ -904,7 +904,7 @@ Update `__init__.py` to create the coordinator and pass it to the config entry r
 
 #### 2.8.1 Update async_setup_entry
 
-**File:** `custom_components/emby/__init__.py`
+**File:** `custom_components/embymedia/__init__.py`
 
 Update to create coordinator:
 

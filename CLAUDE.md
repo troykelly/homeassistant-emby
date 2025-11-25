@@ -50,7 +50,7 @@ See skill: `ha-emby-research`
 ## Project Structure
 
 ```
-custom_components/emby/
+custom_components/embymedia/
 ├── __init__.py           # Integration setup, async_setup_entry
 ├── manifest.json         # Integration metadata
 ├── config_flow.py        # UI configuration flow
@@ -141,17 +141,17 @@ def requires_live_server(live_emby_url: str | None, live_emby_api_key: str | Non
 pytest tests/
 
 # Run tests with coverage
-pytest tests/ --cov=custom_components.emby --cov-report=term-missing --cov-fail-under=100
+pytest tests/ --cov=custom_components.embymedia --cov-report=term-missing --cov-fail-under=100
 
 # Run specific test
 pytest tests/test_media_player.py::test_play_media -v
 
 # Type checking
-mypy custom_components/emby/
+mypy custom_components/embymedia/
 
 # Linting
-ruff check custom_components/emby/
-ruff format custom_components/emby/
+ruff check custom_components/embymedia/
+ruff format custom_components/embymedia/
 ```
 
 ## Testing Patterns
@@ -162,7 +162,7 @@ ruff format custom_components/emby/
 @pytest.fixture
 def mock_emby_client() -> Generator[MagicMock, None, None]:
     """Mock Emby API client."""
-    with patch("custom_components.emby.EmbyClient", autospec=True) as mock:
+    with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock:
         yield mock.return_value
 
 @pytest.fixture

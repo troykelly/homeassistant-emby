@@ -15,7 +15,7 @@ The integration provides:
 ## Phase 1: Foundation & Core Infrastructure
 
 ### 1.1 Project Scaffolding
-- [ ] Create `custom_components/emby/` directory structure
+- [ ] Create `custom_components/embymedia/` directory structure
 - [ ] Configure `manifest.json` with dependencies and requirements
 - [ ] Set up `const.py` with domain constants and TypedDicts
 - [ ] Create `strings.json` and `translations/en.json`

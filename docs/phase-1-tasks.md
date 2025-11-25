@@ -71,7 +71,7 @@ tests/
 
 #### 1.1.2 Configure `manifest.json`
 
-**File:** `custom_components/emby/manifest.json`
+**File:** `custom_components/embymedia/manifest.json`
 
 **Required Fields:**
 ```json
@@ -116,7 +116,7 @@ tests/
 
 #### 1.1.3 Set Up `const.py` - Constants and Types
 
-**File:** `custom_components/emby/const.py`
+**File:** `custom_components/embymedia/const.py`
 
 **Required Constants:**
 ```python
@@ -285,7 +285,7 @@ def normalize_host(host: str) -> str:
 
 #### 1.1.4 Create `strings.json` and Translations
 
-**File:** `custom_components/emby/strings.json`
+**File:** `custom_components/embymedia/strings.json`
 
 ```json
 {
@@ -347,7 +347,7 @@ def normalize_host(host: str) -> str:
 }
 ```
 
-**File:** `custom_components/emby/translations/en.json`
+**File:** `custom_components/embymedia/translations/en.json`
 
 Copy of `strings.json` (Home Assistant uses both).
 
@@ -452,10 +452,10 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["custom_components.emby"]
+known-first-party = ["custom_components.embymedia"]
 
 [tool.coverage.run]
-source = ["custom_components/emby"]
+source = ["custom_components/embymedia"]
 omit = ["tests/*"]
 
 [tool.coverage.report]
@@ -523,7 +523,7 @@ repos:
 
 #### 1.1.6 Create Stub Files for Phase 2
 
-**File:** `custom_components/emby/coordinator.py`
+**File:** `custom_components/embymedia/coordinator.py`
 
 ```python
 """Data update coordinator for Emby integration."""
@@ -541,7 +541,7 @@ class EmbyDataUpdateCoordinator:
     pass
 ```
 
-**File:** `custom_components/emby/models.py`
+**File:** `custom_components/embymedia/models.py`
 
 ```python
 """Data models for Emby integration."""
@@ -573,7 +573,7 @@ Implement an async HTTP client for communicating with the Emby server API.
 
 #### 1.2.1 Create Custom Exceptions
 
-**File:** `custom_components/emby/exceptions.py`
+**File:** `custom_components/embymedia/exceptions.py`
 
 ```python
 """Exceptions for the Emby integration."""
@@ -638,7 +638,7 @@ class EmbySSLError(EmbyConnectionError):
 
 #### 1.2.2 Implement `EmbyClient` Class
 
-**File:** `custom_components/emby/api.py`
+**File:** `custom_components/embymedia/api.py`
 
 **Class Structure:**
 ```python
@@ -1134,7 +1134,7 @@ Implement the UI-based configuration flow for setting up the integration.
 
 #### 1.3.1 Implement User Step
 
-**File:** `custom_components/emby/config_flow.py`
+**File:** `custom_components/embymedia/config_flow.py`
 
 ```python
 """Config flow for Emby integration."""
@@ -1584,7 +1584,7 @@ Implement the integration entry point and lifecycle management.
 
 #### 1.4.1 Implement `async_setup_entry`
 
-**File:** `custom_components/emby/__init__.py`
+**File:** `custom_components/embymedia/__init__.py`
 
 ```python
 """The Emby integration."""
@@ -1737,7 +1737,7 @@ async def async_options_updated(hass: HomeAssistant, entry: EmbyConfigEntry) -> 
 
 #### 1.4.3 Create Placeholder Platform File
 
-**File:** `custom_components/emby/media_player.py`
+**File:** `custom_components/embymedia/media_player.py`
 
 ```python
 """Media player platform for Emby."""
@@ -1803,7 +1803,7 @@ from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.emby.const import (
+from custom_components.embymedia.const import (
     CONF_API_KEY,
     CONF_VERIFY_SSL,
     DOMAIN,
@@ -1875,7 +1875,7 @@ def mock_emby_client(
 ) -> Generator[MagicMock]:
     """Mock EmbyClient for testing."""
     with patch(
-        "custom_components.emby.config_flow.EmbyClient", autospec=True
+        "custom_components.embymedia.config_flow.EmbyClient", autospec=True
     ) as mock_client_class:
         client = mock_client_class.return_value
         client.async_validate_connection = AsyncMock(return_value=True)
@@ -1895,7 +1895,7 @@ def mock_emby_client_init(
 ) -> Generator[MagicMock]:
     """Mock EmbyClient for __init__.py testing."""
     with patch(
-        "custom_components.emby.EmbyClient", autospec=True
+        "custom_components.embymedia.EmbyClient", autospec=True
     ) as mock_client_class:
         client = mock_client_class.return_value
         client.async_validate_connection = AsyncMock(return_value=True)
@@ -2164,13 +2164,13 @@ jobs:
           pip install -e .
 
       - name: Run ruff
-        run: ruff check custom_components/emby tests
+        run: ruff check custom_components/embymedia tests
 
       - name: Run mypy
         run: mypy custom_components/emby
 
       - name: Run tests
-        run: pytest tests/ --cov=custom_components.emby --cov-report=xml --cov-fail-under=100
+        run: pytest tests/ --cov=custom_components.embymedia --cov-report=xml --cov-fail-under=100
 
       - name: Upload coverage
         uses: codecov/codecov-action@v3

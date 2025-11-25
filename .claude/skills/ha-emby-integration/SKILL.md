@@ -14,7 +14,7 @@ This covers config flows, data coordinators, entity patterns, and project struct
 ## Project Structure
 
 ```
-custom_components/emby/
+custom_components/embymedia/
 ├── __init__.py           # Integration setup
 ├── manifest.json         # Integration metadata
 ├── config_flow.py        # UI configuration flow

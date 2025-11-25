@@ -58,7 +58,7 @@ Run the test. **It MUST fail.** If it passes, your test is wrong.
 ### GREEN: Write Minimal Implementation
 
 ```python
-# custom_components/emby/media_player.py
+# custom_components/embymedia/media_player.py
 async def async_play_media(
     self,
     media_type: MediaType,
@@ -140,7 +140,7 @@ async def test_media_player_state_playing(
 def mock_emby_client() -> Generator[MagicMock, None, None]:
     """Mock the Emby API client."""
     with patch(
-        "custom_components.emby.EmbyClient",
+        "custom_components.embymedia.EmbyClient",
         autospec=True,
     ) as mock:
         client = mock.return_value
@@ -180,7 +180,7 @@ Every code path must be tested:
 
 Run coverage check:
 ```bash
-pytest tests/ --cov=custom_components.emby --cov-report=term-missing --cov-fail-under=100
+pytest tests/ --cov=custom_components.embymedia --cov-report=term-missing --cov-fail-under=100
 ```
 
 ## Common Rationalizations (All Wrong)
@@ -212,7 +212,7 @@ If you catch yourself with ANY of these, delete your code and restart with TDD:
 pytest tests/
 
 # Run with coverage
-pytest tests/ --cov=custom_components.emby --cov-report=term-missing
+pytest tests/ --cov=custom_components.embymedia --cov-report=term-missing
 
 # Run specific test file
 pytest tests/test_config_flow.py
