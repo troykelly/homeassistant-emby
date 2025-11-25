@@ -12,89 +12,89 @@ The integration provides:
 
 ---
 
-## Phase 1: Foundation & Core Infrastructure
+## Phase 1: Foundation & Core Infrastructure ✅
 
 ### 1.1 Project Scaffolding
-- [ ] Create `custom_components/embymedia/` directory structure
-- [ ] Configure `manifest.json` with dependencies and requirements
-- [ ] Set up `const.py` with domain constants and TypedDicts
-- [ ] Create `strings.json` and `translations/en.json`
-- [ ] Configure pytest, mypy, and ruff for CI/CD
+- [x] Create `custom_components/embymedia/` directory structure
+- [x] Configure `manifest.json` with dependencies and requirements
+- [x] Set up `const.py` with domain constants and TypedDicts
+- [x] Create `strings.json` and `translations/en.json`
+- [x] Configure pytest, mypy, and ruff for CI/CD
 
 ### 1.2 Emby API Client (`api.py`)
-- [ ] Implement `EmbyClient` class with aiohttp session management
-- [ ] Authentication via API key (`X-Emby-Token` header)
-- [ ] Core endpoints:
+- [x] Implement `EmbyClient` class with aiohttp session management
+- [x] Authentication via API key (`X-Emby-Token` header)
+- [x] Core endpoints:
   - `GET /System/Info` - Server identification
   - `GET /System/Info/Public` - Public server info (no auth)
   - `GET /Users` - List users
   - `GET /Sessions` - Active sessions/players
-- [ ] Error handling with custom exceptions (`EmbyConnectionError`, `EmbyAuthenticationError`)
-- [ ] Connection validation method for config flow
-- [ ] Tick-to-seconds conversion utilities (10,000,000 ticks = 1 second)
+- [x] Error handling with custom exceptions (`EmbyConnectionError`, `EmbyAuthenticationError`)
+- [x] Connection validation method for config flow
+- [x] Tick-to-seconds conversion utilities (10,000,000 ticks = 1 second)
 
 ### 1.3 Config Flow (`config_flow.py`)
-- [ ] User step: Host, port, SSL toggle, API key input
-- [ ] Connection validation against live server
-- [ ] Unique ID assignment from server ID
-- [ ] Error handling: connection refused, auth failed, unknown
-- [ ] Options flow for configurable settings (scan interval, etc.)
+- [x] User step: Host, port, SSL toggle, API key input
+- [x] Connection validation against live server
+- [x] Unique ID assignment from server ID
+- [x] Error handling: connection refused, auth failed, unknown
+- [x] Options flow for configurable settings (scan interval, etc.)
 
 ### 1.4 Integration Setup (`__init__.py`)
-- [ ] `async_setup_entry` - Initialize integration from config entry
-- [ ] Platform forwarding to `media_player`
-- [ ] `async_unload_entry` - Clean shutdown
-- [ ] Store API client in `hass.data[DOMAIN]`
+- [x] `async_setup_entry` - Initialize integration from config entry
+- [x] Platform forwarding to `media_player`
+- [x] `async_unload_entry` - Clean shutdown
+- [x] Store API client in `hass.data[DOMAIN]`
 
 **Deliverables:**
-- Working config flow that connects to Emby server
-- API client with authentication and basic endpoints
-- Integration loads successfully in Home Assistant
+- ✅ Working config flow that connects to Emby server
+- ✅ API client with authentication and basic endpoints
+- ✅ Integration loads successfully in Home Assistant
 
 ---
 
-## Phase 2: Data Coordinator & Entity Management
+## Phase 2: Data Coordinator & Entity Management ✅
 
 ### 2.1 Data Update Coordinator (`coordinator.py`)
-- [ ] Implement `EmbyDataUpdateCoordinator` extending `DataUpdateCoordinator`
-- [ ] Fetch active sessions on configurable interval (default: 10 seconds)
-- [ ] Parse session data into typed dataclasses
-- [ ] Handle server unavailable gracefully
-- [ ] Track session additions and removals
+- [x] Implement `EmbyDataUpdateCoordinator` extending `DataUpdateCoordinator`
+- [x] Fetch active sessions on configurable interval (default: 10 seconds)
+- [x] Parse session data into typed dataclasses
+- [x] Handle server unavailable gracefully
+- [x] Track session additions and removals
 
 ### 2.2 Session & Player Models (`models.py`)
-- [ ] `EmbySession` dataclass - Session metadata
-- [ ] `EmbyPlayer` dataclass - Player/client information
-- [ ] `EmbyNowPlaying` dataclass - Currently playing media
-- [ ] `EmbyMediaItem` dataclass - Media item details
-- [ ] Type-safe parsing from API responses
+- [x] `EmbySession` dataclass - Session metadata
+- [x] `EmbyPlaybackState` dataclass - Playback state information
+- [x] `EmbyMediaItem` dataclass - Currently playing media details
+- [x] `MediaType` enum - Media type classification
+- [x] Type-safe parsing from API responses
 
 ### 2.3 Base Entity (`entity.py`)
-- [ ] `EmbyEntity` base class extending `CoordinatorEntity`
-- [ ] Device info from session/player data
-- [ ] Unique ID generation from session ID
-- [ ] Availability based on coordinator state
+- [x] `EmbyEntity` base class extending `CoordinatorEntity`
+- [x] Device info from session/player data
+- [x] Unique ID generation from device ID (stable across reconnections)
+- [x] Availability based on coordinator state
 
 ### 2.4 Dynamic Entity Registry
-- [ ] Detect new sessions → Create media player entities
-- [ ] Detect removed sessions → Remove media player entities
-- [ ] Handle session ID changes (reconnecting clients)
-- [ ] Configurable entity naming scheme
+- [x] Detect new sessions → Create media player entities
+- [x] Entities become unavailable when sessions disappear (not removed)
+- [x] Handle session ID changes (reconnecting clients use same entity)
+- [x] Entity naming from device name
 
 **Deliverables:**
-- Media player entities automatically appear/disappear
-- Entities update state via coordinator
-- Clean entity lifecycle management
+- ✅ Media player entities automatically appear/disappear
+- ✅ Entities update state via coordinator
+- ✅ Clean entity lifecycle management
 
 ---
 
 ## Phase 3: Media Player Entity - Core Features
 
 ### 3.1 Media Player Implementation (`media_player.py`)
-- [ ] Extend `MediaPlayerEntity` with `EmbyEntity`
+- [x] Extend `MediaPlayerEntity` with `EmbyEntity`
 - [ ] Implement `MediaPlayerEntityFeature` flags
 - [ ] Property implementations:
-  - `state` - OFF/IDLE/PLAYING/PAUSED mapping
+  - [x] `state` - OFF/IDLE/PLAYING/PAUSED mapping
   - `media_content_id` - Current item ID
   - `media_content_type` - Movie/Episode/Music/etc.
   - `media_title` - Item name
@@ -389,8 +389,8 @@ Phase 8 ◄───────────────────────
 ## Success Criteria
 
 ### Minimum Viable Product (Phases 1-4)
-- [ ] Config flow connects to Emby server
-- [ ] Media player entities created for active sessions
+- [x] Config flow connects to Emby server
+- [x] Media player entities created for active sessions
 - [ ] Full playback control working
 - [ ] Media artwork displayed
 
