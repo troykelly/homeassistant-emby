@@ -380,3 +380,95 @@ class TestMultipleEntries:
             # Both entries have coordinators in runtime_data
             assert entry1.runtime_data is not None
             assert entry2.runtime_data is not None
+
+
+class TestServerDeviceRegistration:
+    """Test server device registration."""
+
+    @pytest.mark.asyncio
+    async def test_server_device_registered_before_entities(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_server_info: dict[str, Any],
+    ) -> None:
+        """Test that the Emby server device is registered before entity setup.
+
+        This fixes the via_device warning where entities reference
+        a server device that doesn't exist yet.
+        """
+        from homeassistant.helpers import device_registry as dr
+
+        mock_config_entry.add_to_hass(hass)
+
+        with (
+            patch(
+                "custom_components.embymedia.EmbyClient", autospec=True
+            ) as mock_client_class,
+            patch(
+                "custom_components.embymedia.EmbyDataUpdateCoordinator",
+                autospec=True,
+            ) as mock_coordinator_class,
+        ):
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(return_value=mock_server_info)
+
+            coordinator = mock_coordinator_class.return_value
+            coordinator.async_config_entry_first_refresh = AsyncMock()
+            coordinator.data = {}
+            coordinator.server_id = mock_server_info["Id"]
+
+            await hass.config_entries.async_setup(mock_config_entry.entry_id)
+
+            # Verify server device was registered
+            device_registry = dr.async_get(hass)
+            server_device = device_registry.async_get_device(
+                identifiers={(DOMAIN, mock_server_info["Id"])}
+            )
+
+            assert server_device is not None
+            assert server_device.manufacturer == "Emby"
+            assert server_device.model == "Emby Server"
+            assert server_device.name == mock_server_info["ServerName"]
+            assert server_device.sw_version == mock_server_info["Version"]
+
+    @pytest.mark.asyncio
+    async def test_server_device_has_config_entry(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_server_info: dict[str, Any],
+    ) -> None:
+        """Test server device is linked to config entry."""
+        from homeassistant.helpers import device_registry as dr
+
+        mock_config_entry.add_to_hass(hass)
+
+        with (
+            patch(
+                "custom_components.embymedia.EmbyClient", autospec=True
+            ) as mock_client_class,
+            patch(
+                "custom_components.embymedia.EmbyDataUpdateCoordinator",
+                autospec=True,
+            ) as mock_coordinator_class,
+        ):
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(return_value=mock_server_info)
+
+            coordinator = mock_coordinator_class.return_value
+            coordinator.async_config_entry_first_refresh = AsyncMock()
+            coordinator.data = {}
+            coordinator.server_id = mock_server_info["Id"]
+
+            await hass.config_entries.async_setup(mock_config_entry.entry_id)
+
+            device_registry = dr.async_get(hass)
+            server_device = device_registry.async_get_device(
+                identifiers={(DOMAIN, mock_server_info["Id"])}
+            )
+
+            assert server_device is not None
+            assert mock_config_entry.entry_id in server_device.config_entries
