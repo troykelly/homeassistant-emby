@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 import logging
 from typing import TYPE_CHECKING
 
@@ -9,17 +10,31 @@ from homeassistant.components.media_player import (
     MediaPlayerEntity,
     MediaPlayerEntityFeature,
     MediaPlayerState,
+    MediaType,
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from .entity import EmbyEntity
+from .models import MediaType as EmbyMediaType
 
 if TYPE_CHECKING:
     from .const import EmbyConfigEntry
     from .coordinator import EmbyDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+# Map Emby media types to HA media types
+_MEDIA_TYPE_MAP: dict[EmbyMediaType, MediaType] = {
+    EmbyMediaType.MOVIE: MediaType.MOVIE,
+    EmbyMediaType.EPISODE: MediaType.TVSHOW,
+    EmbyMediaType.AUDIO: MediaType.MUSIC,
+    EmbyMediaType.MUSIC_VIDEO: MediaType.VIDEO,
+    EmbyMediaType.TRAILER: MediaType.VIDEO,
+    EmbyMediaType.PHOTO: MediaType.IMAGE,
+    EmbyMediaType.LIVE_TV: MediaType.CHANNEL,
+}
 
 
 async def async_setup_entry(
@@ -140,6 +155,158 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             features |= MediaPlayerEntityFeature.SEEK
 
         return features
+
+    @property
+    def media_content_id(self) -> str | None:
+        """Return the content ID of current playing media.
+
+        Returns:
+            Item ID or None if not playing.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        return session.now_playing.item_id
+
+    @property
+    def media_content_type(self) -> MediaType | str | None:
+        """Return the content type of current playing media.
+
+        Returns:
+            HA MediaType or None if not playing.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+
+        return _MEDIA_TYPE_MAP.get(session.now_playing.media_type, MediaType.VIDEO)
+
+    @property
+    def media_title(self) -> str | None:
+        """Return the title of current playing media.
+
+        Returns:
+            Item name or None if not playing.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        return session.now_playing.name
+
+    @property
+    def media_series_title(self) -> str | None:
+        """Return the series title for TV episodes.
+
+        Returns:
+            Series name or None if not an episode.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        return session.now_playing.series_name
+
+    @property
+    def media_season(self) -> str | None:
+        """Return the season number.
+
+        Returns:
+            Season number as string or None.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        season = session.now_playing.season_number
+        return str(season) if season is not None else None
+
+    @property
+    def media_episode(self) -> str | None:
+        """Return the episode number.
+
+        Returns:
+            Episode number as string or None.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        episode = session.now_playing.episode_number
+        return str(episode) if episode is not None else None
+
+    @property
+    def media_artist(self) -> str | None:
+        """Return the artist of current playing media.
+
+        Returns:
+            Artist name(s) or None.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+
+        artists = session.now_playing.artists
+        if artists:
+            return ", ".join(artists)
+        return session.now_playing.album_artist
+
+    @property
+    def media_album_name(self) -> str | None:
+        """Return the album of current playing media.
+
+        Returns:
+            Album name or None.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        return session.now_playing.album
+
+    @property
+    def media_album_artist(self) -> str | None:
+        """Return the album artist of current playing media.
+
+        Returns:
+            Album artist or None.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        return session.now_playing.album_artist
+
+    @property
+    def media_duration(self) -> int | None:
+        """Return the duration of current playing media in seconds.
+
+        Returns:
+            Duration in seconds or None.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        duration = session.now_playing.duration_seconds
+        return int(duration) if duration is not None else None
+
+    @property
+    def media_position(self) -> int | None:
+        """Return the current position in seconds.
+
+        Returns:
+            Position in seconds or None.
+        """
+        session = self.session
+        if session is None or session.play_state is None:
+            return None
+        return int(session.play_state.position_seconds)
+
+    @property
+    def media_position_updated_at(self) -> datetime | None:
+        """Return when position was last updated.
+
+        Returns:
+            Timestamp or None.
+        """
+        session = self.session
+        if session is None or session.play_state is None:
+            return None
+        return dt_util.utcnow()
 
 
 __all__ = ["EmbyMediaPlayer", "async_setup_entry"]

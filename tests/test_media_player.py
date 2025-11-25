@@ -576,3 +576,510 @@ class TestSupportedFeatures:
         player = EmbyMediaPlayer(mock_coordinator, "device-abc")
 
         assert player.supported_features == MediaPlayerEntityFeature(0)
+
+
+class TestMediaContentProperties:
+    """Test media content properties."""
+
+    def test_media_content_id_when_playing(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_content_id returns item ID when playing."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.item_id = "item-123-abc"
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_content_id == "item-123-abc"
+
+    def test_media_content_id_when_not_playing(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_content_id returns None when not playing."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_content_id is None
+
+    def test_media_content_id_when_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_content_id returns None when session is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        assert player.media_content_id is None
+
+    def test_media_content_type_movie(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_content_type maps Movie correctly."""
+        from homeassistant.components.media_player import MediaType
+
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+        from custom_components.embymedia.models import MediaType as EmbyMediaType
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.media_type = EmbyMediaType.MOVIE
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_content_type == MediaType.MOVIE
+
+    def test_media_content_type_episode(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_content_type maps Episode to TVSHOW."""
+        from homeassistant.components.media_player import MediaType
+
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+        from custom_components.embymedia.models import MediaType as EmbyMediaType
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.media_type = EmbyMediaType.EPISODE
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_content_type == MediaType.TVSHOW
+
+    def test_media_content_type_audio(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_content_type maps Audio to MUSIC."""
+        from homeassistant.components.media_player import MediaType
+
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+        from custom_components.embymedia.models import MediaType as EmbyMediaType
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.media_type = EmbyMediaType.AUDIO
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_content_type == MediaType.MUSIC
+
+    def test_media_content_type_when_not_playing(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_content_type returns None when not playing."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_content_type is None
+
+
+class TestMediaTitleProperties:
+    """Test media title properties."""
+
+    def test_media_title_when_playing(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_title returns item name when playing."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.name = "The Matrix"
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_title == "The Matrix"
+
+    def test_media_title_when_not_playing(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_title returns None when not playing."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_title is None
+
+    def test_media_series_title_for_episode(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_series_title returns series name for episodes."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.series_name = "Breaking Bad"
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_series_title == "Breaking Bad"
+
+    def test_media_series_title_when_not_episode(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_series_title returns None for non-episodes."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.series_name = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_series_title is None
+
+    def test_media_season(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_season returns season number as string."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.season_number = 5
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_season == "5"
+
+    def test_media_season_when_none(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_season returns None when season_number is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.season_number = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_season is None
+
+    def test_media_episode(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_episode returns episode number as string."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.episode_number = 16
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_episode == "16"
+
+    def test_media_episode_when_none(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_episode returns None when episode_number is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.episode_number = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_episode is None
+
+
+class TestMusicMetadataProperties:
+    """Test music metadata properties."""
+
+    def test_media_artist_with_multiple_artists(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_artist joins multiple artists."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.artists = ("Artist A", "Artist B", "Artist C")
+        session.now_playing.album_artist = "Album Artist"
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_artist == "Artist A, Artist B, Artist C"
+
+    def test_media_artist_fallback_to_album_artist(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_artist falls back to album_artist when no artists."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.artists = ()
+        session.now_playing.album_artist = "Album Artist"
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_artist == "Album Artist"
+
+    def test_media_artist_when_none(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_artist returns None when no artists or album_artist."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.artists = ()
+        session.now_playing.album_artist = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_artist is None
+
+    def test_media_album_name(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_album_name returns album name."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.album = "Greatest Hits"
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_album_name == "Greatest Hits"
+
+    def test_media_album_artist(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_album_artist returns album artist."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.album_artist = "The Artist"
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_album_artist == "The Artist"
+
+
+class TestDurationPositionProperties:
+    """Test duration and position properties."""
+
+    def test_media_duration_when_playing(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_duration returns duration in seconds."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.duration_seconds = 7200.5  # 2 hours
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_duration == 7200
+
+    def test_media_duration_when_none(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_duration returns None when duration_seconds is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = MagicMock()
+        session.now_playing.duration_seconds = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_duration is None
+
+    def test_media_duration_when_not_playing(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_duration returns None when not playing."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.now_playing = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_duration is None
+
+    def test_media_position_when_playing(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_position returns current position in seconds."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.play_state = MagicMock()
+        session.play_state.position_seconds = 1234.7
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_position == 1234
+
+    def test_media_position_when_no_play_state(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_position returns None when play_state is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.play_state = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_position is None
+
+    def test_media_position_updated_at(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_position_updated_at returns timestamp."""
+        from datetime import datetime
+
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.play_state = MagicMock()
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        result = player.media_position_updated_at
+        assert result is not None
+        assert isinstance(result, datetime)
+
+    def test_media_position_updated_at_when_no_play_state(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test media_position_updated_at returns None when play_state is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.play_state = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.media_position_updated_at is None
