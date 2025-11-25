@@ -9,10 +9,11 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+from pathlib import Path
 from urllib.parse import urlparse
 
 # Add the custom_components to the path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from custom_components.embymedia.api import EmbyClient
 

@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 
 from custom_components.embymedia.browse import (
     decode_content_id,
+    emby_type_to_media_class,
     encode_content_id,
 )
 
@@ -66,65 +67,38 @@ class TestContentTypeMapping:
 
     def test_emby_type_to_media_class_movie(self) -> None:
         """Test Movie maps to MOVIE class."""
-        from custom_components.embymedia.browse import emby_type_to_media_class
-        from homeassistant.components.media_player import MediaClass
-
         assert emby_type_to_media_class("Movie") == MediaClass.MOVIE
 
     def test_emby_type_to_media_class_series(self) -> None:
         """Test Series maps to TV_SHOW class."""
-        from custom_components.embymedia.browse import emby_type_to_media_class
-        from homeassistant.components.media_player import MediaClass
-
         assert emby_type_to_media_class("Series") == MediaClass.TV_SHOW
 
     def test_emby_type_to_media_class_season(self) -> None:
         """Test Season maps to SEASON class."""
-        from custom_components.embymedia.browse import emby_type_to_media_class
-        from homeassistant.components.media_player import MediaClass
-
         assert emby_type_to_media_class("Season") == MediaClass.SEASON
 
     def test_emby_type_to_media_class_episode(self) -> None:
         """Test Episode maps to EPISODE class."""
-        from custom_components.embymedia.browse import emby_type_to_media_class
-        from homeassistant.components.media_player import MediaClass
-
         assert emby_type_to_media_class("Episode") == MediaClass.EPISODE
 
     def test_emby_type_to_media_class_audio(self) -> None:
         """Test Audio maps to TRACK class."""
-        from custom_components.embymedia.browse import emby_type_to_media_class
-        from homeassistant.components.media_player import MediaClass
-
         assert emby_type_to_media_class("Audio") == MediaClass.TRACK
 
     def test_emby_type_to_media_class_album(self) -> None:
         """Test MusicAlbum maps to ALBUM class."""
-        from custom_components.embymedia.browse import emby_type_to_media_class
-        from homeassistant.components.media_player import MediaClass
-
         assert emby_type_to_media_class("MusicAlbum") == MediaClass.ALBUM
 
     def test_emby_type_to_media_class_artist(self) -> None:
         """Test MusicArtist maps to ARTIST class."""
-        from custom_components.embymedia.browse import emby_type_to_media_class
-        from homeassistant.components.media_player import MediaClass
-
         assert emby_type_to_media_class("MusicArtist") == MediaClass.ARTIST
 
     def test_emby_type_to_media_class_collection_folder(self) -> None:
         """Test CollectionFolder maps to DIRECTORY class."""
-        from custom_components.embymedia.browse import emby_type_to_media_class
-        from homeassistant.components.media_player import MediaClass
-
         assert emby_type_to_media_class("CollectionFolder") == MediaClass.DIRECTORY
 
     def test_emby_type_to_media_class_unknown(self) -> None:
         """Test unknown type maps to DIRECTORY class."""
-        from custom_components.embymedia.browse import emby_type_to_media_class
-        from homeassistant.components.media_player import MediaClass
-
         assert emby_type_to_media_class("Unknown") == MediaClass.DIRECTORY
 
 
