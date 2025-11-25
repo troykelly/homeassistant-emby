@@ -511,6 +511,36 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             {"SeekPositionTicks": position_ticks},
         )
 
+    async def async_play_media(
+        self,
+        media_type: MediaType | str,
+        media_id: str,
+        **kwargs: object,
+    ) -> None:
+        """Play media on this player.
+
+        Args:
+            media_type: Type of media to play.
+            media_id: Media ID, may be encoded as type:id from browse.
+            **kwargs: Additional arguments (unused).
+        """
+        session = self.session
+        if session is None:
+            return
+
+        # Extract item ID from encoded content ID format (e.g., "item:movie-123")
+        # When media_id contains ":", it's in format "type:id" from browse UI
+        if ":" in media_id:
+            _, ids = decode_content_id(media_id)
+            item_id = ids[0]
+        else:
+            item_id = media_id
+
+        await self.coordinator.client.async_play_items(
+            session.session_id,
+            [item_id],
+        )
+
     async def async_browse_media(
         self,
         media_content_type: MediaType | str | None = None,

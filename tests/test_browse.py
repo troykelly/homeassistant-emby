@@ -249,6 +249,7 @@ def mock_session_with_user() -> MagicMock:
     session.supports_remote_control = True
     session.supported_commands = ["SetVolume", "Mute"]
     session.user_id = "user-xyz-789"
+    session.session_id = "session-xyz"
     return session
 
 
@@ -688,4 +689,31 @@ class TestAsyncPlayMedia:
         mock_coordinator_for_browse.client.async_play_items.assert_called_once_with(
             "session-xyz",
             ["movie-789"],
+        )
+
+    @pytest.mark.asyncio
+    async def test_play_media_with_trailing_colon(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test play media extracts empty ID when content ID has trailing colon."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+        mock_coordinator_for_browse.client.async_play_items = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        # Edge case: content ID format with colon but empty ID (e.g., "item:")
+        # decode_content_id("item:") returns ("item", [""])
+        await player.async_play_media(
+            media_type=MediaType.VIDEO,
+            media_id="item:",
+        )
+
+        # Should extract the empty string as the ID
+        mock_coordinator_for_browse.client.async_play_items.assert_called_once_with(
+            "session-xyz",
+            [""],
         )
