@@ -15,5 +15,3 @@ backups/
 # Keep custom_components and configuration.yaml
 !custom_components/
 !configuration.yaml
-
-home-assistant.log*

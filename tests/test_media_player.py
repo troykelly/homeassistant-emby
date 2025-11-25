@@ -350,3 +350,82 @@ class TestAsyncSetupEntry:
 
         # No crash, no entities
         assert len(added_entities) == 0
+
+
+class TestEntityLifecycle:
+    """Test dynamic entity lifecycle."""
+
+    def test_entity_unavailable_when_session_disappears(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+        mock_session_idle: MagicMock,
+    ) -> None:
+        """Test entity becomes unavailable when session disappears."""
+        from custom_components.emby.media_player import EmbyMediaPlayer
+
+        # Initially session exists
+        mock_coordinator.get_session.return_value = mock_session_idle
+        mock_coordinator.last_update_success = True
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc-123")
+        assert player.available is True
+
+        # Session disappears
+        mock_coordinator.get_session.return_value = None
+        assert player.available is False
+
+    def test_entity_available_when_session_returns(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+        mock_session_idle: MagicMock,
+    ) -> None:
+        """Test entity becomes available when session returns."""
+        from custom_components.emby.media_player import EmbyMediaPlayer
+
+        # Initially session is gone
+        mock_coordinator.get_session.return_value = None
+        mock_coordinator.last_update_success = True
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc-123")
+        assert player.available is False
+
+        # Session returns (same device_id)
+        mock_coordinator.get_session.return_value = mock_session_idle
+        assert player.available is True
+
+    def test_reconnecting_client_uses_same_entity(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+        mock_session_idle: MagicMock,
+    ) -> None:
+        """Test reconnecting client (same device_id) uses the same entity."""
+        from custom_components.emby.media_player import EmbyMediaPlayer
+
+        # First session
+        mock_coordinator.get_session.return_value = mock_session_idle
+        mock_coordinator.last_update_success = True
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc-123")
+        original_unique_id = player.unique_id
+
+        # Session disconnects
+        mock_coordinator.get_session.return_value = None
+        assert player.available is False
+
+        # New session with same device_id (reconnection)
+        new_session = MagicMock()
+        new_session.device_id = "device-abc-123"  # Same device
+        new_session.device_name = "Living Room TV"
+        new_session.client_name = "Emby Theater"
+        new_session.app_version = "4.8.0.0"
+        new_session.is_playing = False
+        new_session.play_state = None
+
+        mock_coordinator.get_session.return_value = new_session
+
+        # Same entity should be available again with same unique_id
+        assert player.available is True
+        assert player.unique_id == original_unique_id
