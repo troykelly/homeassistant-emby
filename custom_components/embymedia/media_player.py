@@ -39,7 +39,7 @@ async def async_setup_entry(
     # Track which entities we've created
     known_devices: set[str] = set()
 
-    @callback
+    @callback  # type: ignore[misc]
     def async_add_new_entities() -> None:
         """Add entities for new sessions."""
         if coordinator.data is None:
@@ -62,7 +62,7 @@ async def async_setup_entry(
     entry.async_on_unload(coordinator.async_add_listener(async_add_new_entities))
 
 
-class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
+class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
     """Representation of an Emby media player.
 
     This entity represents a single Emby client session that can

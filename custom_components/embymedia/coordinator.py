@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
-class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
+class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):  # type: ignore[misc]
     """Coordinator for fetching Emby session data.
 
     This coordinator polls the Emby server for active sessions and
@@ -130,7 +130,8 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
         """
         if self.data is None:
             return None
-        return self.data.get(device_id)
+        result: EmbySession | None = self.data.get(device_id)
+        return result
 
 
 __all__ = ["EmbyDataUpdateCoordinator"]
