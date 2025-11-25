@@ -308,5 +308,63 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             return None
         return dt_util.utcnow()
 
+    @property
+    def volume_level(self) -> float | None:
+        """Return the volume level (0.0 to 1.0).
+
+        Returns:
+            Volume level or None.
+        """
+        session = self.session
+        if session is None or session.play_state is None:
+            return None
+        return session.play_state.volume_level
+
+    @property
+    def is_volume_muted(self) -> bool | None:
+        """Return True if volume is muted.
+
+        Returns:
+            True if muted, False if not, None if unknown.
+        """
+        session = self.session
+        if session is None or session.play_state is None:
+            return None
+        return session.play_state.is_muted
+
+    async def async_set_volume_level(self, volume: float) -> None:
+        """Set volume level (0.0 to 1.0).
+
+        Args:
+            volume: Volume level between 0.0 and 1.0.
+        """
+        session = self.session
+        if session is None:
+            return
+
+        # Convert to 0-100 range for Emby
+        volume_percent = int(volume * 100)
+        await self.coordinator.client.async_send_command(
+            session.session_id,
+            "SetVolume",
+            {"Volume": volume_percent},
+        )
+
+    async def async_mute_volume(self, mute: bool) -> None:
+        """Mute or unmute the volume.
+
+        Args:
+            mute: True to mute, False to unmute.
+        """
+        session = self.session
+        if session is None:
+            return
+
+        command = "Mute" if mute else "Unmute"
+        await self.coordinator.client.async_send_command(
+            session.session_id,
+            command,
+        )
+
 
 __all__ = ["EmbyMediaPlayer", "async_setup_entry"]

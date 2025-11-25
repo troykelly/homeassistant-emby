@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.components.media_player import (
@@ -1083,3 +1083,253 @@ class TestDurationPositionProperties:
         player = EmbyMediaPlayer(mock_coordinator, "device-abc")
 
         assert player.media_position_updated_at is None
+
+
+class TestVolumeProperties:
+    """Test volume control properties."""
+
+    def test_volume_level_when_available(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test volume_level returns level from play_state."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.play_state = MagicMock()
+        session.play_state.volume_level = 0.75
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.volume_level == 0.75
+
+    def test_volume_level_when_no_play_state(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test volume_level returns None when play_state is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.play_state = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.volume_level is None
+
+    def test_volume_level_when_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test volume_level returns None when session is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        assert player.volume_level is None
+
+    def test_is_volume_muted_true(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test is_volume_muted returns True when muted."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.play_state = MagicMock()
+        session.play_state.is_muted = True
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.is_volume_muted is True
+
+    def test_is_volume_muted_false(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test is_volume_muted returns False when not muted."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.play_state = MagicMock()
+        session.play_state.is_muted = False
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.is_volume_muted is False
+
+    def test_is_volume_muted_when_no_play_state(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test is_volume_muted returns None when play_state is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.play_state = None
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        assert player.is_volume_muted is None
+
+
+class TestVolumeServices:
+    """Test volume control services."""
+
+    @pytest.mark.asyncio
+    async def test_async_set_volume_level(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_set_volume_level calls API correctly."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.session_id = "session-xyz"
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        await player.async_set_volume_level(0.75)
+
+        mock_coordinator.client.async_send_command.assert_called_once_with(
+            "session-xyz",
+            "SetVolume",
+            {"Volume": 75},
+        )
+
+    @pytest.mark.asyncio
+    async def test_async_set_volume_level_rounds_correctly(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_set_volume_level rounds to integer correctly."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.session_id = "session-xyz"
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        await player.async_set_volume_level(0.333)
+
+        mock_coordinator.client.async_send_command.assert_called_once_with(
+            "session-xyz",
+            "SetVolume",
+            {"Volume": 33},
+        )
+
+    @pytest.mark.asyncio
+    async def test_async_set_volume_level_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_set_volume_level does nothing when no session."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        await player.async_set_volume_level(0.5)
+
+        mock_coordinator.client.async_send_command.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_async_mute_volume_mute(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_mute_volume sends Mute command."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.session_id = "session-xyz"
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        await player.async_mute_volume(mute=True)
+
+        mock_coordinator.client.async_send_command.assert_called_once_with(
+            "session-xyz",
+            "Mute",
+        )
+
+    @pytest.mark.asyncio
+    async def test_async_mute_volume_unmute(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_mute_volume sends Unmute command."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.session_id = "session-xyz"
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-abc")
+
+        await player.async_mute_volume(mute=False)
+
+        mock_coordinator.client.async_send_command.assert_called_once_with(
+            "session-xyz",
+            "Unmute",
+        )
+
+    @pytest.mark.asyncio
+    async def test_async_mute_volume_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_mute_volume does nothing when no session."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+        mock_coordinator.client = MagicMock()
+        mock_coordinator.client.async_send_command = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
+
+        await player.async_mute_volume(mute=True)
+
+        mock_coordinator.client.async_send_command.assert_not_called()
