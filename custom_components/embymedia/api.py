@@ -413,9 +413,7 @@ class EmbyClient:
                 )
 
                 if response.status in (401, 403):
-                    raise EmbyAuthenticationError(
-                        f"Authentication failed: {response.status}"
-                    )
+                    raise EmbyAuthenticationError(f"Authentication failed: {response.status}")
 
                 # 204 No Content is success
                 if response.status == 204:

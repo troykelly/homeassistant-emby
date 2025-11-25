@@ -20,25 +20,29 @@ _EMBY_TYPE_TO_MEDIA_CLASS: dict[str, MediaClass] = {
 }
 
 # Emby types that are directly playable
-_PLAYABLE_TYPES: frozenset[str] = frozenset({
-    "Movie",
-    "Episode",
-    "Audio",
-    "TvChannel",
-    "MusicVideo",
-    "Trailer",
-})
+_PLAYABLE_TYPES: frozenset[str] = frozenset(
+    {
+        "Movie",
+        "Episode",
+        "Audio",
+        "TvChannel",
+        "MusicVideo",
+        "Trailer",
+    }
+)
 
 # Emby types that can be expanded (have children)
-_EXPANDABLE_TYPES: frozenset[str] = frozenset({
-    "Series",
-    "Season",
-    "MusicAlbum",
-    "MusicArtist",
-    "Playlist",
-    "CollectionFolder",
-    "Folder",
-})
+_EXPANDABLE_TYPES: frozenset[str] = frozenset(
+    {
+        "Series",
+        "Season",
+        "MusicAlbum",
+        "MusicArtist",
+        "Playlist",
+        "CollectionFolder",
+        "Folder",
+    }
+)
 
 
 def encode_content_id(content_type: str, *ids: str) -> str:

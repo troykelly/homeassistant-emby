@@ -612,9 +612,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children=children,
         )
 
-    async def _async_browse_library(
-        self, user_id: str, library_id: str
-    ) -> BrowseMedia:
+    async def _async_browse_library(self, user_id: str, library_id: str) -> BrowseMedia:
         """Browse a library's contents.
 
         Args:
@@ -661,9 +659,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
 
         children: list[BrowseMedia] = []
         for season in seasons:
-            children.append(
-                self._season_to_browse_media(season, series_id)
-            )
+            children.append(self._season_to_browse_media(season, series_id))
 
         return BrowseMedia(
             media_class=MediaClass.TV_SHOW,
@@ -780,9 +776,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             thumbnail=thumbnail,
         )
 
-    def _season_to_browse_media(
-        self, season: EmbyBrowseItem, series_id: str
-    ) -> BrowseMedia:
+    def _season_to_browse_media(self, season: EmbyBrowseItem, series_id: str) -> BrowseMedia:
         """Convert a season item to BrowseMedia.
 
         Args:
