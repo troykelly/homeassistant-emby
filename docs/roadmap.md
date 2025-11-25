@@ -135,17 +135,17 @@ The integration provides:
 
 ---
 
-## Phase 4: Media Images & Artwork
+## Phase 4: Media Images & Artwork ✅
 
 ### 4.1 Image URL Generation
-- [ ] `media_image_url` property implementation
-- [ ] Support multiple image types:
+- [x] `media_image_url` property implementation
+- [x] Support multiple image types:
   - Primary (poster/cover)
   - Backdrop
   - Thumb
   - Logo
-- [ ] Image tag caching to prevent unnecessary refreshes
-- [ ] Fallback hierarchy (item → parent → series)
+- [x] Image tag caching to prevent unnecessary refreshes
+- [x] Fallback hierarchy (item → parent → series)
 
 ### 4.2 Image Proxy (Optional)
 - [ ] Proxy images through Home Assistant for auth
@@ -153,46 +153,46 @@ The integration provides:
 - [ ] Resize/quality parameters
 
 **Deliverables:**
-- Media artwork displays in Home Assistant UI
-- Efficient image loading with caching
+- ✅ Media artwork displays in Home Assistant UI
+- ✅ Efficient image loading with caching
 
 ---
 
-## Phase 5: Media Browsing
+## Phase 5: Media Browsing ✅
 
 ### 5.1 Browse Media Implementation
-- [ ] Implement `async_browse_media(media_content_type, media_content_id)`
-- [ ] Root level: Libraries (Movies, TV Shows, Music, etc.)
-- [ ] Library browsing endpoints:
+- [x] Implement `async_browse_media(media_content_type, media_content_id)`
+- [x] Root level: Libraries (Movies, TV Shows, Music, etc.)
+- [x] Library browsing endpoints:
   - `GET /Users/{id}/Items` with ParentId
   - `GET /Users/{id}/Views` for user libraries
-- [ ] Pagination support for large libraries
+- [x] Pagination support for large libraries
 
 ### 5.2 Content Type Hierarchy
-- [ ] **Movies**: Library → Movie
-- [ ] **TV Shows**: Library → Series → Season → Episode
-- [ ] **Music**: Library → Artist → Album → Track
+- [x] **Movies**: Library → Movie
+- [x] **TV Shows**: Library → Series → Season → Episode
+- [ ] **Music**: Library → Artist → Album → Track (partial - Albums work)
 - [ ] **Playlists**: Library → Playlist → Items
 - [ ] **Collections**: Library → Collection → Items
 - [ ] **Live TV**: Channels → Programs (if enabled)
 
 ### 5.3 Browse Media Response Building
-- [ ] `BrowseMedia` object construction
-- [ ] Thumbnail URLs for browse items
-- [ ] `can_play` / `can_expand` flags
-- [ ] Content type mapping to HA media types
+- [x] `BrowseMedia` object construction
+- [x] Thumbnail URLs for browse items
+- [x] `can_play` / `can_expand` flags
+- [x] Content type mapping to HA media types
 
 ### 5.4 Play from Browse
-- [ ] `async_play_media(media_type, media_id)`
-- [ ] Queue single items
+- [x] `async_play_media(media_type, media_id)`
+- [x] Queue single items
 - [ ] Queue entire albums/seasons
 - [ ] Shuffle/repeat options
-- [ ] `POST /Sessions/{id}/Playing` with ItemIds
+- [x] `POST /Sessions/{id}/Playing` with ItemIds
 
 **Deliverables:**
-- Full library browsing in HA media browser
-- Play any content directly from browse UI
-- Support for all Emby content types
+- ✅ Full library browsing in HA media browser
+- ✅ Play any content directly from browse UI
+- ✅ Support for Movies and TV Shows content types
 
 ---
 
@@ -395,10 +395,10 @@ Phase 8 ◄───────────────────────
 - [x] Config flow connects to Emby server
 - [x] Media player entities created for active sessions
 - [x] Full playback control working
-- [ ] Media artwork displayed
+- [x] Media artwork displayed
 
 ### Feature Complete (Phases 1-7)
-- [ ] Media browsing functional
+- [x] Media browsing functional
 - [ ] Media source provider working
 - [ ] Real-time updates via WebSocket
 
