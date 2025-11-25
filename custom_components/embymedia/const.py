@@ -23,12 +23,23 @@ CONF_USER_ID: Final = "user_id"
 CONF_VERIFY_SSL: Final = "verify_ssl"
 CONF_SCAN_INTERVAL: Final = "scan_interval"
 
+# Streaming/transcoding option keys
+CONF_DIRECT_PLAY: Final = "direct_play"
+CONF_VIDEO_CONTAINER: Final = "video_container"
+CONF_MAX_VIDEO_BITRATE: Final = "max_video_bitrate"
+CONF_MAX_AUDIO_BITRATE: Final = "max_audio_bitrate"
+
 # Default values
 DEFAULT_PORT: Final = 8096
 DEFAULT_SSL: Final = False
 DEFAULT_VERIFY_SSL: Final = True
 DEFAULT_SCAN_INTERVAL: Final = 10  # seconds
 DEFAULT_TIMEOUT: Final = 10  # seconds
+DEFAULT_DIRECT_PLAY: Final = True
+DEFAULT_VIDEO_CONTAINER: Final = "mp4"
+
+# Video container options
+VIDEO_CONTAINERS: Final[list[str]] = ["mp4", "mkv", "webm"]
 
 # Scan interval limits
 MIN_SCAN_INTERVAL: Final = 5

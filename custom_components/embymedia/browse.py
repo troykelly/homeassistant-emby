@@ -15,6 +15,7 @@ _EMBY_TYPE_TO_MEDIA_CLASS: dict[str, MediaClass] = {
     "MusicArtist": MediaClass.ARTIST,
     "Playlist": MediaClass.PLAYLIST,
     "TvChannel": MediaClass.CHANNEL,
+    "BoxSet": MediaClass.DIRECTORY,
     "CollectionFolder": MediaClass.DIRECTORY,
     "Folder": MediaClass.DIRECTORY,
 }
@@ -28,6 +29,7 @@ _PLAYABLE_TYPES: frozenset[str] = frozenset(
         "TvChannel",
         "MusicVideo",
         "Trailer",
+        "Playlist",
     }
 )
 
@@ -39,6 +41,7 @@ _EXPANDABLE_TYPES: frozenset[str] = frozenset(
         "MusicAlbum",
         "MusicArtist",
         "Playlist",
+        "BoxSet",
         "CollectionFolder",
         "Folder",
     }

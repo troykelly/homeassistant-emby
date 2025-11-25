@@ -142,10 +142,12 @@ class EmbyWebSocket:
         if not self.connected:
             raise RuntimeError("WebSocket is not connected")
 
-        message = json.dumps({
-            "MessageType": "SessionsStart",
-            "Data": f"0,{interval_ms}",
-        })
+        message = json.dumps(
+            {
+                "MessageType": "SessionsStart",
+                "Data": f"0,{interval_ms}",
+            }
+        )
 
         await self._ws.send_str(message)  # type: ignore[union-attr]
         _LOGGER.debug("Subscribed to session updates (interval: %dms)", interval_ms)
@@ -159,10 +161,12 @@ class EmbyWebSocket:
         if not self.connected:
             raise RuntimeError("WebSocket is not connected")
 
-        message = json.dumps({
-            "MessageType": "SessionsStop",
-            "Data": "",
-        })
+        message = json.dumps(
+            {
+                "MessageType": "SessionsStop",
+                "Data": "",
+            }
+        )
 
         await self._ws.send_str(message)  # type: ignore[union-attr]
         _LOGGER.debug("Unsubscribed from session updates")

@@ -1883,3 +1883,193 @@ class TestMediaPropertiesNoSession:
         player = EmbyMediaPlayer(mock_coordinator, "device-xyz")
 
         assert player.media_album_artist is None
+
+
+class TestEmbyMediaPlayerSearchMedia:
+    """Test EmbyMediaPlayer search media functionality."""
+
+    def test_search_media_feature_in_supported_features(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test SEARCH_MEDIA feature is included in supported features."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.device_name = "Test Device"
+        session.client_name = "Test Client"
+        session.app_version = "1.0"
+        session.is_playing = True
+        session.supports_remote_control = True
+        session.supported_commands = ["SetVolume", "Mute"]
+        session.play_state = MagicMock()
+        session.play_state.can_seek = True
+        session.user_id = "user-123"
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+
+        assert (
+            player.supported_features & MediaPlayerEntityFeature.SEARCH_MEDIA
+        ) == MediaPlayerEntityFeature.SEARCH_MEDIA
+
+    @pytest.mark.asyncio
+    async def test_search_media_returns_results(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_search_media returns search results."""
+        from homeassistant.components.media_player.browse_media import (
+            SearchMedia,
+            SearchMediaQuery,
+        )
+
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.device_name = "Test Device"
+        session.client_name = "Test Client"
+        session.app_version = "1.0"
+        session.is_playing = False
+        session.supports_remote_control = True
+        session.supported_commands = []
+        session.play_state = None
+        session.user_id = "user-123"
+        session.now_playing = None
+
+        mock_coordinator.get_session.return_value = session
+
+        # Mock the API search response
+        mock_coordinator.client.async_search_items = AsyncMock(
+            return_value=[
+                {
+                    "Id": "episode-123",
+                    "Name": "The X-Files S01E12",
+                    "Type": "Episode",
+                    "ImageTags": {"Primary": "tag123"},
+                },
+                {
+                    "Id": "movie-456",
+                    "Name": "The X-Files: Fight the Future",
+                    "Type": "Movie",
+                    "ImageTags": {},
+                },
+            ]
+        )
+        mock_coordinator.client.get_image_url = MagicMock(
+            return_value="http://emby/image"
+        )
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+
+        query = SearchMediaQuery(search_query="X-Files Season 1 Episode 12")
+        result = await player.async_search_media(query)
+
+        assert isinstance(result, SearchMedia)
+        assert len(result.result) == 2
+        assert result.result[0].title == "The X-Files S01E12"
+        assert result.result[1].title == "The X-Files: Fight the Future"
+
+    @pytest.mark.asyncio
+    async def test_search_media_with_type_filter(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_search_media respects media_content_type filter."""
+        from homeassistant.components.media_player import MediaType
+        from homeassistant.components.media_player.browse_media import (
+            SearchMedia,
+            SearchMediaQuery,
+        )
+
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.device_name = "Test Device"
+        session.client_name = "Test Client"
+        session.app_version = "1.0"
+        session.is_playing = False
+        session.supports_remote_control = True
+        session.supported_commands = []
+        session.play_state = None
+        session.user_id = "user-123"
+        session.now_playing = None
+
+        mock_coordinator.get_session.return_value = session
+
+        mock_coordinator.client.async_search_items = AsyncMock(return_value=[])
+        mock_coordinator.client.get_image_url = MagicMock(
+            return_value="http://emby/image"
+        )
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+
+        query = SearchMediaQuery(
+            search_query="Dark Knight",
+            media_content_type=MediaType.MOVIE,
+        )
+        await player.async_search_media(query)
+
+        # Verify the search was called with movie type filter
+        mock_coordinator.client.async_search_items.assert_called_once()
+        call_kwargs = mock_coordinator.client.async_search_items.call_args
+        assert "Movie" in (call_kwargs.kwargs.get("include_item_types") or "")
+
+    @pytest.mark.asyncio
+    async def test_search_media_no_session_returns_empty(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_search_media returns empty results when no session."""
+        from homeassistant.components.media_player.browse_media import (
+            SearchMedia,
+            SearchMediaQuery,
+        )
+
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+
+        query = SearchMediaQuery(search_query="anything")
+        result = await player.async_search_media(query)
+
+        assert isinstance(result, SearchMedia)
+        assert len(result.result) == 0
+
+    @pytest.mark.asyncio
+    async def test_search_media_no_user_returns_empty(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_search_media returns empty when session has no user."""
+        from homeassistant.components.media_player.browse_media import (
+            SearchMedia,
+            SearchMediaQuery,
+        )
+
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.user_id = None  # No user ID
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+
+        query = SearchMediaQuery(search_query="anything")
+        result = await player.async_search_media(query)
+
+        assert isinstance(result, SearchMedia)
+        assert len(result.result) == 0

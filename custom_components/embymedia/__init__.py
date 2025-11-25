@@ -24,6 +24,7 @@ from .const import (
 )
 from .coordinator import EmbyDataUpdateCoordinator
 from .exceptions import EmbyAuthenticationError, EmbyConnectionError
+from .image import async_setup_image_proxy
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -99,6 +100,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> bool
         name=server_name,
         sw_version=str(server_info.get("Version", "Unknown")),
     )
+
+    # Register image proxy view (only once, for first config entry)
+    if DOMAIN not in hass.data:
+        hass.data[DOMAIN] = {}
+    if "image_proxy_registered" not in hass.data[DOMAIN]:
+        await async_setup_image_proxy(hass)
+        hass.data[DOMAIN]["image_proxy_registered"] = True
 
     # Forward setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

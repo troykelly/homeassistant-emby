@@ -171,10 +171,10 @@ The integration provides:
 ### 5.2 Content Type Hierarchy
 - [x] **Movies**: Library → Movie
 - [x] **TV Shows**: Library → Series → Season → Episode
-- [ ] **Music**: Library → Artist → Album → Track (partial - Albums work)
-- [ ] **Playlists**: Library → Playlist → Items
-- [ ] **Collections**: Library → Collection → Items
-- [ ] **Live TV**: Channels → Programs (if enabled)
+- [x] **Music**: Library → Categories → A-Z → Artist/Album/Genre/Playlist → Track
+- [x] **Playlists**: Library → Playlist → Items
+- [x] **Collections**: Library → Collection → Items
+- [x] **Live TV**: Library → Channels
 
 ### 5.3 Browse Media Response Building
 - [x] `BrowseMedia` object construction
@@ -185,14 +185,14 @@ The integration provides:
 ### 5.4 Play from Browse
 - [x] `async_play_media(media_type, media_id)`
 - [x] Queue single items
-- [ ] Queue entire albums/seasons
-- [ ] Shuffle/repeat options
+- [x] Queue entire albums/seasons/playlists
+- [x] Shuffle/repeat mode support
 - [x] `POST /Sessions/{id}/Playing` with ItemIds
 
 **Deliverables:**
 - ✅ Full library browsing in HA media browser
 - ✅ Play any content directly from browse UI
-- ✅ Support for Movies and TV Shows content types
+- ✅ Support for all content types (Movies, TV, Music, Playlists, Collections, Live TV)
 
 ---
 
@@ -230,7 +230,7 @@ The integration provides:
 
 ---
 
-## Phase 7: Real-Time Updates (WebSocket) ✅
+## Phase 7: Real-Time Updates & Enhanced Features ✅
 
 ### 7.1 WebSocket Connection
 - [x] Connect to Emby WebSocket API
@@ -258,11 +258,32 @@ The integration provides:
 - [x] `EmbyWebSocketConnectionError` - Connection failures
 - [x] `EmbyWebSocketAuthError` - Authentication failures
 
+### 7.5 Voice Assistant Search Support (Extended)
+- [x] `async_search_media()` method for voice commands
+- [x] `MediaPlayerEntityFeature.SEARCH_MEDIA` feature flag
+- [x] `async_search_items()` API method
+- [x] MediaType to Emby type mapping
+- [x] Support for "Play X-Files Season 1 Episode 12" style commands
+
+### 7.6 Enhanced Music Library Browsing (Extended)
+- [x] Category-based navigation (Artists, Albums, Genres, Playlists)
+- [x] A-Z letter filtering for large collections
+- [x] `name_starts_with` API parameter
+- [x] `async_get_music_genres()` API method
+- [x] Playlist playability support
+
+### 7.7 Live TV Browsing Fix (Extended)
+- [x] Live TV library routes to channel listing
+- [x] Channel playback support
+
 **Deliverables:**
-- ✅ Near-instant state updates
+- ✅ Near-instant state updates via WebSocket
 - ✅ Reduced server load (60s polling with WebSocket vs 10s without)
 - ✅ Improved responsiveness
 - ✅ Graceful fallback to polling
+- ✅ Voice assistant search support
+- ✅ Music library category navigation with A-Z filtering
+- ✅ Live TV browsing works correctly
 
 ---
 

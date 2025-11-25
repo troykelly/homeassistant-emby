@@ -32,6 +32,8 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 log_cli = true
 log_cli_level = "DEBUG"
+# Exclude live tests by default (they require network and are run separately)
+norecursedirs = ["tests/live"]
 
 [tool.mypy]
 python_version = "3.13"

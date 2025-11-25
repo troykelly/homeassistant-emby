@@ -19,15 +19,22 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .api import EmbyClient
 from .const import (
     CONF_API_KEY,
+    CONF_DIRECT_PLAY,
+    CONF_MAX_AUDIO_BITRATE,
+    CONF_MAX_VIDEO_BITRATE,
     CONF_VERIFY_SSL,
+    CONF_VIDEO_CONTAINER,
+    DEFAULT_DIRECT_PLAY,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SSL,
     DEFAULT_VERIFY_SSL,
+    DEFAULT_VIDEO_CONTAINER,
     DOMAIN,
     EMBY_MIN_VERSION,
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
+    VIDEO_CONTAINERS,
     EmbyConfigFlowUserInput,
     EmbyServerInfo,
     normalize_host,
@@ -387,7 +394,7 @@ class EmbyOptionsFlowHandler(OptionsFlow):  # type: ignore[misc]
 
     async def async_step_init(
         self,
-        user_input: dict[str, int] | None = None,
+        user_input: dict[str, int | bool | str] | None = None,
     ) -> ConfigFlowResult:
         """Manage the options.
 
@@ -413,6 +420,26 @@ class EmbyOptionsFlowHandler(OptionsFlow):  # type: ignore[misc]
                         vol.Coerce(int),
                         vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
                     ),
+                    vol.Optional(
+                        CONF_DIRECT_PLAY,
+                        default=self.config_entry.options.get(
+                            CONF_DIRECT_PLAY, DEFAULT_DIRECT_PLAY
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_VIDEO_CONTAINER,
+                        default=self.config_entry.options.get(
+                            CONF_VIDEO_CONTAINER, DEFAULT_VIDEO_CONTAINER
+                        ),
+                    ): vol.In(VIDEO_CONTAINERS),
+                    vol.Optional(
+                        CONF_MAX_VIDEO_BITRATE,
+                        default=self.config_entry.options.get(CONF_MAX_VIDEO_BITRATE),
+                    ): vol.Any(None, vol.All(vol.Coerce(int), vol.Range(min=1))),
+                    vol.Optional(
+                        CONF_MAX_AUDIO_BITRATE,
+                        default=self.config_entry.options.get(CONF_MAX_AUDIO_BITRATE),
+                    ): vol.Any(None, vol.All(vol.Coerce(int), vol.Range(min=1))),
                 }
             ),
         )
