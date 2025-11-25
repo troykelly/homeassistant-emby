@@ -13,6 +13,11 @@ from custom_components.embymedia.browse import (
 class TestContentIdEncoding:
     """Test content ID encoding functions."""
 
+    def test_encode_content_id_no_ids(self) -> None:
+        """Test encoding content ID with no IDs."""
+        result = encode_content_id("root")
+        assert result == "root"
+
     def test_encode_content_id_single(self) -> None:
         """Test encoding content ID with single ID."""
         result = encode_content_id("library", "abc123")
