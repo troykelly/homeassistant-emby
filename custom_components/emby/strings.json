@@ -1,0 +1,57 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Emby Server",
+        "description": "Enter your Emby server connection details.",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "ssl": "Use SSL",
+          "api_key": "API Key",
+          "verify_ssl": "Verify SSL Certificate"
+        },
+        "data_description": {
+          "host": "Hostname or IP address of your Emby server (e.g., 192.168.1.100 or emby.local)",
+          "port": "Port number (default: 8096, or 8920 for HTTPS)",
+          "ssl": "Enable HTTPS connection",
+          "api_key": "API key from Emby Dashboard > Advanced > API Keys",
+          "verify_ssl": "Verify SSL certificate (disable only for self-signed certificates)"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate Emby Server",
+        "description": "The API key for {server_name} is no longer valid. Please enter a new API key."
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Emby server. Please check the host and port.",
+      "invalid_auth": "Invalid API key. Please check your API key in Emby Dashboard > Advanced > API Keys.",
+      "invalid_host": "Invalid hostname or IP address",
+      "invalid_port": "Port must be between 1 and 65535",
+      "timeout": "Connection timed out. The server may be unreachable or slow to respond.",
+      "ssl_error": "SSL certificate verification failed. Enable 'Verify SSL Certificate' option or check your certificate.",
+      "unsupported_version": "Emby server version {version} is not supported. Minimum required: {min_version}",
+      "unknown": "An unexpected error occurred. Please check the logs for details."
+    },
+    "abort": {
+      "already_configured": "This Emby server is already configured",
+      "reauth_successful": "Re-authentication successful",
+      "unsupported_version": "This Emby server version is not supported"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Emby Options",
+        "description": "Configure optional settings for the Emby integration.",
+        "data": {
+          "scan_interval": "Scan interval (seconds)"
+        },
+        "data_description": {
+          "scan_interval": "How often to poll the Emby server for updates (5-300 seconds)"
+        }
+      }
+    }
+  }
+}
