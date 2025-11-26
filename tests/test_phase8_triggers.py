@@ -180,20 +180,22 @@ class TestEventFiring:
         coordinator._previous_sessions = {"device-1"}
         coordinator.data = {"device-1": old_session}
 
-        coordinator._process_sessions_data([
-            {
-                "Id": "sess-1",
-                "DeviceId": "device-1",
-                "DeviceName": "Test Device",
-                "Client": "Test Client",
-                "SupportsRemoteControl": True,
-                "NowPlayingItem": {
-                    "Id": "item-1",
-                    "Name": "Test Movie",
-                    "Type": "Movie",
-                },
-            }
-        ])
+        coordinator._process_sessions_data(
+            [
+                {
+                    "Id": "sess-1",
+                    "DeviceId": "device-1",
+                    "DeviceName": "Test Device",
+                    "Client": "Test Client",
+                    "SupportsRemoteControl": True,
+                    "NowPlayingItem": {
+                        "Id": "item-1",
+                        "Name": "Test Movie",
+                        "Type": "Movie",
+                    },
+                }
+            ]
+        )
 
         # Allow event processing
         await hass.async_block_till_done()

@@ -1828,7 +1828,11 @@ class TestMusicBrowsingEdgeCases:
             "Items": [
                 {"Id": "artist-1", "Name": "2Pac", "Type": "MusicArtist"},
                 {"Id": "artist-2", "Name": "3 Doors Down", "Type": "MusicArtist"},
-                {"Id": "artist-3", "Name": "AC/DC", "Type": "MusicArtist"},  # Should be filtered out
+                {
+                    "Id": "artist-3",
+                    "Name": "AC/DC",
+                    "Type": "MusicArtist",
+                },  # Should be filtered out
             ],
             "TotalRecordCount": 3,
             "StartIndex": 0,
@@ -2299,7 +2303,12 @@ class TestMovieLibraryBrowsing:
             return_value={
                 "Items": [
                     {"Id": "box-1", "Name": "Marvel Collection", "Type": "BoxSet", "ImageTags": {}},
-                    {"Id": "box-2", "Name": "Star Wars Collection", "Type": "BoxSet", "ImageTags": {}},
+                    {
+                        "Id": "box-2",
+                        "Name": "Star Wars Collection",
+                        "Type": "BoxSet",
+                        "ImageTags": {},
+                    },
                 ],
                 "TotalRecordCount": 2,
             }
@@ -2588,7 +2597,12 @@ class TestTVShowLibraryBrowsing:
         mock_coordinator_for_browse.client.async_get_items = AsyncMock(
             return_value={
                 "Items": [
-                    {"Id": "movie-1", "Name": "2001: A Space Odyssey", "Type": "Movie", "ImageTags": {}},
+                    {
+                        "Id": "movie-1",
+                        "Name": "2001: A Space Odyssey",
+                        "Type": "Movie",
+                        "ImageTags": {},
+                    },
                     {"Id": "movie-2", "Name": "Alien", "Type": "Movie", "ImageTags": {}},
                 ],
                 "TotalRecordCount": 2,

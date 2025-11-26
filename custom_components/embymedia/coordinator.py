@@ -32,19 +32,21 @@ if TYPE_CHECKING:
     from .const import EmbySessionResponse
 
 # Client names that indicate web browser sessions
-WEB_PLAYER_CLIENTS: frozenset[str] = frozenset({
-    "Emby Web",
-    "Emby Mobile Web",
-    "Chrome",
-    "Firefox",
-    "Safari",
-    "Edge",
-    "Opera",
-    "Brave",
-    "Vivaldi",
-    "Internet Explorer",
-    "Microsoft Edge",
-})
+WEB_PLAYER_CLIENTS: frozenset[str] = frozenset(
+    {
+        "Emby Web",
+        "Emby Mobile Web",
+        "Chrome",
+        "Firefox",
+        "Safari",
+        "Edge",
+        "Opera",
+        "Brave",
+        "Vivaldi",
+        "Internet Explorer",
+        "Microsoft Edge",
+    }
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -132,9 +134,7 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
     def ignore_web_players(self) -> bool:
         """Return True if web browser players should be ignored."""
         return bool(
-            self.config_entry.options.get(
-                CONF_IGNORE_WEB_PLAYERS, DEFAULT_IGNORE_WEB_PLAYERS
-            )
+            self.config_entry.options.get(CONF_IGNORE_WEB_PLAYERS, DEFAULT_IGNORE_WEB_PLAYERS)
         )
 
     def _is_web_player(self, session: EmbySession) -> bool:

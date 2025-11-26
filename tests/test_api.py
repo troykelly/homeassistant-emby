@@ -1576,9 +1576,7 @@ class TestSearchItems:
                 port=8096,
                 api_key="test-key",
             )
-            result = await client.async_search_items(
-                "user-123", "X Files Season 1 Episode 12"
-            )
+            result = await client.async_search_items("user-123", "X Files Season 1 Episode 12")
 
             assert len(result) == 2
             assert result[0]["Name"] == "X Files S1E12"
@@ -1617,9 +1615,7 @@ class TestSearchItems:
                 port=8096,
                 api_key="test-key",
             )
-            await client.async_search_items(
-                "user-123", "Test", include_item_types="Episode,Movie"
-            )
+            await client.async_search_items("user-123", "Test", include_item_types="Episode,Movie")
 
             call_args = mock_session.request.call_args
             assert "IncludeItemTypes=Episode%2CMovie" in str(call_args)

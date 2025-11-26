@@ -181,9 +181,7 @@ class TestCacheDecorator:
         call_count = 0
 
         @cached(cache, "test_func")
-        async def test_func(
-            user_id: str, parent_id: str | None = None
-        ) -> dict[str, str | None]:
+        async def test_func(user_id: str, parent_id: str | None = None) -> dict[str, str | None]:
             nonlocal call_count
             call_count += 1
             return {"user_id": user_id, "parent_id": parent_id}

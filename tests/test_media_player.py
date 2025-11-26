@@ -1961,9 +1961,7 @@ class TestEmbyMediaPlayerSearchMedia:
                 },
             ]
         )
-        mock_coordinator.client.get_image_url = MagicMock(
-            return_value="http://emby/image"
-        )
+        mock_coordinator.client.get_image_url = MagicMock(return_value="http://emby/image")
 
         player = EmbyMediaPlayer(mock_coordinator, "device-123")
 
@@ -2002,9 +2000,7 @@ class TestEmbyMediaPlayerSearchMedia:
         mock_coordinator.get_session.return_value = session
 
         mock_coordinator.client.async_search_items = AsyncMock(return_value=[])
-        mock_coordinator.client.get_image_url = MagicMock(
-            return_value="http://emby/image"
-        )
+        mock_coordinator.client.get_image_url = MagicMock(return_value="http://emby/image")
 
         player = EmbyMediaPlayer(mock_coordinator, "device-123")
 

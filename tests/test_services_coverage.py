@@ -226,9 +226,10 @@ class TestGetCoordinatorForEntity:
         )
 
         # Mock async_get_entry to return None (simulating stale config entry reference)
-        with patch.object(
-            hass.config_entries, "async_get_entry", return_value=None
-        ), pytest.raises(HomeAssistantError) as exc_info:
+        with (
+            patch.object(hass.config_entries, "async_get_entry", return_value=None),
+            pytest.raises(HomeAssistantError) as exc_info,
+        ):
             _get_coordinator_for_entity(hass, entry.entity_id)
 
         assert "Config entry" in str(exc_info.value) and "not found" in str(exc_info.value)
@@ -242,9 +243,7 @@ class TestGetSessionIdForEntity:
         """Test returns None when entity not found."""
         mock_coordinator = MagicMock()
 
-        result = _get_session_id_for_entity(
-            hass, "media_player.nonexistent", mock_coordinator
-        )
+        result = _get_session_id_for_entity(hass, "media_player.nonexistent", mock_coordinator)
         assert result is None
 
     @pytest.mark.asyncio
@@ -270,9 +269,7 @@ class TestGetSessionIdForEntity:
         mock_coordinator = MagicMock()
         mock_coordinator.data = {}
 
-        result = _get_session_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_session_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result is None
 
     @pytest.mark.asyncio
@@ -296,9 +293,7 @@ class TestGetSessionIdForEntity:
         mock_coordinator = MagicMock()
         mock_coordinator.data = None
 
-        result = _get_session_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_session_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result is None
 
     @pytest.mark.asyncio
@@ -321,9 +316,7 @@ class TestGetSessionIdForEntity:
         mock_coordinator = MagicMock()
         mock_coordinator.data = {}  # Empty, no session for this entity
 
-        result = _get_session_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_session_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result is None
 
     @pytest.mark.asyncio
@@ -351,9 +344,7 @@ class TestGetSessionIdForEntity:
         # Coordinator data is keyed by device_id (extracted from unique_id)
         mock_coordinator.data = {"device-123": mock_session}
 
-        result = _get_session_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_session_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result == "session-123"
 
 
@@ -365,9 +356,7 @@ class TestGetUserIdForEntity:
         """Test returns None when entity not found."""
         mock_coordinator = MagicMock()
 
-        result = _get_user_id_for_entity(
-            hass, "media_player.nonexistent", mock_coordinator
-        )
+        result = _get_user_id_for_entity(hass, "media_player.nonexistent", mock_coordinator)
         assert result is None
 
     @pytest.mark.asyncio
@@ -391,9 +380,7 @@ class TestGetUserIdForEntity:
         mock_coordinator = MagicMock()
         mock_coordinator.data = {}
 
-        result = _get_user_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_user_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result is None
 
     @pytest.mark.asyncio
@@ -417,9 +404,7 @@ class TestGetUserIdForEntity:
         mock_coordinator = MagicMock()
         mock_coordinator.data = {}
 
-        result = _get_user_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_user_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result is None
 
     @pytest.mark.asyncio
@@ -443,9 +428,7 @@ class TestGetUserIdForEntity:
         mock_coordinator = MagicMock()
         mock_coordinator.data = None
 
-        result = _get_user_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_user_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result is None
 
     @pytest.mark.asyncio
@@ -473,9 +456,7 @@ class TestGetUserIdForEntity:
         # Coordinator data is keyed by device_id (extracted from unique_id)
         mock_coordinator.data = {"device-123": mock_session}
 
-        result = _get_user_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_user_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result == "user-from-session"
 
     @pytest.mark.asyncio
@@ -514,9 +495,7 @@ class TestGetUserIdForEntity:
         # Coordinator data is keyed by device_id (extracted from unique_id)
         mock_coordinator.data = {"device-123": mock_session}
 
-        result = _get_user_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_user_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result == "user-from-config"
 
 
@@ -532,9 +511,7 @@ class TestServicesSetup:
         """Test all services are registered on setup."""
         mock_config_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
@@ -572,9 +549,7 @@ class TestServicesSetup:
         """Test services are unregistered on unload."""
         mock_config_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
@@ -630,9 +605,7 @@ class TestServiceHandlers:
         ]
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
                 new_callable=AsyncMock,
@@ -656,9 +629,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -706,9 +677,7 @@ class TestServiceHandlers:
         ]
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
                 new_callable=AsyncMock,
@@ -732,9 +701,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -778,9 +745,7 @@ class TestServiceHandlers:
             }
         ]
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
@@ -803,9 +768,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -849,9 +812,7 @@ class TestServiceHandlers:
             }
         ]
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
@@ -874,9 +835,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -920,9 +879,7 @@ class TestServiceHandlers:
             }
         ]
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
@@ -945,9 +902,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -990,9 +945,7 @@ class TestServiceHandlers:
             }
         ]
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
@@ -1015,9 +968,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1060,9 +1011,7 @@ class TestServiceHandlers:
             }
         ]
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
@@ -1085,9 +1034,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1129,9 +1076,7 @@ class TestServiceHandlers:
             }
         ]
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
@@ -1154,9 +1099,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1195,9 +1138,7 @@ class TestServiceHandlers:
             }
         ]
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
@@ -1220,9 +1161,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1260,9 +1199,7 @@ class TestServiceEdgeCases:
 
         mock_config_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
@@ -1326,9 +1263,7 @@ class TestServiceEdgeCases:
             }
         ]
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
@@ -1350,9 +1285,7 @@ class TestServiceEdgeCases:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1383,9 +1316,7 @@ class TestServiceEdgeCases:
         """Test send_message skips entity when no session found."""
         mock_config_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
@@ -1423,9 +1354,7 @@ class TestServiceEdgeCases:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1505,9 +1434,7 @@ class TestServiceEdgeCases:
         ]
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
                 new_callable=AsyncMock,
@@ -1530,9 +1457,7 @@ class TestServiceEdgeCases:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1576,9 +1501,7 @@ class TestServiceEdgeCases:
         ]
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
                 new_callable=AsyncMock,
@@ -1601,9 +1524,7 @@ class TestServiceEdgeCases:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1647,9 +1568,7 @@ class TestServiceEdgeCases:
         ]
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
                 new_callable=AsyncMock,
@@ -1672,9 +1591,7 @@ class TestServiceEdgeCases:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":

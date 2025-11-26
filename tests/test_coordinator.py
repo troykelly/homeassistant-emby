@@ -894,9 +894,7 @@ class TestCoordinatorWebSocket:
 
         # Create a mock websocket that raises an exception
         mock_ws = SyncMagicMock()
-        mock_ws._async_receive_loop = AsyncMock(
-            side_effect=RuntimeError("Connection lost")
-        )
+        mock_ws._async_receive_loop = AsyncMock(side_effect=RuntimeError("Connection lost"))
 
         coordinator._websocket = mock_ws
         coordinator._websocket_enabled = True
@@ -1330,9 +1328,7 @@ class TestCoordinatorRecovery:
         """Test recovery attempt succeeds."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
-        mock_emby_client.async_get_server_info = AsyncMock(
-            return_value={"Id": "server-123"}
-        )
+        mock_emby_client.async_get_server_info = AsyncMock(return_value={"Id": "server-123"})
 
         coordinator = EmbyDataUpdateCoordinator(
             hass=hass,
@@ -1385,9 +1381,7 @@ class TestCoordinatorRecovery:
         """Test recovery attempt also reconnects WebSocket."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
-        mock_emby_client.async_get_server_info = AsyncMock(
-            return_value={"Id": "server-123"}
-        )
+        mock_emby_client.async_get_server_info = AsyncMock(return_value={"Id": "server-123"})
 
         mock_websocket = MagicMock()
         mock_websocket.async_start_reconnect_loop = AsyncMock()
@@ -1458,20 +1452,22 @@ class TestCoordinatorPlaybackEvents:
         coordinator.data = {"device-1": old_session}
 
         # Process new state: something playing
-        coordinator._process_sessions_data([
-            {
-                "Id": "sess-1",
-                "DeviceId": "device-1",
-                "DeviceName": "Test Device",
-                "Client": "Test Client",
-                "SupportsRemoteControl": True,
-                "NowPlayingItem": {
-                    "Id": "item-1",
-                    "Name": "Test Movie",
-                    "Type": "Movie",
-                },
-            }
-        ])
+        coordinator._process_sessions_data(
+            [
+                {
+                    "Id": "sess-1",
+                    "DeviceId": "device-1",
+                    "DeviceName": "Test Device",
+                    "Client": "Test Client",
+                    "SupportsRemoteControl": True,
+                    "NowPlayingItem": {
+                        "Id": "item-1",
+                        "Name": "Test Movie",
+                        "Type": "Movie",
+                    },
+                }
+            ]
+        )
 
         await hass.async_block_till_done()
 
@@ -1532,15 +1528,17 @@ class TestCoordinatorPlaybackEvents:
         coordinator.data = {"device-1": old_session}
 
         # Process new state: nothing playing
-        coordinator._process_sessions_data([
-            {
-                "Id": "sess-1",
-                "DeviceId": "device-1",
-                "DeviceName": "Test Device",
-                "Client": "Test Client",
-                "SupportsRemoteControl": True,
-            }
-        ])
+        coordinator._process_sessions_data(
+            [
+                {
+                    "Id": "sess-1",
+                    "DeviceId": "device-1",
+                    "DeviceName": "Test Device",
+                    "Client": "Test Client",
+                    "SupportsRemoteControl": True,
+                }
+            ]
+        )
 
         await hass.async_block_till_done()
 
@@ -1599,20 +1597,22 @@ class TestCoordinatorPlaybackEvents:
         coordinator.data = {"device-1": old_session}
 
         # Process new state: playing movie 2 (different item)
-        coordinator._process_sessions_data([
-            {
-                "Id": "sess-1",
-                "DeviceId": "device-1",
-                "DeviceName": "Test Device",
-                "Client": "Test Client",
-                "SupportsRemoteControl": True,
-                "NowPlayingItem": {
-                    "Id": "item-2",
-                    "Name": "Test Movie 2",
-                    "Type": "Movie",
-                },
-            }
-        ])
+        coordinator._process_sessions_data(
+            [
+                {
+                    "Id": "sess-1",
+                    "DeviceId": "device-1",
+                    "DeviceName": "Test Device",
+                    "Client": "Test Client",
+                    "SupportsRemoteControl": True,
+                    "NowPlayingItem": {
+                        "Id": "item-2",
+                        "Name": "Test Movie 2",
+                        "Type": "Movie",
+                    },
+                }
+            ]
+        )
 
         await hass.async_block_till_done()
 
@@ -1677,23 +1677,25 @@ class TestCoordinatorPlaybackEvents:
         coordinator.data = {"device-1": old_session}
 
         # Process new state: paused
-        coordinator._process_sessions_data([
-            {
-                "Id": "sess-1",
-                "DeviceId": "device-1",
-                "DeviceName": "Test Device",
-                "Client": "Test Client",
-                "SupportsRemoteControl": True,
-                "NowPlayingItem": {
-                    "Id": "item-1",
-                    "Name": "Test Movie",
-                    "Type": "Movie",
-                },
-                "PlayState": {
-                    "IsPaused": True,
-                },
-            }
-        ])
+        coordinator._process_sessions_data(
+            [
+                {
+                    "Id": "sess-1",
+                    "DeviceId": "device-1",
+                    "DeviceName": "Test Device",
+                    "Client": "Test Client",
+                    "SupportsRemoteControl": True,
+                    "NowPlayingItem": {
+                        "Id": "item-1",
+                        "Name": "Test Movie",
+                        "Type": "Movie",
+                    },
+                    "PlayState": {
+                        "IsPaused": True,
+                    },
+                }
+            ]
+        )
 
         await hass.async_block_till_done()
 
@@ -1703,37 +1705,41 @@ class TestCoordinatorPlaybackEvents:
 
         # Reset events and update old state
         events.clear()
-        coordinator.data = {"device-1": EmbySession(
-            session_id="sess-1",
-            device_id="device-1",
-            device_name="Test Device",
-            client_name="Test Client",
-            now_playing=EmbyMediaItem(
-                item_id="item-1",
-                name="Test Movie",
-                media_type=MediaType.MOVIE,
-            ),
-            play_state=EmbyPlaybackState(is_paused=True),
-        )}
+        coordinator.data = {
+            "device-1": EmbySession(
+                session_id="sess-1",
+                device_id="device-1",
+                device_name="Test Device",
+                client_name="Test Client",
+                now_playing=EmbyMediaItem(
+                    item_id="item-1",
+                    name="Test Movie",
+                    media_type=MediaType.MOVIE,
+                ),
+                play_state=EmbyPlaybackState(is_paused=True),
+            )
+        }
 
         # Process resumed state
-        coordinator._process_sessions_data([
-            {
-                "Id": "sess-1",
-                "DeviceId": "device-1",
-                "DeviceName": "Test Device",
-                "Client": "Test Client",
-                "SupportsRemoteControl": True,
-                "NowPlayingItem": {
-                    "Id": "item-1",
-                    "Name": "Test Movie",
-                    "Type": "Movie",
-                },
-                "PlayState": {
-                    "IsPaused": False,
-                },
-            }
-        ])
+        coordinator._process_sessions_data(
+            [
+                {
+                    "Id": "sess-1",
+                    "DeviceId": "device-1",
+                    "DeviceName": "Test Device",
+                    "Client": "Test Client",
+                    "SupportsRemoteControl": True,
+                    "NowPlayingItem": {
+                        "Id": "item-1",
+                        "Name": "Test Movie",
+                        "Type": "Movie",
+                    },
+                    "PlayState": {
+                        "IsPaused": False,
+                    },
+                }
+            ]
+        )
 
         await hass.async_block_till_done()
 

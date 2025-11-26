@@ -41,9 +41,7 @@ class TestSendMessageService:
         mock_entry.add_to_hass(hass)
 
         # Verify service exists after setup
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
@@ -89,9 +87,7 @@ class TestLibraryServices:
         )
         mock_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
@@ -145,9 +141,7 @@ class TestDeviceIdTargeting:
         )
         mock_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
@@ -184,9 +178,7 @@ class TestDeviceIdTargeting:
             entity_reg = er.async_get(hass)
 
             # Find the device that has a media_player entity (session device)
-            devices = dr.async_entries_for_config_entry(
-                device_reg, mock_entry.entry_id
-            )
+            devices = dr.async_entries_for_config_entry(device_reg, mock_entry.entry_id)
             assert len(devices) >= 1, "Expected at least one device"
 
             # Find device with an entity attached
