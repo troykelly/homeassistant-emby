@@ -325,36 +325,36 @@ The integration provides:
 
 ---
 
-## Phase 8: Advanced Features
+## Phase 8: Advanced Features ✅
 
-### 8.1 Multiple Users Support
-- [ ] Per-user authentication option
-- [ ] User-specific libraries and restrictions
-- [ ] Switch user context in options flow
-- [ ] User avatar display
+### 8.1 Multiple Users Support ✅
+- [x] Per-user authentication option (user selection in config flow)
+- [x] User-specific libraries and restrictions (user_id context)
+- [x] User context in coordinator
+- [ ] User avatar display (optional, not implemented)
 
-### 8.2 Remote Control Features
-- [ ] Send messages to clients (`POST /Sessions/{id}/Message`)
-- [ ] Display notification on client
-- [ ] Navigate client UI (`POST /Sessions/{id}/Command`)
-- [ ] General command support
+### 8.2 Remote Control Features ✅
+- [x] Send messages to clients (`embymedia.send_message` service)
+- [x] Display notification on client
+- [x] Navigate client UI (`embymedia.send_command` service)
+- [x] General command support
 
-### 8.3 Library Management Services
-- [ ] Mark item as played/unplayed
-- [ ] Update favorite status
-- [ ] Trigger library scan
-- [ ] Refresh item metadata
+### 8.3 Library Management Services ✅
+- [x] Mark item as played/unplayed (`embymedia.mark_played`, `embymedia.mark_unplayed`)
+- [x] Update favorite status (`embymedia.add_favorite`, `embymedia.remove_favorite`)
+- [x] Trigger library scan (`embymedia.refresh_library`)
+- [x] Refresh item metadata (API method exists)
 
-### 8.4 Automation Triggers
-- [ ] Device triggers for playback events
-- [ ] Conditions for player state
-- [ ] Custom events for automations
+### 8.4 Automation Triggers ✅
+- [x] Device triggers for playback events (7 trigger types)
+- [x] Custom events for automations (`embymedia_event`)
+- [x] Event firing from coordinator
 
 **Deliverables:**
-- Multi-user support
-- Remote control capabilities
-- Library management from HA
-- Automation integration
+- ✅ Multi-user support
+- ✅ Remote control capabilities
+- ✅ Library management from HA
+- ✅ Automation integration
 
 ---
 

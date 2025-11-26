@@ -19,6 +19,16 @@
           "verify_ssl": "Verify SSL certificate (disable only for self-signed certificates)"
         }
       },
+      "user_select": {
+        "title": "Select User",
+        "description": "Select a user context for {server_name}. Choose 'Use admin context' to use the API key without a specific user.",
+        "data": {
+          "user_id": "User"
+        },
+        "data_description": {
+          "user_id": "The user whose libraries and permissions will be used"
+        }
+      },
       "reauth_confirm": {
         "title": "Re-authenticate Emby Server",
         "description": "The API key for {server_name} is no longer valid. Please enter a new API key."
