@@ -6,10 +6,11 @@ import logging
 from typing import TYPE_CHECKING
 
 import voluptuous as vol
-from homeassistant.const import ATTR_ENTITY_ID
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.const import ATTR_DEVICE_ID, ATTR_ENTITY_ID
+from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN
@@ -37,10 +38,11 @@ ATTR_ITEM_ID = "item_id"
 ATTR_LIBRARY_ID = "library_id"
 ATTR_USER_ID = "user_id"
 
-# Service schemas
+# Service schemas - support both entity_id and device_id targeting
 SEND_MESSAGE_SCHEMA = vol.Schema(
     {
-        vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
         vol.Required(ATTR_MESSAGE): cv.string,
         vol.Optional(ATTR_HEADER, default=""): cv.string,
         vol.Optional(ATTR_TIMEOUT_MS, default=5000): vol.All(
@@ -51,14 +53,16 @@ SEND_MESSAGE_SCHEMA = vol.Schema(
 
 SEND_COMMAND_SCHEMA = vol.Schema(
     {
-        vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
         vol.Required(ATTR_COMMAND): cv.string,
     }
 )
 
 ITEM_ACTION_SCHEMA = vol.Schema(
     {
-        vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
         vol.Required(ATTR_ITEM_ID): cv.string,
         vol.Optional(ATTR_USER_ID): cv.string,
     }
@@ -66,10 +70,62 @@ ITEM_ACTION_SCHEMA = vol.Schema(
 
 REFRESH_LIBRARY_SCHEMA = vol.Schema(
     {
-        vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(ATTR_LIBRARY_ID): cv.string,
     }
 )
+
+
+def _get_entity_ids_from_call(hass: HomeAssistant, call: ServiceCall) -> list[str]:
+    """Get entity IDs from service call data (supports both entity_id and device_id).
+
+    Args:
+        hass: Home Assistant instance.
+        call: Service call data.
+
+    Returns:
+        List of entity IDs to target.
+
+    Raises:
+        ServiceValidationError: If no valid targets provided.
+    """
+    entity_ids: list[str] = []
+
+    # Get entity_ids directly specified
+    if ATTR_ENTITY_ID in call.data:
+        direct_ids = call.data[ATTR_ENTITY_ID]
+        if isinstance(direct_ids, list):
+            entity_ids.extend(direct_ids)
+        elif isinstance(direct_ids, str):
+            entity_ids.append(direct_ids)
+
+    # Get entity_ids from device_ids
+    if ATTR_DEVICE_ID in call.data:
+        device_ids = call.data[ATTR_DEVICE_ID]
+        if isinstance(device_ids, str):
+            device_ids = [device_ids]
+
+        device_registry = dr.async_get(hass)
+        entity_registry = er.async_get(hass)
+
+        for device_id in device_ids:
+            # Validate device exists and is an Emby device
+            device = device_registry.async_get(device_id)
+            if device is None:
+                raise ServiceValidationError(f"Device {device_id} not found")
+
+            # Find all entities for this device that belong to our domain
+            for entry in er.async_entries_for_device(entity_registry, device_id):
+                if entry.platform == DOMAIN:
+                    entity_ids.append(entry.entity_id)
+
+    if not entity_ids:
+        raise ServiceValidationError(
+            "No valid targets provided. Specify entity_id or device_id."
+        )
+
+    return entity_ids
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -84,7 +140,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def async_send_message(call: ServiceCall) -> None:
         """Send a message to Emby clients."""
-        entity_ids: list[str] = call.data[ATTR_ENTITY_ID]
+        entity_ids = _get_entity_ids_from_call(hass, call)
         message: str = call.data[ATTR_MESSAGE]
         header: str = call.data.get(ATTR_HEADER, "")
         timeout_ms: int = call.data.get(ATTR_TIMEOUT_MS, 5000)
@@ -103,7 +159,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def async_send_command(call: ServiceCall) -> None:
         """Send a command to Emby clients."""
-        entity_ids: list[str] = call.data[ATTR_ENTITY_ID]
+        entity_ids = _get_entity_ids_from_call(hass, call)
         command: str = call.data[ATTR_COMMAND]
 
         for entity_id in entity_ids:
@@ -118,7 +174,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def async_mark_played(call: ServiceCall) -> None:
         """Mark item as played."""
-        entity_ids: list[str] = call.data[ATTR_ENTITY_ID]
+        entity_ids = _get_entity_ids_from_call(hass, call)
         item_id: str = call.data[ATTR_ITEM_ID]
         user_id: str | None = call.data.get(ATTR_USER_ID)
 
@@ -141,7 +197,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def async_mark_unplayed(call: ServiceCall) -> None:
         """Mark item as unplayed."""
-        entity_ids: list[str] = call.data[ATTR_ENTITY_ID]
+        entity_ids = _get_entity_ids_from_call(hass, call)
         item_id: str = call.data[ATTR_ITEM_ID]
         user_id: str | None = call.data.get(ATTR_USER_ID)
 
@@ -164,7 +220,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def async_add_favorite(call: ServiceCall) -> None:
         """Add item to favorites."""
-        entity_ids: list[str] = call.data[ATTR_ENTITY_ID]
+        entity_ids = _get_entity_ids_from_call(hass, call)
         item_id: str = call.data[ATTR_ITEM_ID]
         user_id: str | None = call.data.get(ATTR_USER_ID)
 
@@ -187,7 +243,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def async_remove_favorite(call: ServiceCall) -> None:
         """Remove item from favorites."""
-        entity_ids: list[str] = call.data[ATTR_ENTITY_ID]
+        entity_ids = _get_entity_ids_from_call(hass, call)
         item_id: str = call.data[ATTR_ITEM_ID]
         user_id: str | None = call.data.get(ATTR_USER_ID)
 
@@ -210,7 +266,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
     async def async_refresh_library(call: ServiceCall) -> None:
         """Trigger library refresh."""
-        entity_ids: list[str] = call.data[ATTR_ENTITY_ID]
+        entity_ids = _get_entity_ids_from_call(hass, call)
         library_id: str | None = call.data.get(ATTR_LIBRARY_ID)
 
         for entity_id in entity_ids:
