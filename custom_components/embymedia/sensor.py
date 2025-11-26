@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING
 
 from homeassistant.components.sensor import (
     SensorEntity,
-    SensorEntityDescription,
     SensorStateClass,
 )
 from homeassistant.const import EntityCategory
@@ -18,11 +17,8 @@ from .const import DOMAIN
 from .coordinator import EmbyDataUpdateCoordinator
 from .coordinator_sensors import (
     EmbyLibraryCoordinator,
-    EmbyLibraryData,
     EmbyServerCoordinator,
-    EmbyServerData,
 )
-from .models import EmbySession
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant

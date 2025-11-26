@@ -54,12 +54,12 @@ from .const import (
     DEFAULT_VERIFY_SSL,
     DEFAULT_VIDEO_CONTAINER,
     DOMAIN,
-    EmbyRuntimeData,
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
     PLATFORMS,
     VIDEO_CONTAINERS,
     EmbyConfigEntry,
+    EmbyRuntimeData,
 )
 from .coordinator import EmbyDataUpdateCoordinator
 from .coordinator_sensors import EmbyLibraryCoordinator, EmbyServerCoordinator

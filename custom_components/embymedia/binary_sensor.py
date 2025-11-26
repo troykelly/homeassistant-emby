@@ -13,7 +13,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator_sensors import EmbyServerCoordinator, EmbyServerData
+from .coordinator_sensors import EmbyServerCoordinator
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
