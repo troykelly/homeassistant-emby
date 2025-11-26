@@ -1,4 +1,30 @@
 {
+  "exceptions": {
+    "connection_failed": {
+      "message": "Failed to connect to Emby server at {host}:{port}. Please check that the server is running and the host/port are correct."
+    },
+    "authentication_failed": {
+      "message": "Authentication failed. Please check your API key."
+    },
+    "server_error": {
+      "message": "The Emby server returned an error. Please check the server logs."
+    },
+    "not_found": {
+      "message": "The requested resource was not found on the server."
+    },
+    "timeout": {
+      "message": "Connection timed out. The server may be unreachable."
+    },
+    "ssl_error": {
+      "message": "SSL certificate verification failed. Check your certificate or disable verification."
+    },
+    "websocket_error": {
+      "message": "WebSocket connection error. Real-time updates may not be available."
+    },
+    "websocket_auth_failed": {
+      "message": "WebSocket authentication failed. Please check your API key."
+    }
+  },
   "config": {
     "step": {
       "user": {

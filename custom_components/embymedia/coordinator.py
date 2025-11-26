@@ -74,6 +74,9 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         self._websocket: EmbyWebSocket | None = None
         self._websocket_enabled: bool = False
         self._configured_scan_interval = scan_interval
+        # Resilience tracking
+        self._consecutive_failures: int = 0
+        self._max_consecutive_failures: int = 5
 
     @property
     def websocket(self) -> EmbyWebSocket | None:
@@ -86,19 +89,34 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         return self._websocket_enabled
 
     async def _async_update_data(self) -> dict[str, EmbySession]:
-        """Fetch session data from Emby server.
+        """Fetch session data from Emby server with graceful degradation.
 
         Returns:
             Dictionary mapping device_id to EmbySession.
 
         Raises:
-            UpdateFailed: If fetching data fails.
+            UpdateFailed: If fetching data fails and no cached data available.
         """
         try:
             sessions_data: list[EmbySessionResponse] = await self.client.async_get_sessions()
+            # Success - reset failure counter
+            self._consecutive_failures = 0
         except EmbyConnectionError as err:
+            self._consecutive_failures += 1
+            # Check if recovery is needed
+            if self._consecutive_failures >= self._max_consecutive_failures:
+                await self._attempt_recovery()
+            # Return cached data if available
+            if self.data is not None:
+                _LOGGER.warning(
+                    "Failed to fetch sessions, using cached data: %s",
+                    err,
+                )
+                cached: dict[str, EmbySession] = self.data
+                return cached
             raise UpdateFailed(f"Failed to connect to Emby server: {err}") from err
         except EmbyError as err:
+            self._consecutive_failures += 1
             raise UpdateFailed(f"Error fetching sessions: {err}") from err
 
         # Parse sessions and index by device_id
@@ -137,6 +155,27 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         self._previous_sessions = current_devices
 
         return sessions
+
+    async def _attempt_recovery(self) -> None:
+        """Attempt to recover from repeated failures.
+
+        Tries to reconnect WebSocket and verify server is responding.
+        """
+        _LOGGER.info(
+            "Attempting automatic recovery after %d failures",
+            self._consecutive_failures,
+        )
+
+        # Try to reconnect WebSocket by starting reconnect loop
+        if self._websocket is not None:
+            await self._websocket.async_start_reconnect_loop()
+
+        # Refresh server info to verify connectivity
+        try:
+            await self.client.async_get_server_info()
+            _LOGGER.info("Recovery successful, server is responding")
+        except EmbyError:
+            _LOGGER.warning("Recovery failed, server still unreachable")
 
     def get_session(self, device_id: str) -> EmbySession | None:
         """Get a specific session by device ID.
