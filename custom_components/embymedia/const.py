@@ -327,6 +327,88 @@ class MediaSourceIdentifier(TypedDict):
     item_id: str  # Emby item ID
 
 
+# =============================================================================
+# TypedDicts for Sensor Platform (Phase 12)
+# =============================================================================
+
+
+class EmbyItemCounts(TypedDict):
+    """Response from /Items/Counts endpoint.
+
+    Contains counts of various media types in the library.
+    """
+
+    MovieCount: int
+    SeriesCount: int
+    EpisodeCount: int
+    ArtistCount: int
+    AlbumCount: int
+    SongCount: int
+    GameCount: int
+    GameSystemCount: int
+    TrailerCount: int
+    MusicVideoCount: int
+    BoxSetCount: int
+    BookCount: int
+    ItemCount: int
+
+
+class EmbyScheduledTaskResult(TypedDict):
+    """Last execution result for a scheduled task."""
+
+    StartTimeUtc: str
+    EndTimeUtc: str
+    Status: str  # "Completed", "Failed", "Cancelled", "Aborted"
+    Name: str
+    Key: str
+    Id: str
+
+
+class EmbyScheduledTask(TypedDict, total=False):
+    """Response item from /ScheduledTasks endpoint.
+
+    Note: total=False means all fields are optional by default.
+    We make specific fields required by not using NotRequired.
+    """
+
+    # Required fields (always present)
+    Name: str
+    State: str  # "Idle", "Running", "Cancelling"
+    Id: str
+    Description: str
+    Category: str
+    IsHidden: bool
+    Key: str
+    Triggers: list[dict[str, object]]
+
+    # Optional fields (only present in certain conditions)
+    CurrentProgressPercentage: float  # Only when running
+    LastExecutionResult: EmbyScheduledTaskResult  # May not be present
+
+
+class EmbyVirtualFolderLocation(TypedDict):
+    """Location path within a virtual folder."""
+
+    Path: str
+
+
+class EmbyVirtualFolder(TypedDict, total=False):
+    """Response item from /Library/VirtualFolders endpoint.
+
+    Represents a library/virtual folder configuration.
+    """
+
+    # Required fields
+    Name: str
+    ItemId: str
+    CollectionType: str  # "movies", "tvshows", "music", etc.
+    Locations: list[str]
+
+    # Optional fields (only present during refresh)
+    RefreshProgress: float  # Progress percentage when refreshing
+    RefreshStatus: str  # "Active", "Idle"
+
+
 # MIME type mapping for media content
 MIME_TYPES: Final[dict[str, str]] = {
     "movie": "video/mp4",

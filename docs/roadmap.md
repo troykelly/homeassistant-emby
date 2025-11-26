@@ -527,6 +527,79 @@ The integration provides:
 
 ---
 
+## Phase 12: Sensor Platform - Server & Library Statistics
+
+### Overview
+
+Comprehensive sensor platform exposing Emby server health, library statistics, playback activity, and user data. Leverages WebSocket subscriptions for real-time updates.
+
+### 12.1 WebSocket Enhancements
+- [ ] Subscribe to `ScheduledTasksInfoStart` for task monitoring
+- [ ] Handle `ScheduledTasksInfo` messages in coordinator
+- [ ] Handle `LibraryChanged` event to trigger library refresh
+- [ ] Handle `RestartRequired` event to update server status
+
+### 12.2 New Coordinators
+- [ ] `EmbyLibraryCoordinator` - 1 hour polling for library counts
+- [ ] `EmbyServerCoordinator` - 5 min polling for server info
+- [ ] Early refresh triggers from WebSocket events
+
+### 12.3 Server Binary Sensors
+- [ ] `binary_sensor.emby_{server}_connected` - Server reachable
+- [ ] `binary_sensor.emby_{server}_websocket` - WebSocket connected
+- [ ] `binary_sensor.emby_{server}_pending_restart` - From `/System/Info`
+- [ ] `binary_sensor.emby_{server}_update_available` - From `/System/Info`
+- [ ] `binary_sensor.emby_{server}_library_scan_active` - With progress % attribute
+
+### 12.4 Server Numeric Sensors (Real-Time via WebSocket)
+- [ ] `sensor.emby_{server}_active_sessions` - Session count
+- [ ] `sensor.emby_{server}_active_streams` - Playing streams count
+- [ ] `sensor.emby_{server}_transcoding_streams` - Transcode count
+- [ ] `sensor.emby_{server}_direct_play_streams` - Direct play count
+- [ ] `sensor.emby_{server}_direct_stream_streams` - Direct stream count
+
+### 12.5 Server Diagnostic Sensors
+- [ ] `sensor.emby_{server}_version` - Server version
+- [ ] `sensor.emby_{server}_running_tasks` - Running task count
+
+### 12.6 Library Count Sensors (1 Hour Polling)
+- [ ] `sensor.emby_{server}_movies` - From `/Items/Counts`
+- [ ] `sensor.emby_{server}_series` - From `/Items/Counts`
+- [ ] `sensor.emby_{server}_episodes` - From `/Items/Counts`
+- [ ] `sensor.emby_{server}_albums` - From `/Items/Counts`
+- [ ] `sensor.emby_{server}_songs` - From `/Items/Counts`
+- [ ] `sensor.emby_{server}_artists` - From `/Items/Counts`
+
+### 12.7 Per-Library Sensors
+- [ ] Dynamic creation from `/Library/VirtualFolders`
+- [ ] `sensor.emby_{server}_{library}_items` for each library
+- [ ] Attributes: library_id, library_type, locations
+
+### 12.8 User Sensors (When User Configured)
+- [ ] `sensor.emby_{server}_{user}_favorites` - Favorite items count
+- [ ] `sensor.emby_{server}_{user}_watched` - Played items count
+- [ ] `sensor.emby_{server}_{user}_in_progress` - Resumable items count
+
+### 12.9 Configuration Options
+- [ ] `CONF_ENABLE_LIBRARY_SENSORS` toggle (default: True)
+- [ ] `CONF_ENABLE_USER_SENSORS` toggle (default: True)
+- [ ] `CONF_LIBRARY_SCAN_INTERVAL` option (default: 3600s)
+
+### 12.10 Testing & Documentation
+- [ ] 100% test coverage for all new sensors
+- [ ] Unit tests for new coordinators
+- [ ] Update README with sensor documentation
+
+**Deliverables:**
+- All sensors grouped under Emby server device
+- Real-time session/stream sensors via WebSocket
+- Library scan sensor with progress percentage attribute
+- Per-library item count sensors
+- User-specific sensors (favorites, watched, in-progress)
+- Configurable sensor toggles in options flow
+
+---
+
 ## Implementation Order
 
 ```
@@ -534,11 +607,10 @@ Phase 1 ─┬─► Phase 2 ─┬─► Phase 3 ─► Phase 4
          │            │
          │            └─► Phase 5 ─► Phase 6
          │
-         └─────────────────────────► Phase 7
-                                        │
-Phase 8 ◄───────────────────────────────┘
-   │
-   └─► Phase 9 ─► Phase 10
+         └─────────────────────────► Phase 7 ─┬─► Phase 8
+                                              │
+                                              └─► Phase 12 (Sensors)
+Phase 8 ─► Phase 9 ─► Phase 10 ─► Phase 11
 ```
 
 **Critical Path:** Phases 1-3 are sequential and blocking.
@@ -547,6 +619,7 @@ Phase 8 ◄───────────────────────
 - Phase 4 (Images) can start after Phase 3
 - Phase 5 (Browsing) can start after Phase 2
 - Phase 7 (WebSocket) can start after Phase 1
+- Phase 12 (Sensors) can start after Phase 7 (requires WebSocket)
 
 ---
 
@@ -593,16 +666,33 @@ Phase 8 ◄───────────────────────
 | `/Audio/{id}/stream` | GET | Audio stream URL |
 | `/Sessions/{id}/Playing/{cmd}` | POST | Playback control |
 | `/Sessions/{id}/Command` | POST | General commands |
+| `/Items/Counts` | GET | Library item counts (Phase 12) |
+| `/ScheduledTasks` | GET | Scheduled task status (Phase 12) |
+| `/Library/VirtualFolders` | GET | Library folders info (Phase 12) |
+| `/System/ActivityLog/Entries` | GET | Activity log entries (Phase 12) |
+| `/Plugins` | GET | Installed plugins (Phase 12) |
 
-### WebSocket Events
+### WebSocket Subscriptions
+
+| Subscription | Response Type | Purpose |
+|-------------|---------------|---------|
+| `SessionsStart` | `Sessions` | Periodic session updates |
+| `ScheduledTasksInfoStart` | `ScheduledTasksInfo` | Task status updates (Phase 12) |
+| `ActivityLogEntryStart` | `ActivityLogEntry` | New activity entries (Phase 12) |
+
+### WebSocket Events (Push-Based)
 
 | Event | Purpose |
 |-------|---------|
-| `SessionsStart` | Client connected |
-| `SessionsEnd` | Client disconnected |
-| `PlaybackStart` | Playback started |
+| `PlaybackStarted` | Playback started |
 | `PlaybackStopped` | Playback stopped |
 | `PlaybackProgress` | Position update |
+| `SessionEnded` | Client disconnected |
+| `LibraryChanged` | Library items changed |
+| `ServerRestarting` | Server restart initiated |
+| `ServerShuttingDown` | Server shutdown initiated |
+| `RestartRequired` | Server needs restart |
+| `ScheduledTaskEnded` | Task completed |
 
 ---
 
@@ -614,4 +704,5 @@ Phase 8 ◄───────────────────────
 | 0.2.0 | TBD | Media browsing |
 | 0.3.0 | TBD | Media source provider |
 | 0.4.0 | TBD | WebSocket support |
+| 0.5.0 | TBD | Sensor platform (Phase 12) |
 | 1.0.0 | TBD | Production release |
