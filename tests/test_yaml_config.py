@@ -12,6 +12,7 @@ from custom_components.embymedia.const import (
     CONF_API_KEY,
     CONF_DIRECT_PLAY,
     CONF_ENABLE_WEBSOCKET,
+    CONF_IGNORE_WEB_PLAYERS,
     CONF_IGNORED_DEVICES,
     CONF_MAX_AUDIO_BITRATE,
     CONF_MAX_VIDEO_BITRATE,
@@ -257,6 +258,7 @@ class TestConfigFlowImport:
             CONF_SCAN_INTERVAL: 30,
             CONF_ENABLE_WEBSOCKET: False,
             CONF_IGNORED_DEVICES: "TV1,TV2",
+            CONF_IGNORE_WEB_PLAYERS: True,
             CONF_DIRECT_PLAY: False,
             CONF_VIDEO_CONTAINER: "mkv",
             CONF_MAX_VIDEO_BITRATE: 8000,
@@ -287,6 +289,7 @@ class TestConfigFlowImport:
             # Options should contain tunable settings
             assert result["options"][CONF_SCAN_INTERVAL] == 30
             assert result["options"][CONF_ENABLE_WEBSOCKET] is False
+            assert result["options"][CONF_IGNORE_WEB_PLAYERS] is True
 
     @pytest.mark.asyncio
     async def test_import_duplicate_aborts(
