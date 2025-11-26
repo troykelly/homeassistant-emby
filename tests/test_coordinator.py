@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from datetime import timedelta
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
@@ -9,15 +10,20 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from custom_components.embymedia.const import DEFAULT_SCAN_INTERVAL, DOMAIN
+from custom_components.embymedia.const import (
+    CONF_API_KEY,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+)
 from custom_components.embymedia.exceptions import (
     EmbyAuthenticationError,
     EmbyConnectionError,
 )
 
 if TYPE_CHECKING:
-    pass
+    from custom_components.embymedia.const import EmbyConfigEntry
 
 
 @pytest.fixture
@@ -26,6 +32,23 @@ def mock_emby_client() -> MagicMock:
     client = MagicMock()
     client.async_get_sessions = AsyncMock(return_value=[])
     return client
+
+
+@pytest.fixture
+def mock_config_entry(hass: HomeAssistant) -> EmbyConfigEntry:
+    """Create a mock config entry."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            "host": "emby.local",
+            "port": 8096,
+            CONF_API_KEY: "test-api-key",
+        },
+        options={},
+        unique_id="server-123",
+    )
+    entry.add_to_hass(hass)
+    return entry  # type: ignore[return-value]
 
 
 @pytest.fixture
@@ -65,6 +88,7 @@ class TestCoordinatorInitialization:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
     ) -> None:
         """Test coordinator initializes with correct parameters."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -74,6 +98,7 @@ class TestCoordinatorInitialization:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
             scan_interval=30,
         )
 
@@ -87,6 +112,7 @@ class TestCoordinatorInitialization:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
     ) -> None:
         """Test coordinator uses default scan interval."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -96,6 +122,7 @@ class TestCoordinatorInitialization:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         assert coordinator.update_interval == timedelta(seconds=DEFAULT_SCAN_INTERVAL)
@@ -110,6 +137,7 @@ class TestCoordinatorDataFetch:
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
         mock_session_data: list[dict],
+        mock_config_entry: EmbyConfigEntry,
     ) -> None:
         """Test successful session data fetch."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -121,6 +149,7 @@ class TestCoordinatorDataFetch:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         data = await coordinator._async_update_data()
@@ -141,6 +170,7 @@ class TestCoordinatorDataFetch:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
     ) -> None:
         """Test handling empty sessions list."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -152,6 +182,7 @@ class TestCoordinatorDataFetch:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         data = await coordinator._async_update_data()
@@ -162,6 +193,7 @@ class TestCoordinatorDataFetch:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
     ) -> None:
         """Test connection error raises UpdateFailed."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -175,6 +207,7 @@ class TestCoordinatorDataFetch:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         with pytest.raises(UpdateFailed) as exc_info:
@@ -186,6 +219,7 @@ class TestCoordinatorDataFetch:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
     ) -> None:
         """Test authentication error raises UpdateFailed."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -199,6 +233,7 @@ class TestCoordinatorDataFetch:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         with pytest.raises(UpdateFailed) as exc_info:
@@ -210,6 +245,7 @@ class TestCoordinatorDataFetch:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
     ) -> None:
         """Test sessions with parsing errors are skipped."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -238,6 +274,7 @@ class TestCoordinatorDataFetch:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         data = await coordinator._async_update_data()
@@ -256,6 +293,7 @@ class TestCoordinatorGetSession:
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
         mock_session_data: list[dict],
+        mock_config_entry: EmbyConfigEntry,
     ) -> None:
         """Test getting existing session."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -267,6 +305,7 @@ class TestCoordinatorGetSession:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # Fetch data using async_refresh which properly sets self.data
@@ -282,6 +321,7 @@ class TestCoordinatorGetSession:
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
         mock_session_data: list[dict],
+        mock_config_entry: EmbyConfigEntry,
     ) -> None:
         """Test getting non-existent session."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -293,6 +333,7 @@ class TestCoordinatorGetSession:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # Fetch data first
@@ -305,6 +346,7 @@ class TestCoordinatorGetSession:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
     ) -> None:
         """Test getting session when no data fetched yet."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -314,6 +356,7 @@ class TestCoordinatorGetSession:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # No data fetched yet
@@ -329,6 +372,7 @@ class TestCoordinatorSessionTracking:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test new sessions are logged."""
@@ -351,6 +395,7 @@ class TestCoordinatorSessionTracking:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         with caplog.at_level("DEBUG"):
@@ -363,6 +408,7 @@ class TestCoordinatorSessionTracking:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test removed sessions are logged."""
@@ -373,6 +419,7 @@ class TestCoordinatorSessionTracking:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # First fetch with a session
@@ -444,6 +491,7 @@ class TestCoordinatorWebSocket:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # Setup WebSocket
@@ -488,6 +536,7 @@ class TestCoordinatorWebSocket:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         await coordinator.async_setup_websocket(mock_aiohttp_session)
@@ -511,6 +560,7 @@ class TestCoordinatorWebSocket:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # Initialize data first
@@ -549,6 +599,7 @@ class TestCoordinatorWebSocket:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         await coordinator.async_refresh()
@@ -576,6 +627,7 @@ class TestCoordinatorWebSocket:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         await coordinator.async_refresh()
@@ -625,6 +677,7 @@ class TestCoordinatorWebSocket:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         with caplog.at_level("INFO"):
@@ -661,6 +714,7 @@ class TestCoordinatorWebSocket:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         with caplog.at_level("WARNING"):
@@ -684,6 +738,7 @@ class TestCoordinatorWebSocket:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         with caplog.at_level("DEBUG"):
@@ -708,6 +763,7 @@ class TestCoordinatorWebSocket:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # Initialize data first
@@ -746,6 +802,7 @@ class TestCoordinatorWebSocket:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # Initialize data first
@@ -784,6 +841,7 @@ class TestCoordinatorWebSocket:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         with caplog.at_level("WARNING"):
@@ -805,6 +863,7 @@ class TestCoordinatorWebSocket:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # Websocket is None by default
@@ -830,6 +889,7 @@ class TestCoordinatorWebSocket:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # Create a mock websocket that raises an exception
@@ -898,6 +958,7 @@ class TestCoordinatorHybridPolling:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         await coordinator.async_setup_websocket(mock_aiohttp_session)
@@ -922,6 +983,7 @@ class TestCoordinatorHybridPolling:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # No WebSocket setup, should use default interval
@@ -969,6 +1031,7 @@ class TestCoordinatorHybridPolling:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         await coordinator.async_setup_websocket(mock_aiohttp_session)
@@ -999,6 +1062,7 @@ class TestCoordinatorHybridPolling:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # Simulate WebSocket reconnect
@@ -1034,6 +1098,7 @@ class TestCoordinatorHybridPolling:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         await coordinator.async_setup_websocket(mock_aiohttp_session)
@@ -1058,6 +1123,7 @@ class TestCoordinatorHybridPolling:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         with caplog.at_level("INFO"):
@@ -1084,6 +1150,7 @@ class TestCoordinatorServerEvents:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         with caplog.at_level("INFO"):
@@ -1106,6 +1173,7 @@ class TestCoordinatorServerEvents:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         with caplog.at_level("WARNING"):
@@ -1129,6 +1197,7 @@ class TestCoordinatorServerEvents:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         await coordinator.async_refresh()
@@ -1139,3 +1208,737 @@ class TestCoordinatorServerEvents:
 
         # Should trigger a refresh
         mock_emby_client.async_get_sessions.assert_called_once()
+
+
+class TestCoordinatorUserIdProperty:
+    """Test user_id property."""
+
+    def test_user_id_property(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test user_id property returns configured user ID."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+            user_id="test-user-123",
+        )
+
+        assert coordinator.user_id == "test-user-123"
+
+    def test_user_id_property_none(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test user_id property returns None when not configured."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        assert coordinator.user_id is None
+
+
+class TestCoordinatorRecovery:
+    """Test coordinator recovery logic."""
+
+    @pytest.mark.asyncio
+    async def test_recovery_after_max_failures(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test recovery is attempted after max consecutive failures."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_emby_client.async_get_sessions = AsyncMock(
+            side_effect=EmbyConnectionError("Connection failed")
+        )
+        mock_emby_client.async_get_server_info = AsyncMock(return_value={"Id": "server-123"})
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Simulate consecutive failures up to max (default is 5)
+        for _ in range(5):
+            with contextlib.suppress(Exception):
+                await coordinator._async_update_data()
+
+        # Should have attempted recovery (called async_get_server_info)
+        mock_emby_client.async_get_server_info.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_cached_data_on_connection_error(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test cached data is returned on connection error."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.models import EmbySession
+
+        cached_session = EmbySession(
+            session_id="sess-1",
+            device_id="device-1",
+            device_name="Test Device",
+            client_name="Test Client",
+        )
+
+        mock_emby_client.async_get_sessions = AsyncMock(
+            side_effect=EmbyConnectionError("Connection failed")
+        )
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+        # Set cached data
+        coordinator.data = {"device-1": cached_session}
+
+        result = await coordinator._async_update_data()
+
+        # Should return cached data
+        assert result == {"device-1": cached_session}
+
+    @pytest.mark.asyncio
+    async def test_attempt_recovery_success(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Test recovery attempt succeeds."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_emby_client.async_get_server_info = AsyncMock(
+            return_value={"Id": "server-123"}
+        )
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+        coordinator._consecutive_failures = 5
+
+        with caplog.at_level("INFO"):
+            await coordinator._attempt_recovery()
+
+        assert "Recovery successful" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_attempt_recovery_failure(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Test recovery attempt fails."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_emby_client.async_get_server_info = AsyncMock(
+            side_effect=EmbyConnectionError("Still unreachable")
+        )
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+        coordinator._consecutive_failures = 5
+
+        with caplog.at_level("WARNING"):
+            await coordinator._attempt_recovery()
+
+        assert "Recovery failed" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_attempt_recovery_with_websocket(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test recovery attempt also reconnects WebSocket."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_emby_client.async_get_server_info = AsyncMock(
+            return_value={"Id": "server-123"}
+        )
+
+        mock_websocket = MagicMock()
+        mock_websocket.async_start_reconnect_loop = AsyncMock()
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+        coordinator._consecutive_failures = 5
+        coordinator._websocket = mock_websocket
+
+        await coordinator._attempt_recovery()
+
+        # Should have tried to reconnect WebSocket
+        mock_websocket.async_start_reconnect_loop.assert_called_once()
+
+
+class TestCoordinatorPlaybackEvents:
+    """Test playback event firing."""
+
+    @pytest.mark.asyncio
+    async def test_playback_started_event(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test playback_started event is fired when media starts."""
+        from homeassistant.helpers import entity_registry as er
+
+        from custom_components.embymedia.const import DOMAIN
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.models import EmbySession
+
+        mock_emby_client.async_get_sessions = AsyncMock(return_value=[])
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Create entity for device
+        entity_reg = er.async_get(hass)
+        entity_reg.async_get_or_create(
+            "media_player",
+            DOMAIN,
+            "server-123_device-1",
+        )
+
+        # Track events
+        events: list[dict] = []
+        hass.bus.async_listen(f"{DOMAIN}_event", lambda e: events.append(e.data))
+
+        # Old state: nothing playing
+        old_session = EmbySession(
+            session_id="sess-1",
+            device_id="device-1",
+            device_name="Test Device",
+            client_name="Test Client",
+            now_playing=None,
+        )
+        coordinator._previous_sessions = {"device-1"}
+        coordinator.data = {"device-1": old_session}
+
+        # Process new state: something playing
+        coordinator._process_sessions_data([
+            {
+                "Id": "sess-1",
+                "DeviceId": "device-1",
+                "DeviceName": "Test Device",
+                "Client": "Test Client",
+                "SupportsRemoteControl": True,
+                "NowPlayingItem": {
+                    "Id": "item-1",
+                    "Name": "Test Movie",
+                    "Type": "Movie",
+                },
+            }
+        ])
+
+        await hass.async_block_till_done()
+
+        # Should have fired playback_started event with extra data
+        started_events = [e for e in events if e.get("type") == "playback_started"]
+        assert len(started_events) >= 1
+        assert started_events[0].get("media_content_id") == "item-1"
+        assert started_events[0].get("media_title") == "Test Movie"
+
+    @pytest.mark.asyncio
+    async def test_playback_stopped_event(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test playback_stopped event is fired when media stops."""
+        from homeassistant.helpers import entity_registry as er
+
+        from custom_components.embymedia.const import DOMAIN
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.models import EmbyMediaItem, EmbySession, MediaType
+
+        mock_emby_client.async_get_sessions = AsyncMock(return_value=[])
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Create entity for device
+        entity_reg = er.async_get(hass)
+        entity_reg.async_get_or_create(
+            "media_player",
+            DOMAIN,
+            "server-123_device-1",
+        )
+
+        # Track events
+        events: list[dict] = []
+        hass.bus.async_listen(f"{DOMAIN}_event", lambda e: events.append(e.data))
+
+        # Old state: playing something
+        old_session = EmbySession(
+            session_id="sess-1",
+            device_id="device-1",
+            device_name="Test Device",
+            client_name="Test Client",
+            now_playing=EmbyMediaItem(
+                item_id="item-1",
+                name="Test Movie",
+                media_type=MediaType.MOVIE,
+            ),
+        )
+        coordinator._previous_sessions = {"device-1"}
+        coordinator.data = {"device-1": old_session}
+
+        # Process new state: nothing playing
+        coordinator._process_sessions_data([
+            {
+                "Id": "sess-1",
+                "DeviceId": "device-1",
+                "DeviceName": "Test Device",
+                "Client": "Test Client",
+                "SupportsRemoteControl": True,
+            }
+        ])
+
+        await hass.async_block_till_done()
+
+        # Should have fired playback_stopped event
+        stopped_events = [e for e in events if e.get("type") == "playback_stopped"]
+        assert len(stopped_events) >= 1
+
+    @pytest.mark.asyncio
+    async def test_media_changed_event(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test media_changed event is fired when media changes."""
+        from homeassistant.helpers import entity_registry as er
+
+        from custom_components.embymedia.const import DOMAIN
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.models import EmbyMediaItem, EmbySession, MediaType
+
+        mock_emby_client.async_get_sessions = AsyncMock(return_value=[])
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Create entity for device
+        entity_reg = er.async_get(hass)
+        entity_reg.async_get_or_create(
+            "media_player",
+            DOMAIN,
+            "server-123_device-1",
+        )
+
+        # Track events
+        events: list[dict] = []
+        hass.bus.async_listen(f"{DOMAIN}_event", lambda e: events.append(e.data))
+
+        # Old state: playing movie 1
+        old_session = EmbySession(
+            session_id="sess-1",
+            device_id="device-1",
+            device_name="Test Device",
+            client_name="Test Client",
+            now_playing=EmbyMediaItem(
+                item_id="item-1",
+                name="Test Movie 1",
+                media_type=MediaType.MOVIE,
+            ),
+        )
+        coordinator._previous_sessions = {"device-1"}
+        coordinator.data = {"device-1": old_session}
+
+        # Process new state: playing movie 2 (different item)
+        coordinator._process_sessions_data([
+            {
+                "Id": "sess-1",
+                "DeviceId": "device-1",
+                "DeviceName": "Test Device",
+                "Client": "Test Client",
+                "SupportsRemoteControl": True,
+                "NowPlayingItem": {
+                    "Id": "item-2",
+                    "Name": "Test Movie 2",
+                    "Type": "Movie",
+                },
+            }
+        ])
+
+        await hass.async_block_till_done()
+
+        # Should have fired media_changed event
+        changed_events = [e for e in events if e.get("type") == "media_changed"]
+        assert len(changed_events) >= 1
+
+    @pytest.mark.asyncio
+    async def test_playback_paused_resumed_events(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test playback_paused and playback_resumed events."""
+        from homeassistant.helpers import entity_registry as er
+
+        from custom_components.embymedia.const import DOMAIN
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.models import (
+            EmbyMediaItem,
+            EmbyPlaybackState,
+            EmbySession,
+            MediaType,
+        )
+
+        mock_emby_client.async_get_sessions = AsyncMock(return_value=[])
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Create entity for device
+        entity_reg = er.async_get(hass)
+        entity_reg.async_get_or_create(
+            "media_player",
+            DOMAIN,
+            "server-123_device-1",
+        )
+
+        # Track events
+        events: list[dict] = []
+        hass.bus.async_listen(f"{DOMAIN}_event", lambda e: events.append(e.data))
+
+        # Old state: playing (not paused)
+        old_session = EmbySession(
+            session_id="sess-1",
+            device_id="device-1",
+            device_name="Test Device",
+            client_name="Test Client",
+            now_playing=EmbyMediaItem(
+                item_id="item-1",
+                name="Test Movie",
+                media_type=MediaType.MOVIE,
+            ),
+            play_state=EmbyPlaybackState(is_paused=False),
+        )
+        coordinator._previous_sessions = {"device-1"}
+        coordinator.data = {"device-1": old_session}
+
+        # Process new state: paused
+        coordinator._process_sessions_data([
+            {
+                "Id": "sess-1",
+                "DeviceId": "device-1",
+                "DeviceName": "Test Device",
+                "Client": "Test Client",
+                "SupportsRemoteControl": True,
+                "NowPlayingItem": {
+                    "Id": "item-1",
+                    "Name": "Test Movie",
+                    "Type": "Movie",
+                },
+                "PlayState": {
+                    "IsPaused": True,
+                },
+            }
+        ])
+
+        await hass.async_block_till_done()
+
+        # Should have fired playback_paused event
+        paused_events = [e for e in events if e.get("type") == "playback_paused"]
+        assert len(paused_events) >= 1
+
+        # Reset events and update old state
+        events.clear()
+        coordinator.data = {"device-1": EmbySession(
+            session_id="sess-1",
+            device_id="device-1",
+            device_name="Test Device",
+            client_name="Test Client",
+            now_playing=EmbyMediaItem(
+                item_id="item-1",
+                name="Test Movie",
+                media_type=MediaType.MOVIE,
+            ),
+            play_state=EmbyPlaybackState(is_paused=True),
+        )}
+
+        # Process resumed state
+        coordinator._process_sessions_data([
+            {
+                "Id": "sess-1",
+                "DeviceId": "device-1",
+                "DeviceName": "Test Device",
+                "Client": "Test Client",
+                "SupportsRemoteControl": True,
+                "NowPlayingItem": {
+                    "Id": "item-1",
+                    "Name": "Test Movie",
+                    "Type": "Movie",
+                },
+                "PlayState": {
+                    "IsPaused": False,
+                },
+            }
+        ])
+
+        await hass.async_block_till_done()
+
+        # Should have fired playback_resumed event
+        resumed_events = [e for e in events if e.get("type") == "playback_resumed"]
+        assert len(resumed_events) >= 1
+
+
+class TestCoordinatorIgnoreWebPlayers:
+    """Test coordinator ignore web players feature."""
+
+    @pytest.fixture
+    def mock_config_entry_ignore_web(
+        self,
+        hass: HomeAssistant,
+    ) -> EmbyConfigEntry:
+        """Create a mock config entry with ignore_web_players enabled."""
+        from custom_components.embymedia.const import CONF_IGNORE_WEB_PLAYERS
+
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                "host": "emby.local",
+                "port": 8096,
+                CONF_API_KEY: "test-api-key",
+            },
+            options={CONF_IGNORE_WEB_PLAYERS: True},
+            unique_id="server-ignore-web",
+        )
+        entry.add_to_hass(hass)
+        return entry  # type: ignore[return-value]
+
+    @pytest.mark.asyncio
+    async def test_web_players_filtered_when_enabled(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        mock_config_entry_ignore_web: EmbyConfigEntry,
+    ) -> None:
+        """Test web browser players are filtered when option is enabled."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        # Session data with mix of regular and web browser clients
+        session_data = [
+            {
+                "Id": "session-1",
+                "Client": "Emby Theater",
+                "DeviceId": "device-regular",
+                "DeviceName": "Living Room TV",
+                "SupportsRemoteControl": True,
+            },
+            {
+                "Id": "session-2",
+                "Client": "Emby Web",
+                "DeviceId": "device-web",
+                "DeviceName": "Chrome Browser",
+                "SupportsRemoteControl": True,
+            },
+            {
+                "Id": "session-3",
+                "Client": "Chrome",
+                "DeviceId": "device-chrome",
+                "DeviceName": "Desktop",
+                "SupportsRemoteControl": True,
+            },
+        ]
+        mock_emby_client.async_get_sessions = AsyncMock(return_value=session_data)
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-ignore-web",
+            server_name="Test Server",
+            config_entry=mock_config_entry_ignore_web,
+        )
+
+        data = await coordinator._async_update_data()
+
+        # Should only have the regular client, web players filtered
+        assert len(data) == 1
+        assert "device-regular" in data
+        assert "device-web" not in data
+        assert "device-chrome" not in data
+
+    @pytest.mark.asyncio
+    async def test_web_players_not_filtered_when_disabled(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
+    ) -> None:
+        """Test web browser players are NOT filtered when option is disabled."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        # Session data with mix of regular and web browser clients
+        session_data = [
+            {
+                "Id": "session-1",
+                "Client": "Emby Theater",
+                "DeviceId": "device-regular",
+                "DeviceName": "Living Room TV",
+                "SupportsRemoteControl": True,
+            },
+            {
+                "Id": "session-2",
+                "Client": "Emby Web",
+                "DeviceId": "device-web",
+                "DeviceName": "Chrome Browser",
+                "SupportsRemoteControl": True,
+            },
+        ]
+        mock_emby_client.async_get_sessions = AsyncMock(return_value=session_data)
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        data = await coordinator._async_update_data()
+
+        # Should have both clients since filtering is disabled
+        assert len(data) == 2
+        assert "device-regular" in data
+        assert "device-web" in data
+
+    @pytest.mark.asyncio
+    async def test_ignore_web_players_property(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
+        mock_config_entry_ignore_web: EmbyConfigEntry,
+    ) -> None:
+        """Test ignore_web_players property reflects config."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        # Coordinator with option disabled
+        coordinator_disabled = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+        assert coordinator_disabled.ignore_web_players is False
+
+        # Coordinator with option enabled
+        coordinator_enabled = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-ignore-web",
+            server_name="Test Server",
+            config_entry=mock_config_entry_ignore_web,
+        )
+        assert coordinator_enabled.ignore_web_players is True
+
+    @pytest.mark.asyncio
+    async def test_various_web_browser_clients_detected(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        mock_config_entry_ignore_web: EmbyConfigEntry,
+    ) -> None:
+        """Test various web browser client names are properly detected."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        # Test all web browser client names
+        browser_clients = [
+            "Emby Web",
+            "Emby Mobile Web",
+            "Chrome",
+            "Firefox",
+            "Safari",
+            "Edge",
+            "Microsoft Edge",
+            "Opera",
+            "Brave",
+            "Vivaldi",
+            "Internet Explorer",
+        ]
+
+        for idx, client_name in enumerate(browser_clients):
+            session_data = [
+                {
+                    "Id": f"session-{idx}",
+                    "Client": client_name,
+                    "DeviceId": f"device-{idx}",
+                    "DeviceName": f"Device {idx}",
+                    "SupportsRemoteControl": True,
+                },
+            ]
+            mock_emby_client.async_get_sessions = AsyncMock(return_value=session_data)
+
+            coordinator = EmbyDataUpdateCoordinator(
+                hass=hass,
+                client=mock_emby_client,
+                server_id="server-ignore-web",
+                server_name="Test Server",
+                config_entry=mock_config_entry_ignore_web,
+            )
+
+            data = await coordinator._async_update_data()
+
+            # All web browser clients should be filtered
+            assert len(data) == 0, f"Client '{client_name}' should be filtered"

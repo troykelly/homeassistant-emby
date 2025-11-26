@@ -474,6 +474,63 @@ class EmbyClient:
         except aiohttp.ClientError as err:
             raise EmbyConnectionError(f"Client error: {err}") from err
 
+    async def _request_delete(
+        self,
+        endpoint: str,
+    ) -> None:
+        """Make a DELETE request to the Emby API.
+
+        Args:
+            endpoint: API endpoint path.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: Authentication failed.
+        """
+        url = f"{self.base_url}{endpoint}"
+        headers = self._get_headers()
+        ssl_context = self._get_ssl_context()
+
+        _LOGGER.debug("Emby API DELETE request: %s", endpoint)
+
+        session = await self._get_session()
+
+        try:
+            async with session.delete(
+                url,
+                headers=headers,
+                ssl=ssl_context,
+            ) as response:
+                _LOGGER.debug(
+                    "Emby API response: %s %s for DELETE %s",
+                    response.status,
+                    response.reason,
+                    endpoint,
+                )
+
+                if response.status in (401, 403):
+                    raise EmbyAuthenticationError(f"Authentication failed: {response.status}")
+
+                # 204 No Content is success
+                if response.status == 204:
+                    return
+
+                response.raise_for_status()
+
+        except aiohttp.ClientSSLError as err:
+            raise EmbySSLError(f"SSL certificate error: {err}") from err
+
+        except TimeoutError as err:
+            raise EmbyTimeoutError(f"Request timed out after {self._timeout.total}s") from err
+
+        except aiohttp.ClientConnectorError as err:
+            raise EmbyConnectionError(
+                f"Failed to connect to {self._host}:{self._port}: {err}"
+            ) from err
+
+        except aiohttp.ClientError as err:
+            raise EmbyConnectionError(f"Client error: {err}") from err
+
     async def async_send_playback_command(
         self,
         session_id: str,
@@ -571,6 +628,153 @@ class EmbyClient:
         if args:
             body["Arguments"] = args
         await self._request_post(endpoint, data=body)  # type: ignore[arg-type]
+
+    async def async_send_message(
+        self,
+        session_id: str,
+        text: str,
+        header: str = "",
+        timeout_ms: int = 5000,
+    ) -> None:
+        """Send a message to a session.
+
+        Displays a message overlay on the Emby client.
+
+        Args:
+            session_id: Target session ID.
+            text: Message body text.
+            header: Optional message header.
+            timeout_ms: Display duration in milliseconds.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = f"/Sessions/{session_id}/Message"
+        data = {
+            "Text": text,
+            "Header": header,
+            "TimeoutMs": timeout_ms,
+        }
+        await self._request_post(endpoint, data=data)
+
+    # Library Management Methods (Phase 8.3)
+
+    async def async_mark_played(
+        self,
+        user_id: str,
+        item_id: str,
+    ) -> None:
+        """Mark an item as played.
+
+        Args:
+            user_id: User ID.
+            item_id: Item ID to mark as played.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = f"/Users/{user_id}/PlayedItems/{item_id}"
+        await self._request_post(endpoint)
+
+    async def async_mark_unplayed(
+        self,
+        user_id: str,
+        item_id: str,
+    ) -> None:
+        """Mark an item as unplayed.
+
+        Args:
+            user_id: User ID.
+            item_id: Item ID to mark as unplayed.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = f"/Users/{user_id}/PlayedItems/{item_id}"
+        await self._request_delete(endpoint)
+
+    async def async_add_favorite(
+        self,
+        user_id: str,
+        item_id: str,
+    ) -> None:
+        """Add an item to user favorites.
+
+        Args:
+            user_id: User ID.
+            item_id: Item ID to add to favorites.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = f"/Users/{user_id}/FavoriteItems/{item_id}"
+        await self._request_post(endpoint)
+
+    async def async_remove_favorite(
+        self,
+        user_id: str,
+        item_id: str,
+    ) -> None:
+        """Remove an item from user favorites.
+
+        Args:
+            user_id: User ID.
+            item_id: Item ID to remove from favorites.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = f"/Users/{user_id}/FavoriteItems/{item_id}"
+        await self._request_delete(endpoint)
+
+    async def async_refresh_library(
+        self,
+        library_id: str | None = None,
+    ) -> None:
+        """Trigger a library scan.
+
+        Args:
+            library_id: Optional specific library to refresh.
+                       If None, refreshes all libraries.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = f"/Items/{library_id}/Refresh" if library_id else "/Library/Refresh"
+        await self._request_post(endpoint)
+
+    async def async_refresh_item(
+        self,
+        item_id: str,
+        metadata_refresh: bool = True,
+        image_refresh: bool = True,
+    ) -> None:
+        """Refresh metadata for a specific item.
+
+        Args:
+            item_id: Item ID to refresh.
+            metadata_refresh: Whether to refresh metadata.
+            image_refresh: Whether to refresh images.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        params = []
+        if metadata_refresh:
+            params.append("MetadataRefreshMode=FullRefresh")
+        if image_refresh:
+            params.append("ImageRefreshMode=FullRefresh")
+
+        query = "&".join(params) if params else ""
+        endpoint = f"/Items/{item_id}/Refresh?{query}" if query else f"/Items/{item_id}/Refresh"
+        await self._request_post(endpoint)
 
     async def async_get_user_views(self, user_id: str) -> list[EmbyLibraryItem]:
         """Get available libraries for a user.
@@ -1102,6 +1306,36 @@ class EmbyClient:
         """
         url = f"{self.base_url}/Videos/{item_id}/master.m3u8"
         return f"{url}?api_key={self._api_key}"
+
+    def get_user_image_url(
+        self,
+        user_id: str,
+        image_tag: str | None = None,
+        max_width: int | None = None,
+        max_height: int | None = None,
+    ) -> str:
+        """Generate URL for user profile image (avatar).
+
+        Args:
+            user_id: User ID.
+            image_tag: Optional image tag for cache busting.
+            max_width: Optional maximum width for image.
+            max_height: Optional maximum height for image.
+
+        Returns:
+            Full URL to the user's profile image with authentication.
+        """
+        url = f"{self.base_url}/Users/{user_id}/Images/Primary"
+        params: list[str] = [f"api_key={self._api_key}"]
+
+        if image_tag is not None:
+            params.append(f"tag={image_tag}")
+        if max_width is not None:
+            params.append(f"maxWidth={max_width}")
+        if max_height is not None:
+            params.append(f"maxHeight={max_height}")
+
+        return f"{url}?{'&'.join(params)}"
 
     async def close(self) -> None:
         """Close the client session.

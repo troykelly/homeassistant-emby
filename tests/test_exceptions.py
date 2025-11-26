@@ -100,10 +100,19 @@ class TestExceptionMessages:
         err = EmbyError("")
         assert str(err) == ""
 
-    def test_exception_with_no_message(self) -> None:
-        """Test exceptions handle no message."""
-        err = EmbyError()
-        assert str(err) == ""
+    def test_exception_with_translation_key(self) -> None:
+        """Test exceptions store translation key."""
+        err = EmbyError("Error message", translation_key="test_key")
+        assert err.translation_key == "test_key"
+
+    def test_exception_with_translation_placeholders(self) -> None:
+        """Test exceptions store translation placeholders."""
+        err = EmbyError(
+            "Error message",
+            translation_key="test_key",
+            translation_placeholders={"foo": "bar"},
+        )
+        assert err.translation_placeholders == {"foo": "bar"}
 
 
 class TestExceptionChaining:

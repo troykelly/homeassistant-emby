@@ -1,4 +1,30 @@
 {
+  "exceptions": {
+    "connection_failed": {
+      "message": "Failed to connect to Emby server at {host}:{port}. Please check that the server is running and the host/port are correct."
+    },
+    "authentication_failed": {
+      "message": "Authentication failed. Please check your API key."
+    },
+    "server_error": {
+      "message": "The Emby server returned an error. Please check the server logs."
+    },
+    "not_found": {
+      "message": "The requested resource was not found on the server."
+    },
+    "timeout": {
+      "message": "Connection timed out. The server may be unreachable."
+    },
+    "ssl_error": {
+      "message": "SSL certificate verification failed. Check your certificate or disable verification."
+    },
+    "websocket_error": {
+      "message": "WebSocket connection error. Real-time updates may not be available."
+    },
+    "websocket_auth_failed": {
+      "message": "WebSocket authentication failed. Please check your API key."
+    }
+  },
   "config": {
     "step": {
       "user": {
@@ -17,6 +43,16 @@
           "ssl": "Enable HTTPS connection",
           "api_key": "API key from Emby Dashboard > Advanced > API Keys",
           "verify_ssl": "Verify SSL certificate (disable only for self-signed certificates)"
+        }
+      },
+      "user_select": {
+        "title": "Select User",
+        "description": "Select a user context for {server_name}. Choose 'Use admin context' to use the API key without a specific user.",
+        "data": {
+          "user_id": "User"
+        },
+        "data_description": {
+          "user_id": "The user whose libraries and permissions will be used"
         }
       },
       "reauth_confirm": {
@@ -46,10 +82,24 @@
         "title": "Emby Options",
         "description": "Configure optional settings for the Emby integration.",
         "data": {
-          "scan_interval": "Scan interval (seconds)"
+          "scan_interval": "Scan interval (seconds)",
+          "enable_websocket": "Enable WebSocket",
+          "ignored_devices": "Ignored devices",
+          "ignore_web_players": "Ignore web browser players",
+          "direct_play": "Enable direct play",
+          "video_container": "Video container",
+          "max_video_bitrate": "Max video bitrate (kbps)",
+          "max_audio_bitrate": "Max audio bitrate (kbps)"
         },
         "data_description": {
-          "scan_interval": "How often to poll the Emby server for updates (5-300 seconds)"
+          "scan_interval": "How often to poll the Emby server for updates (5-300 seconds)",
+          "enable_websocket": "Use WebSocket for real-time updates (reduces polling)",
+          "ignored_devices": "Comma-separated list of device names to ignore (e.g., 'Server, Backup Device')",
+          "ignore_web_players": "Hide media players from web browser sessions (Emby Web, Chrome, Firefox, etc.)",
+          "direct_play": "Try direct play before transcoding",
+          "video_container": "Preferred video container format for transcoding",
+          "max_video_bitrate": "Maximum video bitrate for transcoding (leave empty for unlimited)",
+          "max_audio_bitrate": "Maximum audio bitrate for transcoding (leave empty for unlimited)"
         }
       }
     }

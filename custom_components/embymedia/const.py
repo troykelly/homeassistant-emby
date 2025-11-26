@@ -29,6 +29,11 @@ CONF_VIDEO_CONTAINER: Final = "video_container"
 CONF_MAX_VIDEO_BITRATE: Final = "max_video_bitrate"
 CONF_MAX_AUDIO_BITRATE: Final = "max_audio_bitrate"
 
+# Feature toggle option keys
+CONF_ENABLE_WEBSOCKET: Final = "enable_websocket"
+CONF_IGNORED_DEVICES: Final = "ignored_devices"
+CONF_IGNORE_WEB_PLAYERS: Final = "ignore_web_players"
+
 # Default values
 DEFAULT_PORT: Final = 8096
 DEFAULT_SSL: Final = False
@@ -37,6 +42,9 @@ DEFAULT_SCAN_INTERVAL: Final = 10  # seconds
 DEFAULT_TIMEOUT: Final = 10  # seconds
 DEFAULT_DIRECT_PLAY: Final = True
 DEFAULT_VIDEO_CONTAINER: Final = "mp4"
+DEFAULT_ENABLE_WEBSOCKET: Final = True
+DEFAULT_IGNORED_DEVICES: Final[list[str]] = []
+DEFAULT_IGNORE_WEB_PLAYERS: Final = False
 
 # Video container options
 VIDEO_CONTAINERS: Final[list[str]] = ["mp4", "mkv", "webm"]
@@ -70,7 +78,12 @@ ENDPOINT_USERS: Final = "/Users"
 ENDPOINT_SESSIONS: Final = "/Sessions"
 
 # Platforms
-PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER]
+PLATFORMS: list[Platform] = [
+    Platform.BUTTON,
+    Platform.MEDIA_PLAYER,
+    Platform.NOTIFY,
+    Platform.REMOTE,
+]
 
 
 # =============================================================================
@@ -111,6 +124,8 @@ class EmbyUser(TypedDict):
     ServerId: str
     HasPassword: bool
     HasConfiguredPassword: bool
+    PrimaryImageTag: NotRequired[str]
+    HasPrimaryImage: NotRequired[bool]
 
 
 class EmbyErrorResponse(TypedDict):
