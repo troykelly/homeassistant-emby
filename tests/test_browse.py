@@ -2165,6 +2165,62 @@ class TestMovieLibraryBrowsing:
         assert call_kwargs.get("years") == "2024"
 
     @pytest.mark.asyncio
+    async def test_browse_movie_years_api_error_returns_empty(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test browsing movie years returns empty list when API fails."""
+        from custom_components.embymedia.exceptions import EmbyServerError
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        # Simulate Emby server returning 500 error (happens on some servers)
+        mock_coordinator_for_browse.client.async_get_years = AsyncMock(
+            side_effect=EmbyServerError("Server error: 500 Internal Server Error")
+        )
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.VIDEO,
+            media_content_id="movieyear:lib-movies",
+        )
+
+        # Should return empty children instead of raising an error
+        assert isinstance(result, BrowseMedia)
+        assert result.children is not None
+        assert len(result.children) == 0
+
+    @pytest.mark.asyncio
+    async def test_browse_movies_by_year_api_error_returns_empty(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test browsing movies by year returns empty list when API fails."""
+        from custom_components.embymedia.exceptions import EmbyServerError
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        # Simulate Emby server returning 500 error
+        mock_coordinator_for_browse.client.async_get_items = AsyncMock(
+            side_effect=EmbyServerError("Server error: 500 Internal Server Error")
+        )
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.VIDEO,
+            media_content_id="movieyearitems:lib-movies:2024",
+        )
+
+        # Should return empty children instead of raising an error
+        assert isinstance(result, BrowseMedia)
+        assert result.children is not None
+        assert len(result.children) == 0
+
+    @pytest.mark.asyncio
     async def test_browse_movie_decades_shows_decades(
         self,
         hass: HomeAssistant,
@@ -2500,6 +2556,62 @@ class TestTVShowLibraryBrowsing:
         assert isinstance(result, BrowseMedia)
         assert result.children is not None
         assert len(result.children) == 1
+
+    @pytest.mark.asyncio
+    async def test_browse_tv_years_api_error_returns_empty(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test browsing TV years returns empty list when API fails."""
+        from custom_components.embymedia.exceptions import EmbyServerError
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        # Simulate Emby server returning 500 error
+        mock_coordinator_for_browse.client.async_get_years = AsyncMock(
+            side_effect=EmbyServerError("Server error: 500 Internal Server Error")
+        )
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.TVSHOW,
+            media_content_id="tvyear:lib-tv",
+        )
+
+        # Should return empty children instead of raising an error
+        assert isinstance(result, BrowseMedia)
+        assert result.children is not None
+        assert len(result.children) == 0
+
+    @pytest.mark.asyncio
+    async def test_browse_tv_by_year_api_error_returns_empty(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test browsing TV shows by year returns empty list when API fails."""
+        from custom_components.embymedia.exceptions import EmbyServerError
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        # Simulate Emby server returning 500 error
+        mock_coordinator_for_browse.client.async_get_items = AsyncMock(
+            side_effect=EmbyServerError("Server error: 500 Internal Server Error")
+        )
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.TVSHOW,
+            media_content_id="tvyearitems:lib-tv:2024",
+        )
+
+        # Should return empty children instead of raising an error
+        assert isinstance(result, BrowseMedia)
+        assert result.children is not None
+        assert len(result.children) == 0
 
     @pytest.mark.asyncio
     async def test_browse_tv_decades_shows_decades(
