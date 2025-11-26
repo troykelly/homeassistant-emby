@@ -6,8 +6,8 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 import aiohttp
+import pytest
 from aiohttp import web
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -344,9 +344,7 @@ class TestImageProxyGet:
         mock_config_entry.add_to_hass(hass)
 
         mock_session = MagicMock()
-        mock_session.get = MagicMock(
-            side_effect=aiohttp.ClientError("Network error")
-        )
+        mock_session.get = MagicMock(side_effect=aiohttp.ClientError("Network error"))
 
         with patch(
             "custom_components.embymedia.image.async_get_clientsession",
