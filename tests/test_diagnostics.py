@@ -214,7 +214,7 @@ class TestDeviceDiagnostics:
         mock_session.device_id = "device-123"
         mock_session.device_name = "Living Room TV"
         mock_session.client_name = "Emby Theater"
-        mock_session.application_version = "4.7.0"
+        mock_session.app_version = "4.7.0"
         mock_session.supports_remote_control = True
         mock_session.supported_commands = ["Play", "Pause", "Stop"]
         mock_session.now_playing = None
@@ -314,7 +314,7 @@ class TestDeviceDiagnostics:
         mock_session.device_id = "device-123"
         mock_session.device_name = "Living Room TV"
         mock_session.client_name = "Emby Theater"
-        mock_session.application_version = "4.7.0"
+        mock_session.app_version = "4.7.0"
         mock_session.supports_remote_control = True
         mock_session.supported_commands = ["Play", "Pause"]
         mock_session.now_playing = mock_now_playing

@@ -133,7 +133,7 @@ async def async_get_device_diagnostics(
         "status": "online",
         "device_name": session.device_name,
         "client": session.client_name,
-        "application_version": session.application_version,
+        "application_version": session.app_version,
         "supports_remote_control": session.supports_remote_control,
         "supported_commands": session.supported_commands,
         "playback_state": play_state_info,
