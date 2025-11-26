@@ -25,6 +25,10 @@ from .const import (
     CONF_IGNORED_DEVICES,
     CONF_MAX_AUDIO_BITRATE,
     CONF_MAX_VIDEO_BITRATE,
+    CONF_PREFIX_BUTTON,
+    CONF_PREFIX_MEDIA_PLAYER,
+    CONF_PREFIX_NOTIFY,
+    CONF_PREFIX_REMOTE,
     CONF_SCAN_INTERVAL,
     CONF_USER_ID,
     CONF_VERIFY_SSL,
@@ -33,6 +37,10 @@ from .const import (
     DEFAULT_ENABLE_WEBSOCKET,
     DEFAULT_IGNORE_WEB_PLAYERS,
     DEFAULT_PORT,
+    DEFAULT_PREFIX_BUTTON,
+    DEFAULT_PREFIX_MEDIA_PLAYER,
+    DEFAULT_PREFIX_NOTIFY,
+    DEFAULT_PREFIX_REMOTE,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SSL,
     DEFAULT_VERIFY_SSL,
@@ -674,6 +682,31 @@ class EmbyOptionsFlowHandler(OptionsFlow):  # type: ignore[misc]
                         CONF_MAX_AUDIO_BITRATE,
                         default=self.config_entry.options.get(CONF_MAX_AUDIO_BITRATE),
                     ): vol.Any(None, vol.All(vol.Coerce(int), vol.Range(min=1))),
+                    # Phase 11: Entity name prefix toggles
+                    vol.Optional(
+                        CONF_PREFIX_MEDIA_PLAYER,
+                        default=self.config_entry.options.get(
+                            CONF_PREFIX_MEDIA_PLAYER, DEFAULT_PREFIX_MEDIA_PLAYER
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_PREFIX_NOTIFY,
+                        default=self.config_entry.options.get(
+                            CONF_PREFIX_NOTIFY, DEFAULT_PREFIX_NOTIFY
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_PREFIX_REMOTE,
+                        default=self.config_entry.options.get(
+                            CONF_PREFIX_REMOTE, DEFAULT_PREFIX_REMOTE
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_PREFIX_BUTTON,
+                        default=self.config_entry.options.get(
+                            CONF_PREFIX_BUTTON, DEFAULT_PREFIX_BUTTON
+                        ),
+                    ): bool,
                 }
             ),
         )
