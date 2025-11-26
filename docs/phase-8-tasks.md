@@ -931,19 +931,20 @@ Update to include automation platforms:
 
 ### Required for Phase 8 Complete
 
-- [ ] User selection in config flow
-- [ ] User context stored and used
-- [ ] Send message service working
-- [ ] Send command service working
-- [ ] Mark played/unplayed working
-- [ ] Favorite management working
-- [ ] Library refresh working
-- [ ] Device triggers implemented
-- [ ] Device conditions implemented
-- [ ] All tests passing
-- [ ] 100% code coverage maintained
-- [ ] No mypy errors
-- [ ] No ruff errors
+- [x] User selection in config flow
+- [x] User context stored and used
+- [x] Send message service working
+- [x] Send command service working
+- [x] Mark played/unplayed working
+- [x] Favorite management working
+- [x] Library refresh working
+- [x] Device triggers implemented
+- [x] Device conditions implemented
+- [x] Notify platform implemented (entity-based)
+- [x] All tests passing
+- [x] 100% code coverage maintained
+- [x] No mypy errors
+- [x] No ruff errors
 
 ### Definition of Done
 
@@ -952,8 +953,9 @@ Update to include automation platforms:
 3. ✅ Library management services working
 4. ✅ Automation triggers firing
 5. ✅ Automation conditions evaluating
-6. ✅ All tests passing (target: 650+ tests)
-7. ✅ 100% code coverage maintained
+6. ✅ Notify platform working with `notify.send_message` action
+7. ✅ All tests passing (815+ tests)
+8. ✅ 100% code coverage maintained
 
 ---
 
@@ -987,6 +989,100 @@ Update to include automation platforms:
 
 ---
 
+## Task 8.5: Notify Platform
+
+The integration includes a notify platform that creates `NotifyEntity` entities for each Emby client that supports remote control.
+
+### 8.5.1 Entity Structure
+
+**File:** `custom_components/embymedia/notify.py`
+
+Each Emby client with `SupportsRemoteControl: true` gets a notify entity:
+- **Entity ID:** `notify.{device_name}_notification`
+- **Name:** `{Device Name} Notification`
+
+### 8.5.2 Usage
+
+**IMPORTANT:** The notify platform uses the modern `NotifyEntity` approach (entity-based), NOT the legacy notify service with targets in data.
+
+#### Correct Usage (Entity-Based)
+
+```yaml
+action: notify.send_message
+target:
+  entity_id: notify.living_room_tv_notification
+data:
+  message: "Hello from Home Assistant!"
+  title: "Notification Title"
+```
+
+Or in an automation:
+
+```yaml
+automation:
+  - alias: "Notify Emby Client on Event"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.motion
+        to: "on"
+    action:
+      - action: notify.send_message
+        target:
+          entity_id: notify.living_room_tv_notification
+        data:
+          title: "Motion Detected"
+          message: "Motion was detected in the living room"
+```
+
+#### WRONG Usage (Will Not Work)
+
+The following legacy format does NOT work with the modern NotifyEntity platform:
+
+```yaml
+# ❌ WRONG - This will fail with "Unknown error"
+action: notify.notify
+data:
+  target: notify.living_room_tv_notification
+  title: "Title"
+  message: "Message"
+```
+
+### 8.5.3 API Implementation
+
+The notify entity calls the Emby `/Sessions/{id}/Message` endpoint:
+
+```python
+async def async_send_message(
+    self,
+    message: str,
+    title: str | None = None,
+) -> None:
+    """Send a message to the Emby client."""
+    await self._client.async_send_message(
+        session_id=self._session.session_id,
+        text=message,
+        header=title or "",
+        timeout_ms=5000,
+    )
+```
+
+### 8.5.4 Acceptance Criteria
+
+- [x] Notify entity created for each controllable session
+- [x] Entity ID follows pattern `notify.{device}_notification`
+- [x] `notify.send_message` action works with entity target
+- [x] Title and message displayed on Emby client
+- [x] Error handling for unavailable clients
+
+### 8.5.5 Test Cases
+
+- [x] `test_notify_entity_created`
+- [x] `test_notify_send_message`
+- [x] `test_notify_send_message_with_title`
+- [x] `test_notify_unavailable_session`
+
+---
+
 ## Notes
 
 - User selection is optional; admin API key works without user context
@@ -994,3 +1090,4 @@ Update to include automation platforms:
 - Library management requires appropriate user permissions
 - Triggers use Home Assistant's event system for reliability
 - Conditions check entity state, not direct API calls
+- **Notify platform uses entity-based `notify.send_message` action, NOT legacy `notify.notify` with target in data**
