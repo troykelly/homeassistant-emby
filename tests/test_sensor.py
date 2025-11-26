@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
-from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.components.sensor import SensorStateClass
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry

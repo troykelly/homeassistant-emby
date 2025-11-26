@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
-from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL, STATE_OFF, STATE_ON
+from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.embymedia.const import (
@@ -71,7 +70,7 @@ class TestEmbyServerConnectedBinarySensor:
 
         with patch(
             "custom_components.embymedia.coordinator_sensors.EmbyServerCoordinator"
-        ) as mock_coordinator_class:
+        ):
             mock_coordinator = MagicMock(spec=EmbyServerCoordinator)
             mock_coordinator.data = mock_server_data
             mock_coordinator.last_update_success = True

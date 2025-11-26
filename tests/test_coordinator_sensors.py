@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL
@@ -17,7 +17,6 @@ from custom_components.embymedia.const import (
     DEFAULT_LIBRARY_SCAN_INTERVAL,
     DEFAULT_SERVER_SCAN_INTERVAL,
     DOMAIN,
-    EmbyItemCounts,
     EmbyScheduledTask,
     EmbyVirtualFolder,
 )
