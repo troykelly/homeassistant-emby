@@ -121,9 +121,7 @@ def _get_entity_ids_from_call(hass: HomeAssistant, call: ServiceCall) -> list[st
                     entity_ids.append(entry.entity_id)
 
     if not entity_ids:
-        raise ServiceValidationError(
-            "No valid targets provided. Specify entity_id or device_id."
-        )
+        raise ServiceValidationError("No valid targets provided. Specify entity_id or device_id.")
 
     return entity_ids
 
@@ -180,14 +178,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
-            effective_user_id = user_id or _get_user_id_for_entity(
-                hass, entity_id, coordinator
-            )
+            effective_user_id = user_id or _get_user_id_for_entity(hass, entity_id, coordinator)
 
             if not effective_user_id:
                 raise ServiceValidationError(
-                    f"No user_id available for {entity_id}. "
-                    "Please provide user_id parameter."
+                    f"No user_id available for {entity_id}. Please provide user_id parameter."
                 )
 
             await coordinator.client.async_mark_played(
@@ -203,14 +198,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
-            effective_user_id = user_id or _get_user_id_for_entity(
-                hass, entity_id, coordinator
-            )
+            effective_user_id = user_id or _get_user_id_for_entity(hass, entity_id, coordinator)
 
             if not effective_user_id:
                 raise ServiceValidationError(
-                    f"No user_id available for {entity_id}. "
-                    "Please provide user_id parameter."
+                    f"No user_id available for {entity_id}. Please provide user_id parameter."
                 )
 
             await coordinator.client.async_mark_unplayed(
@@ -226,14 +218,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
-            effective_user_id = user_id or _get_user_id_for_entity(
-                hass, entity_id, coordinator
-            )
+            effective_user_id = user_id or _get_user_id_for_entity(hass, entity_id, coordinator)
 
             if not effective_user_id:
                 raise ServiceValidationError(
-                    f"No user_id available for {entity_id}. "
-                    "Please provide user_id parameter."
+                    f"No user_id available for {entity_id}. Please provide user_id parameter."
                 )
 
             await coordinator.client.async_add_favorite(
@@ -249,14 +238,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
-            effective_user_id = user_id or _get_user_id_for_entity(
-                hass, entity_id, coordinator
-            )
+            effective_user_id = user_id or _get_user_id_for_entity(hass, entity_id, coordinator)
 
             if not effective_user_id:
                 raise ServiceValidationError(
-                    f"No user_id available for {entity_id}. "
-                    "Please provide user_id parameter."
+                    f"No user_id available for {entity_id}. Please provide user_id parameter."
                 )
 
             await coordinator.client.async_remove_favorite(

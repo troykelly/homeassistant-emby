@@ -187,33 +187,25 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
         if content_type == "movieazletter" and item_id:
             parts = item_id.split("/")
             if len(parts) >= 2:
-                return await self._async_browse_movies_by_letter(
-                    coordinator, parts[0], parts[1]
-                )
+                return await self._async_browse_movies_by_letter(coordinator, parts[0], parts[1])
         if content_type == "movieyear" and item_id:
             return await self._async_browse_movie_years(coordinator, item_id)
         if content_type == "movieyearitems" and item_id:
             parts = item_id.split("/")
             if len(parts) >= 2:
-                return await self._async_browse_movies_by_year(
-                    coordinator, parts[0], parts[1]
-                )
+                return await self._async_browse_movies_by_year(coordinator, parts[0], parts[1])
         if content_type == "moviedecade" and item_id:
             return await self._async_browse_movie_decades(coordinator, item_id)
         if content_type == "moviedecadeitems" and item_id:
             parts = item_id.split("/")
             if len(parts) >= 2:
-                return await self._async_browse_movies_by_decade(
-                    coordinator, parts[0], parts[1]
-                )
+                return await self._async_browse_movies_by_decade(coordinator, parts[0], parts[1])
         if content_type == "moviegenre" and item_id:
             return await self._async_browse_movie_genres(coordinator, item_id)
         if content_type == "moviegenreitems" and item_id:
             parts = item_id.split("/")
             if len(parts) >= 2:
-                return await self._async_browse_movies_by_genre(
-                    coordinator, parts[0], parts[1]
-                )
+                return await self._async_browse_movies_by_genre(coordinator, parts[0], parts[1])
         if content_type == "moviecollection" and item_id:
             return await self._async_browse_movie_collections(coordinator, item_id)
 
@@ -225,33 +217,25 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
         if content_type == "tvazletter" and item_id:
             parts = item_id.split("/")
             if len(parts) >= 2:
-                return await self._async_browse_tv_by_letter(
-                    coordinator, parts[0], parts[1]
-                )
+                return await self._async_browse_tv_by_letter(coordinator, parts[0], parts[1])
         if content_type == "tvyear" and item_id:
             return await self._async_browse_tv_years(coordinator, item_id)
         if content_type == "tvyearitems" and item_id:
             parts = item_id.split("/")
             if len(parts) >= 2:
-                return await self._async_browse_tv_by_year(
-                    coordinator, parts[0], parts[1]
-                )
+                return await self._async_browse_tv_by_year(coordinator, parts[0], parts[1])
         if content_type == "tvdecade" and item_id:
             return await self._async_browse_tv_decades(coordinator, item_id)
         if content_type == "tvdecadeitems" and item_id:
             parts = item_id.split("/")
             if len(parts) >= 2:
-                return await self._async_browse_tv_by_decade(
-                    coordinator, parts[0], parts[1]
-                )
+                return await self._async_browse_tv_by_decade(coordinator, parts[0], parts[1])
         if content_type == "tvgenre" and item_id:
             return await self._async_browse_tv_genres(coordinator, item_id)
         if content_type == "tvgenreitems" and item_id:
             parts = item_id.split("/")
             if len(parts) >= 2:
-                return await self._async_browse_tv_by_genre(
-                    coordinator, parts[0], parts[1]
-                )
+                return await self._async_browse_tv_by_genre(coordinator, parts[0], parts[1])
 
         # Browse item (e.g., series, album)
         return await self._async_browse_item(coordinator, content_type, item_id)
@@ -325,24 +309,16 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
                     identifier = build_identifier(coordinator.server_id, "livetv")
                     media_content_type = MediaType.CHANNEL
                 elif collection_type == "movies":
-                    identifier = build_identifier(
-                        coordinator.server_id, "movielibrary", view_id
-                    )
+                    identifier = build_identifier(coordinator.server_id, "movielibrary", view_id)
                     media_content_type = MediaType.VIDEO
                 elif collection_type == "tvshows":
-                    identifier = build_identifier(
-                        coordinator.server_id, "tvlibrary", view_id
-                    )
+                    identifier = build_identifier(coordinator.server_id, "tvlibrary", view_id)
                     media_content_type = MediaType.VIDEO
                 elif collection_type == "music":
-                    identifier = build_identifier(
-                        coordinator.server_id, "library", view_id
-                    )
+                    identifier = build_identifier(coordinator.server_id, "library", view_id)
                     media_content_type = MediaType.MUSIC
                 else:
-                    identifier = build_identifier(
-                        coordinator.server_id, "library", view_id
-                    )
+                    identifier = build_identifier(coordinator.server_id, "library", view_id)
                     media_content_type = MediaType.VIDEO
 
                 children.append(
@@ -462,9 +438,7 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             children.append(
                 BrowseMediaSource(
                     domain=DOMAIN,
-                    identifier=build_identifier(
-                        coordinator.server_id, content_type, library_id
-                    ),
+                    identifier=build_identifier(coordinator.server_id, content_type, library_id),
                     media_class=media_class,
                     media_content_type=MediaType.VIDEO,
                     title=title,
@@ -475,9 +449,7 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
 
         return BrowseMediaSource(
             domain=DOMAIN,
-            identifier=build_identifier(
-                coordinator.server_id, "movielibrary", library_id
-            ),
+            identifier=build_identifier(coordinator.server_id, "movielibrary", library_id),
             media_class=MediaClass.DIRECTORY,
             media_content_type=MediaType.VIDEO,
             title="Movies",
@@ -672,9 +644,7 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
 
         return BrowseMediaSource(
             domain=DOMAIN,
-            identifier=build_identifier(
-                coordinator.server_id, "moviedecade", library_id
-            ),
+            identifier=build_identifier(coordinator.server_id, "moviedecade", library_id),
             media_class=MediaClass.DIRECTORY,
             media_content_type=MediaType.VIDEO,
             title="Decade",
@@ -816,16 +786,12 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             )
             for item in result.get("Items", []):
                 children.append(
-                    self._item_to_browse_media_source(
-                        coordinator, item, content_type="collection"
-                    )
+                    self._item_to_browse_media_source(coordinator, item, content_type="collection")
                 )
 
         return BrowseMediaSource(
             domain=DOMAIN,
-            identifier=build_identifier(
-                coordinator.server_id, "moviecollection", library_id
-            ),
+            identifier=build_identifier(coordinator.server_id, "moviecollection", library_id),
             media_class=MediaClass.DIRECTORY,
             media_content_type=MediaType.VIDEO,
             title="Collections",
@@ -854,9 +820,7 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             children.append(
                 BrowseMediaSource(
                     domain=DOMAIN,
-                    identifier=build_identifier(
-                        coordinator.server_id, content_type, library_id
-                    ),
+                    identifier=build_identifier(coordinator.server_id, content_type, library_id),
                     media_class=media_class,
                     media_content_type=MediaType.VIDEO,
                     title=title,
@@ -867,9 +831,7 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
 
         return BrowseMediaSource(
             domain=DOMAIN,
-            identifier=build_identifier(
-                coordinator.server_id, "tvlibrary", library_id
-            ),
+            identifier=build_identifier(coordinator.server_id, "tvlibrary", library_id),
             media_class=MediaClass.DIRECTORY,
             media_content_type=MediaType.VIDEO,
             title="TV Shows",
@@ -934,9 +896,7 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             )
             for item in result.get("Items", []):
                 children.append(
-                    self._item_to_browse_media_source(
-                        coordinator, item, content_type="series"
-                    )
+                    self._item_to_browse_media_source(coordinator, item, content_type="series")
                 )
 
         return BrowseMediaSource(
@@ -1014,9 +974,7 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             )
             for item in result.get("Items", []):
                 children.append(
-                    self._item_to_browse_media_source(
-                        coordinator, item, content_type="series"
-                    )
+                    self._item_to_browse_media_source(coordinator, item, content_type="series")
                 )
 
         return BrowseMediaSource(
@@ -1099,9 +1057,7 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             )
             for item in result.get("Items", []):
                 children.append(
-                    self._item_to_browse_media_source(
-                        coordinator, item, content_type="series"
-                    )
+                    self._item_to_browse_media_source(coordinator, item, content_type="series")
                 )
 
         return BrowseMediaSource(
@@ -1180,9 +1136,7 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             )
             for item in result.get("Items", []):
                 children.append(
-                    self._item_to_browse_media_source(
-                        coordinator, item, content_type="series"
-                    )
+                    self._item_to_browse_media_source(coordinator, item, content_type="series")
                 )
 
         return BrowseMediaSource(

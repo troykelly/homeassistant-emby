@@ -520,9 +520,7 @@ class EmbyOptionsFlowHandler(OptionsFlow):  # type: ignore[misc]
                     ): bool,
                     vol.Optional(
                         CONF_IGNORED_DEVICES,
-                        default=self.config_entry.options.get(
-                            CONF_IGNORED_DEVICES, ""
-                        ),
+                        default=self.config_entry.options.get(CONF_IGNORED_DEVICES, ""),
                     ): str,
                     vol.Optional(
                         CONF_DIRECT_PLAY,

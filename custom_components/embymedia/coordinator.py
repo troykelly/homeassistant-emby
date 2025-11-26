@@ -373,7 +373,9 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
                     "playback_started",
                     {
                         "media_content_id": new_playing.item_id,
-                        "media_content_type": new_playing.media_type.value if new_playing.media_type else None,
+                        "media_content_type": new_playing.media_type.value
+                        if new_playing.media_type
+                        else None,
                         "media_title": new_playing.name,
                     },
                 )
@@ -388,7 +390,9 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
                         "media_changed",
                         {
                             "media_content_id": new_playing.item_id,
-                            "media_content_type": new_playing.media_type.value if new_playing.media_type else None,
+                            "media_content_type": new_playing.media_type.value
+                            if new_playing.media_type
+                            else None,
                             "media_title": new_playing.name,
                         },
                     )

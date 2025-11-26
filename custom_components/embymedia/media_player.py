@@ -982,9 +982,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children.append(
                 BrowseMedia(
                     media_class=MediaClass.DIRECTORY,
-                    media_content_id=encode_content_id(
-                        content_type, library_id, str(decade)
-                    ),
+                    media_content_id=encode_content_id(content_type, library_id, str(decade)),
                     media_content_type=media_content_type,
                     title=f"{decade}s",
                     can_play=False,
@@ -995,9 +993,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
 
         return children
 
-    async def _async_browse_music_artists(
-        self, user_id: str, library_id: str
-    ) -> BrowseMedia:
+    async def _async_browse_music_artists(self, user_id: str, library_id: str) -> BrowseMedia:
         """Browse music artists category - show A-Z letter menu.
 
         Args:
@@ -1065,9 +1061,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children=children,
         )
 
-    async def _async_browse_music_albums(
-        self, user_id: str, library_id: str
-    ) -> BrowseMedia:
+    async def _async_browse_music_albums(self, user_id: str, library_id: str) -> BrowseMedia:
         """Browse music albums category - show A-Z letter menu.
 
         Args:
@@ -1134,9 +1128,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children=children,
         )
 
-    async def _async_browse_music_genres(
-        self, user_id: str, library_id: str
-    ) -> BrowseMedia:
+    async def _async_browse_music_genres(self, user_id: str, library_id: str) -> BrowseMedia:
         """Browse music genres.
 
         Args:
@@ -1156,9 +1148,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children.append(
                 BrowseMedia(
                     media_class=MediaClass.GENRE,
-                    media_content_id=encode_content_id(
-                        "musicgenre", library_id, genre["Id"]
-                    ),
+                    media_content_id=encode_content_id("musicgenre", library_id, genre["Id"]),
                     media_content_type=MediaType.MUSIC,
                     title=genre["Name"],
                     can_play=False,
@@ -1218,9 +1208,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children=children,
         )
 
-    async def _async_browse_music_playlists(
-        self, user_id: str, library_id: str
-    ) -> BrowseMedia:
+    async def _async_browse_music_playlists(self, user_id: str, library_id: str) -> BrowseMedia:
         """Browse music playlists.
 
         Args:
@@ -1653,9 +1641,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
     # Movie Library Browsing Methods
     # -------------------------------------------------------------------------
 
-    async def _async_browse_movie_library(
-        self, user_id: str, library_id: str
-    ) -> BrowseMedia:
+    async def _async_browse_movie_library(self, user_id: str, library_id: str) -> BrowseMedia:
         """Browse a movies library - show category menu.
 
         Movies libraries show categories (A-Z, Year, Decade, Genre, Collections)
@@ -1700,9 +1686,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children=children,
         )
 
-    async def _async_browse_movie_az(
-        self, user_id: str, library_id: str
-    ) -> BrowseMedia:
+    async def _async_browse_movie_az(self, user_id: str, library_id: str) -> BrowseMedia:
         """Browse movies A-Z - show letter menu.
 
         Args:
@@ -1712,9 +1696,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
         Returns:
             BrowseMedia with A-Z letters as children.
         """
-        children = self._build_letter_menu(
-            "movieazletter", library_id, MediaType.VIDEO
-        )
+        children = self._build_letter_menu("movieazletter", library_id, MediaType.VIDEO)
 
         return BrowseMedia(
             media_class=MediaClass.DIRECTORY,
@@ -1772,9 +1754,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children=children,
         )
 
-    async def _async_browse_movie_years(
-        self, user_id: str, library_id: str
-    ) -> BrowseMedia:
+    async def _async_browse_movie_years(self, user_id: str, library_id: str) -> BrowseMedia:
         """Browse movie years - show year list.
 
         Args:
@@ -1798,9 +1778,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children.append(
                 BrowseMedia(
                     media_class=MediaClass.DIRECTORY,
-                    media_content_id=encode_content_id(
-                        "movieyearitems", library_id, year["Name"]
-                    ),
+                    media_content_id=encode_content_id("movieyearitems", library_id, year["Name"]),
                     media_content_type=MediaType.VIDEO,
                     title=year["Name"],
                     can_play=False,
@@ -1858,9 +1836,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children=children,
         )
 
-    async def _async_browse_movie_decades(
-        self, user_id: str, library_id: str
-    ) -> BrowseMedia:
+    async def _async_browse_movie_decades(self, user_id: str, library_id: str) -> BrowseMedia:
         """Browse movie decades - show decade menu.
 
         Args:
@@ -1870,9 +1846,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
         Returns:
             BrowseMedia with decades as children.
         """
-        children = self._build_decade_menu(
-            "moviedecadeitems", library_id, MediaType.VIDEO
-        )
+        children = self._build_decade_menu("moviedecadeitems", library_id, MediaType.VIDEO)
 
         return BrowseMedia(
             media_class=MediaClass.DIRECTORY,
@@ -1927,9 +1901,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children=children,
         )
 
-    async def _async_browse_movie_genres(
-        self, user_id: str, library_id: str
-    ) -> BrowseMedia:
+    async def _async_browse_movie_genres(self, user_id: str, library_id: str) -> BrowseMedia:
         """Browse movie genres - show genre list.
 
         Args:
@@ -1953,9 +1925,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children.append(
                 BrowseMedia(
                     media_class=MediaClass.GENRE,
-                    media_content_id=encode_content_id(
-                        "moviegenreitems", library_id, genre["Id"]
-                    ),
+                    media_content_id=encode_content_id("moviegenreitems", library_id, genre["Id"]),
                     media_content_type=MediaType.VIDEO,
                     title=genre["Name"],
                     can_play=False,
@@ -2013,9 +1983,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children=children,
         )
 
-    async def _async_browse_movie_collections(
-        self, user_id: str, library_id: str
-    ) -> BrowseMedia:
+    async def _async_browse_movie_collections(self, user_id: str, library_id: str) -> BrowseMedia:
         """Browse movie collections (BoxSets) in the library.
 
         Args:
@@ -2054,9 +2022,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
     # TV Show Library Browsing Methods
     # -------------------------------------------------------------------------
 
-    async def _async_browse_tv_library(
-        self, user_id: str, library_id: str
-    ) -> BrowseMedia:
+    async def _async_browse_tv_library(self, user_id: str, library_id: str) -> BrowseMedia:
         """Browse a TV shows library - show category menu.
 
         TV libraries show categories (A-Z, Year, Decade, Genre)
@@ -2100,9 +2066,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children=children,
         )
 
-    async def _async_browse_tv_az(
-        self, user_id: str, library_id: str
-    ) -> BrowseMedia:
+    async def _async_browse_tv_az(self, user_id: str, library_id: str) -> BrowseMedia:
         """Browse TV shows A-Z - show letter menu.
 
         Args:
@@ -2112,9 +2076,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
         Returns:
             BrowseMedia with A-Z letters as children.
         """
-        children = self._build_letter_menu(
-            "tvazletter", library_id, MediaType.TVSHOW
-        )
+        children = self._build_letter_menu("tvazletter", library_id, MediaType.TVSHOW)
 
         return BrowseMedia(
             media_class=MediaClass.DIRECTORY,
@@ -2172,9 +2134,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children=children,
         )
 
-    async def _async_browse_tv_years(
-        self, user_id: str, library_id: str
-    ) -> BrowseMedia:
+    async def _async_browse_tv_years(self, user_id: str, library_id: str) -> BrowseMedia:
         """Browse TV show years - show year list.
 
         Args:
@@ -2198,9 +2158,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children.append(
                 BrowseMedia(
                     media_class=MediaClass.DIRECTORY,
-                    media_content_id=encode_content_id(
-                        "tvyearitems", library_id, year["Name"]
-                    ),
+                    media_content_id=encode_content_id("tvyearitems", library_id, year["Name"]),
                     media_content_type=MediaType.TVSHOW,
                     title=year["Name"],
                     can_play=False,
@@ -2258,9 +2216,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children=children,
         )
 
-    async def _async_browse_tv_decades(
-        self, user_id: str, library_id: str
-    ) -> BrowseMedia:
+    async def _async_browse_tv_decades(self, user_id: str, library_id: str) -> BrowseMedia:
         """Browse TV show decades - show decade menu.
 
         Args:
@@ -2270,9 +2226,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
         Returns:
             BrowseMedia with decades as children.
         """
-        children = self._build_decade_menu(
-            "tvdecadeitems", library_id, MediaType.TVSHOW
-        )
+        children = self._build_decade_menu("tvdecadeitems", library_id, MediaType.TVSHOW)
 
         return BrowseMedia(
             media_class=MediaClass.DIRECTORY,
@@ -2327,9 +2281,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children=children,
         )
 
-    async def _async_browse_tv_genres(
-        self, user_id: str, library_id: str
-    ) -> BrowseMedia:
+    async def _async_browse_tv_genres(self, user_id: str, library_id: str) -> BrowseMedia:
         """Browse TV show genres - show genre list.
 
         Args:
@@ -2353,9 +2305,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children.append(
                 BrowseMedia(
                     media_class=MediaClass.GENRE,
-                    media_content_id=encode_content_id(
-                        "tvgenreitems", library_id, genre["Id"]
-                    ),
+                    media_content_id=encode_content_id("tvgenreitems", library_id, genre["Id"]),
                     media_content_type=MediaType.TVSHOW,
                     title=genre["Name"],
                     can_play=False,
