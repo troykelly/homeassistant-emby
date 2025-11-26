@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-11-26
+
 ### Added
 - **Sensor Platform** (Phase 12)
   - Binary sensors for server status:
@@ -34,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 941 tests with 100% code coverage
 - TypedDict definitions for sensor API responses
 - Backward-compatible runtime_data structure
+
+### Fixed
+- Release workflow permissions for uploading zip artifacts
 
 ## [0.1.0] - 2025-11-26
 
@@ -82,5 +87,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Browse cache with LRU + TTL for performance
 - Graceful degradation on partial failures
 
-[Unreleased]: https://github.com/troykelly/homeassistant-emby/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/troykelly/homeassistant-emby/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/troykelly/homeassistant-emby/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/troykelly/homeassistant-emby/releases/tag/v0.1.0
