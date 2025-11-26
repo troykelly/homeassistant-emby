@@ -46,8 +46,10 @@ from .const import (
     DEFAULT_DIRECT_PLAY,
     DEFAULT_ENABLE_WEBSOCKET,
     DEFAULT_IGNORE_WEB_PLAYERS,
+    DEFAULT_LIBRARY_SCAN_INTERVAL,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
+    DEFAULT_SERVER_SCAN_INTERVAL,
     DEFAULT_SSL,
     DEFAULT_VERIFY_SSL,
     DEFAULT_VIDEO_CONTAINER,
@@ -57,8 +59,10 @@ from .const import (
     PLATFORMS,
     VIDEO_CONTAINERS,
     EmbyConfigEntry,
+    EmbyRuntimeData,
 )
 from .coordinator import EmbyDataUpdateCoordinator
+from .coordinator_sensors import EmbyLibraryCoordinator, EmbyServerCoordinator
 from .exceptions import EmbyAuthenticationError, EmbyConnectionError
 from .image import async_setup_image_proxy
 from .services import async_setup_services, async_unload_services
@@ -183,8 +187,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> bool
     server_name = str(server_info.get("ServerName", "Unknown"))
     scan_interval = int(entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
 
-    # Create coordinator
-    coordinator = EmbyDataUpdateCoordinator(
+    # Create session coordinator (for media players)
+    session_coordinator = EmbyDataUpdateCoordinator(
         hass=hass,
         client=client,
         server_id=server_id,
@@ -193,11 +197,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> bool
         scan_interval=scan_interval,
     )
 
-    # Fetch initial data
-    await coordinator.async_config_entry_first_refresh()
+    # Create server coordinator (for server status sensors)
+    server_coordinator = EmbyServerCoordinator(
+        hass=hass,
+        client=client,
+        server_id=server_id,
+        server_name=server_name,
+        config_entry=entry,
+        scan_interval=DEFAULT_SERVER_SCAN_INTERVAL,
+    )
 
-    # Store coordinator in runtime_data
-    entry.runtime_data = coordinator
+    # Create library coordinator (for library count sensors)
+    library_coordinator = EmbyLibraryCoordinator(
+        hass=hass,
+        client=client,
+        server_id=server_id,
+        config_entry=entry,
+        scan_interval=DEFAULT_LIBRARY_SCAN_INTERVAL,
+    )
+
+    # Fetch initial data from all coordinators
+    await session_coordinator.async_config_entry_first_refresh()
+    await server_coordinator.async_config_entry_first_refresh()
+    await library_coordinator.async_config_entry_first_refresh()
+
+    # Store runtime data with all coordinators
+    entry.runtime_data = EmbyRuntimeData(
+        session_coordinator=session_coordinator,
+        server_coordinator=server_coordinator,
+        library_coordinator=library_coordinator,
+    )
 
     # Register server device BEFORE forwarding to platforms
     # This prevents the via_device warning where entities reference
@@ -227,7 +256,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> bool
 
     # Start WebSocket for real-time updates
     try:
-        await coordinator.async_setup_websocket(session)
+        await session_coordinator.async_setup_websocket(session)
     except Exception:  # pylint: disable=broad-exception-caught
         _LOGGER.warning(
             "Failed to set up WebSocket connection to Emby server %s. "
@@ -237,7 +266,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> bool
 
     # Register cleanup callbacks
     entry.async_on_unload(entry.add_update_listener(async_options_updated))
-    entry.async_on_unload(coordinator.async_shutdown_websocket)
+    entry.async_on_unload(session_coordinator.async_shutdown_websocket)
 
     _LOGGER.info(
         "Connected to Emby server: %s (version %s)",

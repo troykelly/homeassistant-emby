@@ -70,6 +70,14 @@ def mock_coordinator(hass: HomeAssistant) -> MagicMock:
     return coordinator
 
 
+@pytest.fixture
+def mock_runtime_data(mock_coordinator: MagicMock) -> MagicMock:
+    """Create a mock runtime data with session_coordinator."""
+    runtime_data = MagicMock()
+    runtime_data.session_coordinator = mock_coordinator
+    return runtime_data
+
+
 class TestEmbyMediaPlayerState:
     """Test EmbyMediaPlayer state property."""
 
@@ -182,7 +190,7 @@ class TestAsyncSetupEntry:
 
         # Create mock config entry
         mock_entry = MagicMock()
-        mock_entry.runtime_data = mock_coordinator
+        mock_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
         mock_entry.async_on_unload = MagicMock()
 
         # Track added entities
@@ -208,7 +216,7 @@ class TestAsyncSetupEntry:
         mock_coordinator.data = {}
 
         mock_entry = MagicMock()
-        mock_entry.runtime_data = mock_coordinator
+        mock_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
         mock_entry.async_on_unload = MagicMock()
 
         added_entities: list = []
@@ -232,7 +240,7 @@ class TestAsyncSetupEntry:
         mock_coordinator.data = {}
 
         mock_entry = MagicMock()
-        mock_entry.runtime_data = mock_coordinator
+        mock_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
         mock_entry.async_on_unload = MagicMock()
 
         await async_setup_entry(hass, mock_entry, MagicMock())
@@ -254,7 +262,7 @@ class TestAsyncSetupEntry:
         mock_coordinator.data = {}
 
         mock_entry = MagicMock()
-        mock_entry.runtime_data = mock_coordinator
+        mock_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
         mock_entry.async_on_unload = MagicMock()
 
         added_entities: list = []
@@ -298,7 +306,7 @@ class TestAsyncSetupEntry:
         mock_coordinator.data = {"device-abc-123": mock_session_idle}
 
         mock_entry = MagicMock()
-        mock_entry.runtime_data = mock_coordinator
+        mock_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
         mock_entry.async_on_unload = MagicMock()
 
         added_entities: list = []
@@ -339,7 +347,7 @@ class TestAsyncSetupEntry:
         mock_coordinator.data = None
 
         mock_entry = MagicMock()
-        mock_entry.runtime_data = mock_coordinator
+        mock_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
         mock_entry.async_on_unload = MagicMock()
 
         added_entities: list = []

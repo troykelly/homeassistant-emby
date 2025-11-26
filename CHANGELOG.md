@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Sensor Platform** (Phase 12)
+  - Binary sensors for server status:
+    - `binary_sensor.{server}_connected` - Server connectivity
+    - `binary_sensor.{server}_pending_restart` - Restart required indicator
+    - `binary_sensor.{server}_update_available` - Update availability
+    - `binary_sensor.{server}_library_scan_active` - Library scan status with progress attribute
+  - Numeric sensors for server statistics:
+    - `sensor.{server}_server_version` - Server version (diagnostic)
+    - `sensor.{server}_running_tasks` - Active scheduled tasks count
+    - `sensor.{server}_active_sessions` - Connected client count
+  - Library count sensors (1-hour polling):
+    - `sensor.{server}_movies` - Total movie count
+    - `sensor.{server}_tv_shows` - Total TV series count
+    - `sensor.{server}_episodes` - Total episode count
+    - `sensor.{server}_songs` - Total song count
+    - `sensor.{server}_albums` - Total album count
+    - `sensor.{server}_artists` - Total artist count
+  - New coordinators for sensor data:
+    - `EmbyServerCoordinator` - Server info polling (5-minute interval)
+    - `EmbyLibraryCoordinator` - Library counts polling (1-hour interval)
+  - `EmbyRuntimeData` class to manage multiple coordinators
+
+### Technical
+- 941 tests with 100% code coverage
+- TypedDict definitions for sensor API responses
+- Backward-compatible runtime_data structure
+
 ## [0.1.0] - 2025-11-26
 
 ### Added

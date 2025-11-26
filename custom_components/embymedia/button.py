@@ -64,7 +64,7 @@ async def async_setup_entry(
         entry: Config entry containing the coordinator.
         async_add_entities: Callback to add entities to Home Assistant.
     """
-    coordinator: EmbyDataUpdateCoordinator = entry.runtime_data
+    coordinator: EmbyDataUpdateCoordinator = entry.runtime_data.session_coordinator
 
     entities: list[ButtonEntity] = [
         EmbyRefreshLibraryButton(coordinator),

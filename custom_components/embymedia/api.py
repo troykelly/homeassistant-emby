@@ -34,12 +34,15 @@ from .exceptions import (
 if TYPE_CHECKING:
     from .const import (
         EmbyBrowseItem,
+        EmbyItemCounts,
         EmbyItemsResponse,
         EmbyLibraryItem,
         EmbyPublicInfo,
+        EmbyScheduledTask,
         EmbyServerInfo,
         EmbySessionResponse,
         EmbyUser,
+        EmbyVirtualFolder,
     )
 
 _LOGGER = logging.getLogger(__name__)
@@ -1202,6 +1205,99 @@ class EmbyClient:
         response = await self._request(HTTP_GET, endpoint)
         items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
         return items
+
+    # =========================================================================
+    # Sensor Platform API Methods (Phase 12)
+    # =========================================================================
+
+    async def async_get_item_counts(
+        self,
+        user_id: str | None = None,
+    ) -> EmbyItemCounts:
+        """Get library item counts.
+
+        Args:
+            user_id: Optional user ID to filter by user's visible items.
+
+        Returns:
+            Item counts response with counts for each media type.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = "/Items/Counts"
+        if user_id:
+            endpoint = f"{endpoint}?UserId={user_id}"
+        response = await self._request(HTTP_GET, endpoint)
+        return response  # type: ignore[return-value]
+
+    async def async_get_scheduled_tasks(
+        self,
+        include_hidden: bool = False,
+    ) -> list[EmbyScheduledTask]:
+        """Get scheduled tasks status.
+
+        Args:
+            include_hidden: Whether to include hidden tasks.
+
+        Returns:
+            List of scheduled tasks with their current state.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = "/ScheduledTasks"
+        if include_hidden:
+            endpoint = f"{endpoint}?IsHidden=true"
+        response = await self._request(HTTP_GET, endpoint)
+        return response  # type: ignore[return-value]
+
+    async def async_get_virtual_folders(self) -> list[EmbyVirtualFolder]:
+        """Get virtual folders (libraries) configuration.
+
+        Returns:
+            List of virtual folders with library info and locations.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        response = await self._request(HTTP_GET, "/Library/VirtualFolders")
+        return response  # type: ignore[return-value]
+
+    async def async_get_user_item_count(
+        self,
+        user_id: str,
+        filters: str | None = None,
+        parent_id: str | None = None,
+    ) -> int:
+        """Get count of items matching filters for a user.
+
+        Args:
+            user_id: User ID.
+            filters: Filter string (e.g., "IsFavorite", "IsPlayed", "IsResumable").
+            parent_id: Optional parent library ID to filter within.
+
+        Returns:
+            Total count of matching items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        params: list[str] = ["Limit=0", "Recursive=true"]
+        if filters:
+            params.insert(0, f"Filters={filters}")
+        if parent_id:
+            params.append(f"ParentId={parent_id}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Users/{user_id}/Items?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        total_count = response.get("TotalRecordCount", 0)
+        return int(total_count) if isinstance(total_count, (int, float, str)) else 0
 
     async def async_play_items(
         self,

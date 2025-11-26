@@ -9,6 +9,7 @@ This guide provides ready-to-use automation examples for the Emby Media integrat
 - [Playback Control Automations](#playback-control-automations)
 - [Remote Control Automations](#remote-control-automations)
 - [Library Management Automations](#library-management-automations)
+- [Sensor-Based Automations](#sensor-based-automations)
 - [Device Triggers](#device-triggers)
 - [Advanced Examples](#advanced-examples)
 
@@ -432,6 +433,169 @@ automation:
           entity_id: media_player.living_room_tv
         data:
           item_id: "{{ state_attr('media_player.living_room_tv', 'media_content_id') }}"
+```
+
+---
+
+## Sensor-Based Automations
+
+The Emby integration provides sensors for monitoring server status, library counts, and activity. These can be used to create powerful automations.
+
+### Alert When Library Scan Completes
+
+```yaml
+automation:
+  - alias: "Emby - Library scan complete notification"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.media_library_scan_active
+        from: "on"
+        to: "off"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Emby Library"
+          message: "Library scan completed!"
+```
+
+### Notify When Server Needs Restart
+
+```yaml
+automation:
+  - alias: "Emby - Server restart required"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.media_pending_restart
+        to: "on"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Emby Server"
+          message: "Server restart is required"
+```
+
+### Alert When Update Available
+
+```yaml
+automation:
+  - alias: "Emby - Update available"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.media_update_available
+        to: "on"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Emby Update"
+          message: "A new Emby server update is available!"
+```
+
+### Monitor Active Sessions
+
+```yaml
+automation:
+  - alias: "Emby - High session count alert"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.media_active_sessions
+        above: 5
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Emby Server"
+          message: "{{ states('sensor.media_active_sessions') }} users are connected"
+```
+
+### Weekly Library Statistics Report
+
+```yaml
+automation:
+  - alias: "Emby - Weekly library report"
+    trigger:
+      - platform: time
+        at: "09:00:00"
+    condition:
+      - condition: time
+        weekday:
+          - sun
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Emby Weekly Report"
+          message: >
+            Library Stats:
+            🎬 Movies: {{ states('sensor.media_movies') }}
+            📺 TV Shows: {{ states('sensor.media_tv_shows') }}
+            🎵 Songs: {{ states('sensor.media_songs') }}
+```
+
+### Server Offline Alert
+
+```yaml
+automation:
+  - alias: "Emby - Server offline alert"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.media_server_connected
+        to: "off"
+        for: "00:05:00"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Emby Server"
+          message: "Server has been offline for 5 minutes!"
+          data:
+            priority: high
+```
+
+### Dashboard Display with Library Counts
+
+Use the sensors in a Lovelace dashboard:
+
+```yaml
+type: entities
+title: Emby Library
+entities:
+  - entity: sensor.media_movies
+    name: Movies
+    icon: mdi:movie
+  - entity: sensor.media_tv_shows
+    name: TV Shows
+    icon: mdi:television
+  - entity: sensor.media_episodes
+    name: Episodes
+    icon: mdi:television-play
+  - entity: sensor.media_songs
+    name: Songs
+    icon: mdi:music
+  - entity: sensor.media_albums
+    name: Albums
+    icon: mdi:album
+  - entity: sensor.media_artists
+    name: Artists
+    icon: mdi:account-music
+```
+
+### Server Status Card
+
+```yaml
+type: entities
+title: Emby Server Status
+entities:
+  - entity: binary_sensor.media_server_connected
+    name: Connected
+  - entity: sensor.media_server_version
+    name: Version
+  - entity: sensor.media_active_sessions
+    name: Active Sessions
+  - entity: sensor.media_running_tasks
+    name: Running Tasks
+  - entity: binary_sensor.media_library_scan_active
+    name: Library Scan
+  - entity: binary_sensor.media_pending_restart
+    name: Restart Required
+  - entity: binary_sensor.media_update_available
+    name: Update Available
 ```
 
 ---

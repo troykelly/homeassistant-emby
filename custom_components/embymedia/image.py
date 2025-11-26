@@ -147,7 +147,7 @@ class EmbyImageProxyView(HomeAssistantView):  # type: ignore[misc]
         """
         for entry in hass.config_entries.async_entries(DOMAIN):
             if hasattr(entry, "runtime_data") and entry.runtime_data is not None:
-                coordinator: EmbyDataUpdateCoordinator = entry.runtime_data
+                coordinator: EmbyDataUpdateCoordinator = entry.runtime_data.session_coordinator
                 if hasattr(coordinator, "server_id") and coordinator.server_id == server_id:
                     return coordinator
                 # Also check by unique_id which should match server_id

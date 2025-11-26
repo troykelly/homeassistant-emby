@@ -478,7 +478,7 @@ def _get_coordinator_for_entity(
     if config_entry is None:
         raise HomeAssistantError(f"Config entry {config_entry_id} not found")
 
-    coordinator: EmbyDataUpdateCoordinator = config_entry.runtime_data
+    coordinator: EmbyDataUpdateCoordinator = config_entry.runtime_data.session_coordinator
     return coordinator
 
 

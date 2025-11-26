@@ -473,7 +473,7 @@ class TestAsyncSetupEntry:
         mock_coordinator.async_add_listener = MagicMock(return_value=MagicMock())
 
         mock_entry = MagicMock()
-        mock_entry.runtime_data = mock_coordinator
+        mock_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
         mock_entry.async_on_unload = MagicMock()
 
         added_entities: list = []
@@ -501,7 +501,7 @@ class TestAsyncSetupEntry:
         mock_coordinator.async_add_listener = MagicMock(return_value=MagicMock())
 
         mock_entry = MagicMock()
-        mock_entry.runtime_data = mock_coordinator
+        mock_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
         mock_entry.async_on_unload = MagicMock()
 
         added_entities: list = []
@@ -528,7 +528,7 @@ class TestAsyncSetupEntry:
         mock_coordinator.async_add_listener = MagicMock(return_value=MagicMock())
 
         mock_entry = MagicMock()
-        mock_entry.runtime_data = mock_coordinator
+        mock_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
         mock_entry.async_on_unload = MagicMock()
 
         added_entities: list = []
@@ -555,7 +555,7 @@ class TestAsyncSetupEntry:
         mock_coordinator.async_add_listener = MagicMock(return_value=MagicMock())
 
         mock_entry = MagicMock()
-        mock_entry.runtime_data = mock_coordinator
+        mock_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
         mock_entry.async_on_unload = MagicMock()
 
         await async_setup_entry(hass, mock_entry, MagicMock())

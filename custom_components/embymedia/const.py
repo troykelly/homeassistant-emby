@@ -10,12 +10,45 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
 
     from .coordinator import EmbyDataUpdateCoordinator
+    from .coordinator_sensors import EmbyLibraryCoordinator, EmbyServerCoordinator
 
 # Integration domain
 DOMAIN: Final = "embymedia"
 
+
+# Runtime data class to hold all coordinators
+class EmbyRuntimeData:
+    """Runtime data for Emby integration.
+
+    Holds all coordinators for the config entry.
+    """
+
+    def __init__(
+        self,
+        session_coordinator: EmbyDataUpdateCoordinator,
+        server_coordinator: EmbyServerCoordinator,
+        library_coordinator: EmbyLibraryCoordinator,
+    ) -> None:
+        """Initialize runtime data.
+
+        Args:
+            session_coordinator: Coordinator for session/media player data.
+            server_coordinator: Coordinator for server status data.
+            library_coordinator: Coordinator for library counts data.
+        """
+        self.session_coordinator = session_coordinator
+        self.server_coordinator = server_coordinator
+        self.library_coordinator = library_coordinator
+
+    # Provide backward compatibility as the old coordinator
+    @property
+    def coordinator(self) -> EmbyDataUpdateCoordinator:
+        """Return the session coordinator (for backward compatibility)."""
+        return self.session_coordinator
+
+
 # Type alias for config entry with runtime data
-type EmbyConfigEntry = ConfigEntry[EmbyDataUpdateCoordinator]
+type EmbyConfigEntry = ConfigEntry[EmbyRuntimeData]
 
 # Configuration keys (use HA constants where available)
 CONF_API_KEY: Final = "api_key"
@@ -40,6 +73,11 @@ CONF_PREFIX_NOTIFY: Final = "prefix_notify"
 CONF_PREFIX_REMOTE: Final = "prefix_remote"
 CONF_PREFIX_BUTTON: Final = "prefix_button"
 
+# Sensor platform option keys (Phase 12)
+CONF_ENABLE_LIBRARY_SENSORS: Final = "enable_library_sensors"
+CONF_ENABLE_USER_SENSORS: Final = "enable_user_sensors"
+CONF_LIBRARY_SCAN_INTERVAL: Final = "library_scan_interval"
+
 # Default values
 DEFAULT_PORT: Final = 8096
 DEFAULT_SSL: Final = False
@@ -57,6 +95,12 @@ DEFAULT_PREFIX_MEDIA_PLAYER: Final = True
 DEFAULT_PREFIX_NOTIFY: Final = True
 DEFAULT_PREFIX_REMOTE: Final = True
 DEFAULT_PREFIX_BUTTON: Final = True
+
+# Default sensor values (Phase 12)
+DEFAULT_ENABLE_LIBRARY_SENSORS: Final = True
+DEFAULT_ENABLE_USER_SENSORS: Final = True
+DEFAULT_LIBRARY_SCAN_INTERVAL: Final = 3600  # 1 hour in seconds
+DEFAULT_SERVER_SCAN_INTERVAL: Final = 300  # 5 minutes in seconds
 
 # Video container options
 VIDEO_CONTAINERS: Final[list[str]] = ["mp4", "mkv", "webm"]
@@ -97,10 +141,12 @@ ENDPOINT_SESSIONS: Final = "/Sessions"
 
 # Platforms
 PLATFORMS: list[Platform] = [
+    Platform.BINARY_SENSOR,
     Platform.BUTTON,
     Platform.MEDIA_PLAYER,
     Platform.NOTIFY,
     Platform.REMOTE,
+    Platform.SENSOR,
 ]
 
 
@@ -325,6 +371,88 @@ class MediaSourceIdentifier(TypedDict):
     server_id: str  # Emby server ID
     content_type: str  # Content type (movie, episode, track, etc.)
     item_id: str  # Emby item ID
+
+
+# =============================================================================
+# TypedDicts for Sensor Platform (Phase 12)
+# =============================================================================
+
+
+class EmbyItemCounts(TypedDict):
+    """Response from /Items/Counts endpoint.
+
+    Contains counts of various media types in the library.
+    """
+
+    MovieCount: int
+    SeriesCount: int
+    EpisodeCount: int
+    ArtistCount: int
+    AlbumCount: int
+    SongCount: int
+    GameCount: int
+    GameSystemCount: int
+    TrailerCount: int
+    MusicVideoCount: int
+    BoxSetCount: int
+    BookCount: int
+    ItemCount: int
+
+
+class EmbyScheduledTaskResult(TypedDict):
+    """Last execution result for a scheduled task."""
+
+    StartTimeUtc: str
+    EndTimeUtc: str
+    Status: str  # "Completed", "Failed", "Cancelled", "Aborted"
+    Name: str
+    Key: str
+    Id: str
+
+
+class EmbyScheduledTask(TypedDict, total=False):
+    """Response item from /ScheduledTasks endpoint.
+
+    Note: total=False means all fields are optional by default.
+    We make specific fields required by not using NotRequired.
+    """
+
+    # Required fields (always present)
+    Name: str
+    State: str  # "Idle", "Running", "Cancelling"
+    Id: str
+    Description: str
+    Category: str
+    IsHidden: bool
+    Key: str
+    Triggers: list[dict[str, object]]
+
+    # Optional fields (only present in certain conditions)
+    CurrentProgressPercentage: float  # Only when running
+    LastExecutionResult: EmbyScheduledTaskResult  # May not be present
+
+
+class EmbyVirtualFolderLocation(TypedDict):
+    """Location path within a virtual folder."""
+
+    Path: str
+
+
+class EmbyVirtualFolder(TypedDict, total=False):
+    """Response item from /Library/VirtualFolders endpoint.
+
+    Represents a library/virtual folder configuration.
+    """
+
+    # Required fields
+    Name: str
+    ItemId: str
+    CollectionType: str  # "movies", "tvshows", "music", etc.
+    Locations: list[str]
+
+    # Optional fields (only present during refresh)
+    RefreshProgress: float  # Progress percentage when refreshing
+    RefreshStatus: str  # "Active", "Idle"
 
 
 # MIME type mapping for media content

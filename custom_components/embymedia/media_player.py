@@ -66,7 +66,7 @@ async def async_setup_entry(
         entry: Config entry being set up.
         async_add_entities: Callback to add entities.
     """
-    coordinator: EmbyDataUpdateCoordinator = entry.runtime_data
+    coordinator: EmbyDataUpdateCoordinator = entry.runtime_data.session_coordinator
     _LOGGER.debug("Setting up Emby media player platform")
 
     # Track which entities we've created

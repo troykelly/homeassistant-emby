@@ -527,6 +527,58 @@ The integration provides:
 
 ---
 
+## Phase 12: Sensor Platform - Server & Library Statistics ✅
+
+### Overview
+
+Comprehensive sensor platform exposing Emby server health, library statistics, and playback activity.
+
+### 12.1 New Coordinators ✅
+- [x] `EmbyServerCoordinator` - 5 min polling for server info
+- [x] `EmbyLibraryCoordinator` - 1 hour polling for library counts
+- [x] `EmbyRuntimeData` class to manage multiple coordinators
+
+### 12.2 Server Binary Sensors ✅
+- [x] `binary_sensor.{server}_connected` - Server reachable
+- [x] `binary_sensor.{server}_pending_restart` - From `/System/Info`
+- [x] `binary_sensor.{server}_update_available` - From `/System/Info`
+- [x] `binary_sensor.{server}_library_scan_active` - With progress % attribute
+
+### 12.3 Server Diagnostic Sensors ✅
+- [x] `sensor.{server}_version` - Server version
+- [x] `sensor.{server}_running_tasks` - Running task count
+
+### 12.4 Session Sensors ✅
+- [x] `sensor.{server}_active_sessions` - Session count
+
+### 12.5 Library Count Sensors (1 Hour Polling) ✅
+- [x] `sensor.{server}_movies` - From `/Items/Counts`
+- [x] `sensor.{server}_series` - From `/Items/Counts`
+- [x] `sensor.{server}_episodes` - From `/Items/Counts`
+- [x] `sensor.{server}_albums` - From `/Items/Counts`
+- [x] `sensor.{server}_songs` - From `/Items/Counts`
+- [x] `sensor.{server}_artists` - From `/Items/Counts`
+
+### 12.6 API Methods ✅
+- [x] `async_get_item_counts()` - Library item counts
+- [x] `async_get_scheduled_tasks()` - Scheduled task status
+- [x] `async_get_virtual_folders()` - Library folder info
+- [x] `async_get_user_item_count()` - User-specific counts
+
+### 12.7 Testing & Documentation ✅
+- [x] 941 tests with 100% code coverage
+- [x] Unit tests for new coordinators
+- [x] Update README with sensor documentation
+
+**Deliverables:**
+- ✅ All sensors grouped under Emby server device
+- ✅ Library scan sensor with progress percentage attribute
+- ✅ Library count sensors (movies, series, episodes, songs, albums, artists)
+- ✅ Server status binary sensors
+- ✅ Session count sensor
+
+---
+
 ## Implementation Order
 
 ```
@@ -534,11 +586,10 @@ Phase 1 ─┬─► Phase 2 ─┬─► Phase 3 ─► Phase 4
          │            │
          │            └─► Phase 5 ─► Phase 6
          │
-         └─────────────────────────► Phase 7
-                                        │
-Phase 8 ◄───────────────────────────────┘
-   │
-   └─► Phase 9 ─► Phase 10
+         └─────────────────────────► Phase 7 ─┬─► Phase 8
+                                              │
+                                              └─► Phase 12 (Sensors)
+Phase 8 ─► Phase 9 ─► Phase 10 ─► Phase 11
 ```
 
 **Critical Path:** Phases 1-3 are sequential and blocking.
@@ -547,6 +598,7 @@ Phase 8 ◄───────────────────────
 - Phase 4 (Images) can start after Phase 3
 - Phase 5 (Browsing) can start after Phase 2
 - Phase 7 (WebSocket) can start after Phase 1
+- Phase 12 (Sensors) can start after Phase 7 (requires WebSocket)
 
 ---
 
@@ -563,8 +615,8 @@ Phase 8 ◄───────────────────────
 - [x] Media source provider working
 - [x] Real-time updates via WebSocket
 
-### Production Ready (Phases 1-10)
-- [x] 100% test coverage (815+ tests)
+### Production Ready (Phases 1-12)
+- [x] 100% test coverage (941 tests)
 - [x] Full documentation
 - [x] HACS validation workflows configured
 - [x] Hassfest validation workflow configured
@@ -593,16 +645,33 @@ Phase 8 ◄───────────────────────
 | `/Audio/{id}/stream` | GET | Audio stream URL |
 | `/Sessions/{id}/Playing/{cmd}` | POST | Playback control |
 | `/Sessions/{id}/Command` | POST | General commands |
+| `/Items/Counts` | GET | Library item counts (Phase 12) |
+| `/ScheduledTasks` | GET | Scheduled task status (Phase 12) |
+| `/Library/VirtualFolders` | GET | Library folders info (Phase 12) |
+| `/System/ActivityLog/Entries` | GET | Activity log entries (Phase 12) |
+| `/Plugins` | GET | Installed plugins (Phase 12) |
 
-### WebSocket Events
+### WebSocket Subscriptions
+
+| Subscription | Response Type | Purpose |
+|-------------|---------------|---------|
+| `SessionsStart` | `Sessions` | Periodic session updates |
+| `ScheduledTasksInfoStart` | `ScheduledTasksInfo` | Task status updates (Phase 12) |
+| `ActivityLogEntryStart` | `ActivityLogEntry` | New activity entries (Phase 12) |
+
+### WebSocket Events (Push-Based)
 
 | Event | Purpose |
 |-------|---------|
-| `SessionsStart` | Client connected |
-| `SessionsEnd` | Client disconnected |
-| `PlaybackStart` | Playback started |
+| `PlaybackStarted` | Playback started |
 | `PlaybackStopped` | Playback stopped |
 | `PlaybackProgress` | Position update |
+| `SessionEnded` | Client disconnected |
+| `LibraryChanged` | Library items changed |
+| `ServerRestarting` | Server restart initiated |
+| `ServerShuttingDown` | Server shutdown initiated |
+| `RestartRequired` | Server needs restart |
+| `ScheduledTaskEnded` | Task completed |
 
 ---
 
@@ -610,8 +679,6 @@ Phase 8 ◄───────────────────────
 
 | Version | Date | Milestone |
 |---------|------|-----------|
-| 0.1.0 | TBD | MVP - Basic media player |
-| 0.2.0 | TBD | Media browsing |
-| 0.3.0 | TBD | Media source provider |
-| 0.4.0 | TBD | WebSocket support |
+| 0.1.0 | 2025-11-26 | MVP - Full media player with browsing, WebSocket, services |
+| 0.2.0 | TBD | Sensor platform (Phase 12) |
 | 1.0.0 | TBD | Production release |

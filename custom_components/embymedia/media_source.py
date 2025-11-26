@@ -114,7 +114,7 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
         # Get coordinators from config entries' runtime_data
         for entry in self.hass.config_entries.async_entries(DOMAIN):
             if hasattr(entry, "runtime_data") and entry.runtime_data is not None:
-                coordinator = entry.runtime_data
+                coordinator = entry.runtime_data.session_coordinator
                 if hasattr(coordinator, "server_id"):
                     coordinators[coordinator.server_id] = coordinator
 

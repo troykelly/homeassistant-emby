@@ -1350,7 +1350,7 @@ class TestServiceEdgeCases:
                 await hass.async_block_till_done()
 
             # Now simulate no sessions - manually clear the coordinator data
-            coordinator = mock_config_entry.runtime_data
+            coordinator = mock_config_entry.runtime_data.session_coordinator
             coordinator.data = {}
 
             # Find the entity ID
@@ -1794,7 +1794,7 @@ class TestServiceApiErrorHandling:
                 await hass.async_block_till_done()
 
             # Clear coordinator data to simulate offline session
-            coordinator = mock_entry.runtime_data
+            coordinator = mock_entry.runtime_data.session_coordinator
             coordinator.data = {}
 
             entity_reg = er.async_get(hass)

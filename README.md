@@ -25,6 +25,7 @@ A modern Home Assistant integration for [Emby Media Server](https://emby.media/)
 | **⚡ Real-Time Updates** | WebSocket connection for instant state sync |
 | **🎙️ Voice Control** | Search and play media with Google/Alexa |
 | **🏠 Automations** | Device triggers for playback events |
+| **📊 Server Sensors** | Monitor server status, library counts, and activity |
 
 ## 📋 Requirements
 
@@ -262,6 +263,52 @@ automation:
 </details>
 
 See [docs/AUTOMATIONS.md](docs/AUTOMATIONS.md) for more examples.
+
+## 📊 Server & Library Sensors
+
+The integration provides sensors to monitor your Emby server:
+
+### Binary Sensors
+
+| Sensor | Description |
+|--------|-------------|
+| `binary_sensor.{server}_connected` | Server connectivity status |
+| `binary_sensor.{server}_pending_restart` | Server needs restart |
+| `binary_sensor.{server}_update_available` | Server update available |
+| `binary_sensor.{server}_library_scan_active` | Library scan in progress (with progress % attribute) |
+
+### Numeric Sensors
+
+| Sensor | Description |
+|--------|-------------|
+| `sensor.{server}_server_version` | Current server version |
+| `sensor.{server}_running_tasks` | Number of running scheduled tasks |
+| `sensor.{server}_active_sessions` | Number of connected clients |
+| `sensor.{server}_movies` | Total movies in library |
+| `sensor.{server}_tv_shows` | Total TV series in library |
+| `sensor.{server}_episodes` | Total episodes in library |
+| `sensor.{server}_songs` | Total songs in library |
+| `sensor.{server}_albums` | Total albums in library |
+| `sensor.{server}_artists` | Total artists in library |
+
+<details>
+<summary><b>📈 Sensor-based automation example</b></summary>
+
+```yaml
+automation:
+  - alias: "Alert when library scan completes"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.media_library_scan_active
+        from: "on"
+        to: "off"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Emby"
+          message: "Library scan completed!"
+```
+</details>
 
 ## 🔧 Advanced Options
 
