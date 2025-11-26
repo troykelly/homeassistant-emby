@@ -1,0 +1,146 @@
+send_message:
+  name: Send Message
+  description: Send a message to an Emby client.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    message:
+      name: Message
+      description: The message text to display.
+      required: true
+      example: "Hello from Home Assistant!"
+      selector:
+        text:
+    header:
+      name: Header
+      description: Optional header/title for the message.
+      default: ""
+      example: "Notification"
+      selector:
+        text:
+    timeout_ms:
+      name: Timeout
+      description: How long to display the message (milliseconds).
+      default: 5000
+      selector:
+        number:
+          min: 1000
+          max: 60000
+          step: 1000
+          unit_of_measurement: "ms"
+
+send_command:
+  name: Send Command
+  description: Send a general command to an Emby client.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    command:
+      name: Command
+      description: The command to send (e.g., MoveUp, MoveDown, Select, Back).
+      required: true
+      example: "GoHome"
+      selector:
+        text:
+
+mark_played:
+  name: Mark Played
+  description: Mark a media item as played.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    item_id:
+      name: Item ID
+      description: The Emby item ID to mark as played.
+      required: true
+      example: "12345"
+      selector:
+        text:
+    user_id:
+      name: User ID
+      description: Optional user ID (uses session user if not specified).
+      selector:
+        text:
+
+mark_unplayed:
+  name: Mark Unplayed
+  description: Mark a media item as unplayed.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    item_id:
+      name: Item ID
+      description: The Emby item ID to mark as unplayed.
+      required: true
+      example: "12345"
+      selector:
+        text:
+    user_id:
+      name: User ID
+      description: Optional user ID (uses session user if not specified).
+      selector:
+        text:
+
+add_favorite:
+  name: Add Favorite
+  description: Add a media item to favorites.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    item_id:
+      name: Item ID
+      description: The Emby item ID to add to favorites.
+      required: true
+      example: "12345"
+      selector:
+        text:
+    user_id:
+      name: User ID
+      description: Optional user ID (uses session user if not specified).
+      selector:
+        text:
+
+remove_favorite:
+  name: Remove Favorite
+  description: Remove a media item from favorites.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    item_id:
+      name: Item ID
+      description: The Emby item ID to remove from favorites.
+      required: true
+      example: "12345"
+      selector:
+        text:
+    user_id:
+      name: User ID
+      description: Optional user ID (uses session user if not specified).
+      selector:
+        text:
+
+refresh_library:
+  name: Refresh Library
+  description: Trigger a library refresh on the Emby server.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    library_id:
+      name: Library ID
+      description: Optional library ID to refresh (refreshes all libraries if not specified).
+      selector:
+        text:

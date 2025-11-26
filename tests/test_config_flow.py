@@ -61,11 +61,22 @@ class TestConfigFlow:
             },
         )
 
+        # Now we have user selection step
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "user_select"
+
+        # Select a user (or skip with empty)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"user_id": "user-1"},
+        )
+
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert result["title"] == "Test Emby Server"
         assert result["data"][CONF_HOST] == "emby.local"
         assert result["data"][CONF_PORT] == 8096
         assert result["data"][CONF_API_KEY] == "test-api-key"
+        assert result["data"]["user_id"] == "user-1"
 
     @pytest.mark.asyncio
     async def test_connection_error(
@@ -291,6 +302,16 @@ class TestConfigFlow:
             },
         )
 
+        # Now we have user selection step
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "user_select"
+
+        # Complete user selection
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"user_id": ""},
+        )
+
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert result["data"][CONF_HOST] == "emby.local"
 
@@ -298,6 +319,7 @@ class TestConfigFlow:
     async def test_version_check_supported(
         self,
         hass: HomeAssistant,
+        mock_users: list[dict[str, Any]],
     ) -> None:
         """Test supported version accepted."""
         with patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class:
@@ -310,6 +332,7 @@ class TestConfigFlow:
                     "Version": "4.8.0.0",
                 }
             )
+            client.async_get_users = AsyncMock(return_value=mock_users)
 
             result = await hass.config_entries.flow.async_init(
                 DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -324,6 +347,16 @@ class TestConfigFlow:
                     CONF_API_KEY: "test-api-key",
                     CONF_VERIFY_SSL: True,
                 },
+            )
+
+            # Should show user selection step
+            assert result["type"] is FlowResultType.FORM
+            assert result["step_id"] == "user_select"
+
+            # Complete user selection
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {"user_id": ""},
             )
 
             assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -367,6 +400,7 @@ class TestConfigFlow:
     async def test_version_check_higher_major_supported(
         self,
         hass: HomeAssistant,
+        mock_users: list[dict[str, Any]],
     ) -> None:
         """Test higher major version accepted."""
         with patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class:
@@ -379,6 +413,7 @@ class TestConfigFlow:
                     "Version": "5.0.0.0",  # Higher major version
                 }
             )
+            client.async_get_users = AsyncMock(return_value=mock_users)
 
             result = await hass.config_entries.flow.async_init(
                 DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -395,12 +430,23 @@ class TestConfigFlow:
                 },
             )
 
+            # Should show user selection step
+            assert result["type"] is FlowResultType.FORM
+            assert result["step_id"] == "user_select"
+
+            # Complete user selection
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {"user_id": ""},
+            )
+
             assert result["type"] is FlowResultType.CREATE_ENTRY
 
     @pytest.mark.asyncio
     async def test_version_check_invalid_version_allowed(
         self,
         hass: HomeAssistant,
+        mock_users: list[dict[str, Any]],
     ) -> None:
         """Test invalid version string is allowed (returns True)."""
         with patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class:
@@ -413,6 +459,7 @@ class TestConfigFlow:
                     "Version": "invalid",  # Invalid version string
                 }
             )
+            client.async_get_users = AsyncMock(return_value=mock_users)
 
             result = await hass.config_entries.flow.async_init(
                 DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -427,6 +474,16 @@ class TestConfigFlow:
                     CONF_API_KEY: "test-api-key",
                     CONF_VERIFY_SSL: True,
                 },
+            )
+
+            # Should show user selection step
+            assert result["type"] is FlowResultType.FORM
+            assert result["step_id"] == "user_select"
+
+            # Complete user selection
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {"user_id": ""},
             )
 
             # Invalid versions are allowed to pass
@@ -578,6 +635,7 @@ class TestReauthFlow:
         self,
         hass: HomeAssistant,
         mock_config_entry: MockConfigEntry,
+        mock_users: list[dict[str, Any]],
     ) -> None:
         """Test successful reauth updates entry."""
         mock_config_entry.add_to_hass(hass)
@@ -592,6 +650,7 @@ class TestReauthFlow:
                     "Version": "4.8.0.0",
                 }
             )
+            client.async_get_users = AsyncMock(return_value=mock_users)
 
             result = await hass.config_entries.flow.async_init(
                 DOMAIN,
@@ -749,3 +808,239 @@ class TestOptionsFlowStreaming:
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert result["data"]["max_video_bitrate"] == 1000000
         assert result["data"]["max_audio_bitrate"] == 64000
+
+
+class TestUserSelectionFlow:
+    """Test user selection in config flow (Phase 8.1)."""
+
+    @pytest.mark.asyncio
+    async def test_user_selection_step_shown(
+        self,
+        hass: HomeAssistant,
+        mock_users: list[dict[str, Any]],
+    ) -> None:
+        """Test user selection step is shown after connection validation."""
+        with patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "server-123",
+                    "ServerName": "Test Server",
+                    "Version": "4.8.0.0",
+                }
+            )
+            client.async_get_users = AsyncMock(return_value=mock_users)
+
+            result = await hass.config_entries.flow.async_init(
+                DOMAIN, context={"source": config_entries.SOURCE_USER}
+            )
+
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {
+                    CONF_HOST: "emby.local",
+                    CONF_PORT: 8096,
+                    CONF_SSL: False,
+                    CONF_API_KEY: "test-api-key",
+                    CONF_VERIFY_SSL: True,
+                },
+            )
+
+            # Should show user selection step
+            assert result["type"] is FlowResultType.FORM
+            assert result["step_id"] == "user_select"
+
+    @pytest.mark.asyncio
+    async def test_user_selection_creates_entry_with_user_id(
+        self,
+        hass: HomeAssistant,
+        mock_users: list[dict[str, Any]],
+    ) -> None:
+        """Test user selection stores user_id in config entry."""
+        with patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "server-123",
+                    "ServerName": "Test Server",
+                    "Version": "4.8.0.0",
+                }
+            )
+            client.async_get_users = AsyncMock(return_value=mock_users)
+
+            result = await hass.config_entries.flow.async_init(
+                DOMAIN, context={"source": config_entries.SOURCE_USER}
+            )
+
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {
+                    CONF_HOST: "emby.local",
+                    CONF_PORT: 8096,
+                    CONF_SSL: False,
+                    CONF_API_KEY: "test-api-key",
+                    CONF_VERIFY_SSL: True,
+                },
+            )
+
+            # Select a user
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {"user_id": "user-1"},
+            )
+
+            assert result["type"] is FlowResultType.CREATE_ENTRY
+            assert result["data"]["user_id"] == "user-1"
+
+    @pytest.mark.asyncio
+    async def test_user_selection_multiple_users(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test user selection shows all available users."""
+        multiple_users = [
+            {
+                "Id": "user-1",
+                "Name": "Admin",
+                "ServerId": "server-123",
+                "HasPassword": True,
+                "HasConfiguredPassword": True,
+            },
+            {
+                "Id": "user-2",
+                "Name": "Family",
+                "ServerId": "server-123",
+                "HasPassword": False,
+                "HasConfiguredPassword": False,
+            },
+            {
+                "Id": "user-3",
+                "Name": "Kids",
+                "ServerId": "server-123",
+                "HasPassword": True,
+                "HasConfiguredPassword": True,
+            },
+        ]
+
+        with patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "server-123",
+                    "ServerName": "Test Server",
+                    "Version": "4.8.0.0",
+                }
+            )
+            client.async_get_users = AsyncMock(return_value=multiple_users)
+
+            result = await hass.config_entries.flow.async_init(
+                DOMAIN, context={"source": config_entries.SOURCE_USER}
+            )
+
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {
+                    CONF_HOST: "emby.local",
+                    CONF_PORT: 8096,
+                    CONF_SSL: False,
+                    CONF_API_KEY: "test-api-key",
+                    CONF_VERIFY_SSL: True,
+                },
+            )
+
+            # User selection step should be shown
+            assert result["type"] is FlowResultType.FORM
+            assert result["step_id"] == "user_select"
+
+            # Select second user
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {"user_id": "user-2"},
+            )
+
+            assert result["type"] is FlowResultType.CREATE_ENTRY
+            assert result["data"]["user_id"] == "user-2"
+
+    @pytest.mark.asyncio
+    async def test_user_selection_skip_option(
+        self,
+        hass: HomeAssistant,
+        mock_users: list[dict[str, Any]],
+    ) -> None:
+        """Test user selection can be skipped with admin context."""
+        with patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "server-123",
+                    "ServerName": "Test Server",
+                    "Version": "4.8.0.0",
+                }
+            )
+            client.async_get_users = AsyncMock(return_value=mock_users)
+
+            result = await hass.config_entries.flow.async_init(
+                DOMAIN, context={"source": config_entries.SOURCE_USER}
+            )
+
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {
+                    CONF_HOST: "emby.local",
+                    CONF_PORT: 8096,
+                    CONF_SSL: False,
+                    CONF_API_KEY: "test-api-key",
+                    CONF_VERIFY_SSL: True,
+                },
+            )
+
+            # Skip user selection (use admin context)
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {"user_id": ""},  # Empty means admin context
+            )
+
+            assert result["type"] is FlowResultType.CREATE_ENTRY
+            # user_id should be None or not present when skipped
+            assert result["data"].get("user_id") in (None, "")
+
+
+class TestOptionsFlowUserSelection:
+    """Test user selection in options flow (Phase 8.1)."""
+
+    @pytest.mark.asyncio
+    async def test_options_flow_preserves_existing_settings(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test options flow preserves existing settings when adding user_id."""
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_API_KEY: "test-api-key",
+                "user_id": "user-1",
+            },
+            options={"scan_interval": 10, "user_id": "user-1"},
+            unique_id="server-123",
+        )
+        mock_entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(mock_entry.entry_id)
+
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "init"
+
+        # Update scan interval only
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {"scan_interval": 15},
+        )
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"]["scan_interval"] == 15

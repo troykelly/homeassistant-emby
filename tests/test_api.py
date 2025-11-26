@@ -2376,3 +2376,242 @@ class TestBrowseCacheIntegration:
             )
             assert result2 == result1
             assert mock_request.call_count == 1  # Still 1, not 2
+
+
+class TestRemoteControlAPI:
+    """Test remote control API methods (Phase 8.2)."""
+
+    @pytest.mark.asyncio
+    async def test_send_message_success(self) -> None:
+        """Test sending message to session."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        with patch.object(client, "_request_post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = None
+
+            await client.async_send_message(
+                session_id="session-123",
+                text="Test message",
+                header="Test Header",
+                timeout_ms=5000,
+            )
+
+            mock_post.assert_called_once_with(
+                "/Sessions/session-123/Message",
+                data={
+                    "Text": "Test message",
+                    "Header": "Test Header",
+                    "TimeoutMs": 5000,
+                },
+            )
+
+    @pytest.mark.asyncio
+    async def test_send_message_default_timeout(self) -> None:
+        """Test sending message with default timeout."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        with patch.object(client, "_request_post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = None
+
+            await client.async_send_message(
+                session_id="session-123",
+                text="Quick message",
+            )
+
+            mock_post.assert_called_once()
+            call_args = mock_post.call_args
+            assert call_args[1]["data"]["TimeoutMs"] == 5000  # Default
+
+    @pytest.mark.asyncio
+    async def test_send_general_command(self) -> None:
+        """Test sending general command to session."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        with patch.object(client, "_request_post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = None
+
+            await client.async_send_general_command(
+                session_id="session-123",
+                command="MoveUp",
+            )
+
+            mock_post.assert_called_once_with(
+                "/Sessions/session-123/Command",
+                data={"Name": "MoveUp"},
+            )
+
+    @pytest.mark.asyncio
+    async def test_send_general_command_with_args(self) -> None:
+        """Test sending general command with arguments."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        with patch.object(client, "_request_post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = None
+
+            await client.async_send_general_command(
+                session_id="session-123",
+                command="DisplayContent",
+                args={"ItemId": "item-456"},
+            )
+
+            mock_post.assert_called_once_with(
+                "/Sessions/session-123/Command",
+                data={
+                    "Name": "DisplayContent",
+                    "Arguments": {"ItemId": "item-456"},
+                },
+            )
+
+
+class TestLibraryManagementAPI:
+    """Test library management API methods (Phase 8.3)."""
+
+    @pytest.mark.asyncio
+    async def test_mark_played(self) -> None:
+        """Test marking item as played."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        with patch.object(client, "_request_post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = None
+
+            await client.async_mark_played(
+                user_id="user-123",
+                item_id="item-456",
+            )
+
+            mock_post.assert_called_once_with(
+                "/Users/user-123/PlayedItems/item-456",
+            )
+
+    @pytest.mark.asyncio
+    async def test_mark_unplayed(self) -> None:
+        """Test marking item as unplayed."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        with patch.object(client, "_request_delete", new_callable=AsyncMock) as mock_delete:
+            mock_delete.return_value = None
+
+            await client.async_mark_unplayed(
+                user_id="user-123",
+                item_id="item-456",
+            )
+
+            mock_delete.assert_called_once_with(
+                "/Users/user-123/PlayedItems/item-456",
+            )
+
+    @pytest.mark.asyncio
+    async def test_add_favorite(self) -> None:
+        """Test adding item to favorites."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        with patch.object(client, "_request_post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = None
+
+            await client.async_add_favorite(
+                user_id="user-123",
+                item_id="item-456",
+            )
+
+            mock_post.assert_called_once_with(
+                "/Users/user-123/FavoriteItems/item-456",
+            )
+
+    @pytest.mark.asyncio
+    async def test_remove_favorite(self) -> None:
+        """Test removing item from favorites."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        with patch.object(client, "_request_delete", new_callable=AsyncMock) as mock_delete:
+            mock_delete.return_value = None
+
+            await client.async_remove_favorite(
+                user_id="user-123",
+                item_id="item-456",
+            )
+
+            mock_delete.assert_called_once_with(
+                "/Users/user-123/FavoriteItems/item-456",
+            )
+
+    @pytest.mark.asyncio
+    async def test_refresh_library(self) -> None:
+        """Test triggering full library refresh."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        with patch.object(client, "_request_post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = None
+
+            await client.async_refresh_library()
+
+            mock_post.assert_called_once_with("/Library/Refresh")
+
+    @pytest.mark.asyncio
+    async def test_refresh_library_specific(self) -> None:
+        """Test refreshing specific library."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        with patch.object(client, "_request_post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = None
+
+            await client.async_refresh_library(library_id="lib-123")
+
+            mock_post.assert_called_once_with("/Items/lib-123/Refresh")
+
+    @pytest.mark.asyncio
+    async def test_refresh_item(self) -> None:
+        """Test refreshing item metadata."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        with patch.object(client, "_request_post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = None
+
+            await client.async_refresh_item(item_id="item-456")
+
+            mock_post.assert_called_once()
+            call_args = mock_post.call_args
+            assert "/Items/item-456/Refresh" in call_args[0][0]
