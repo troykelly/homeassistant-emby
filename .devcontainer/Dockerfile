@@ -17,10 +17,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
     autoconf \
+    pkg-config \
     # Media processing (required for media_player components)
     ffmpeg \
     libturbojpeg0 \
     libturbojpeg0-dev \
+    # FFmpeg development libraries (required for av/PyAV package - stream component)
+    libavformat-dev \
+    libavcodec-dev \
+    libavdevice-dev \
+    libavutil-dev \
+    libavfilter-dev \
+    libswscale-dev \
+    libswresample-dev \
     # Network capture (useful for debugging)
     libpcap-dev \
     # Bluetooth support
