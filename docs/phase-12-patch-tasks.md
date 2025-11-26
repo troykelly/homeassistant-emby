@@ -83,11 +83,11 @@ Comparing `media_source.py` with `media_player.py` reveals implementation differ
 - `tests/test_media_source.py`
 
 **Acceptance Criteria:**
-- [ ] Browsing Movies > Year > [year] returns movies from that year
-- [ ] Browsing TV Shows > Year > [year] returns TV shows from that year
-- [ ] Empty results display gracefully (not error)
-- [ ] Proper error handling with meaningful messages
-- [ ] Unit tests cover year browsing scenarios
+- [x] Browsing Movies > Year > [year] returns movies from that year
+- [x] Browsing TV Shows > Year > [year] returns TV shows from that year
+- [x] Empty results display gracefully (not error)
+- [x] Proper error handling with meaningful messages
+- [x] Unit tests cover year browsing scenarios
 
 **Implementation:**
 1. Add try/except around year browsing API calls
@@ -111,9 +111,9 @@ Comparing `media_source.py` with `media_player.py` reveals implementation differ
 - `tests/test_media_source.py`
 
 **Acceptance Criteria:**
-- [ ] All library types have consistent browsing behavior
-- [ ] Error handling consistent with media_player.py
-- [ ] Code duplication minimized through shared helpers
+- [x] All library types have consistent browsing behavior
+- [x] Error handling consistent with media_player.py
+- [ ] Code duplication minimized through shared helpers (deferred - not critical)
 
 **Implementation:**
 1. Extract common browsing logic into shared module (optional: `browse_helpers.py`)
@@ -136,10 +136,10 @@ Comparing `media_source.py` with `media_player.py` reveals implementation differ
 - `tests/test_media_source.py`
 
 **Acceptance Criteria:**
-- [ ] All content type routes have explicit handlers
-- [ ] Unknown content types raise `Unresolvable` with descriptive message
-- [ ] API errors are caught and converted to user-friendly messages
-- [ ] Logging added for debugging
+- [x] All content type routes have explicit handlers
+- [ ] Unknown content types raise `Unresolvable` with descriptive message (existing behavior OK)
+- [x] API errors are caught and converted to user-friendly messages
+- [x] Logging added for debugging
 
 **Implementation:**
 1. Add explicit else clauses for content type routing
@@ -158,10 +158,10 @@ Comparing `media_source.py` with `media_player.py` reveals implementation differ
 - `tests/test_media_source.py`
 
 **Acceptance Criteria:**
-- [ ] 100% coverage maintained
-- [ ] All content type routes tested
-- [ ] Error conditions tested
-- [ ] Edge cases (empty results, no user_id) tested
+- [x] 100% coverage maintained
+- [x] All content type routes tested
+- [x] Error conditions tested
+- [x] Edge cases (empty results, no user_id) tested
 
 **New Test Cases:**
 1. `test_browse_movies_by_year` - Successful year browsing
@@ -226,13 +226,13 @@ pytest tests/test_media_source.py::test_browse_movies_by_year -v
 
 ## Success Criteria
 
-- [ ] Browsing movies by year works in generic media source
-- [ ] Browsing TV shows by year works in generic media source
-- [ ] Browsing by decade continues to work (regression check)
-- [ ] All browsing features match between media_player and media_source
-- [ ] 100% test coverage maintained
-- [ ] No new ruff/mypy issues
-- [ ] All existing tests pass
+- [x] Browsing movies by year works in generic media source
+- [x] Browsing TV shows by year works in generic media source
+- [x] Browsing by decade continues to work (regression check)
+- [x] All browsing features match between media_player and media_source
+- [x] 100% test coverage maintained
+- [x] No new ruff/mypy issues
+- [x] All existing tests pass
 
 ---
 
