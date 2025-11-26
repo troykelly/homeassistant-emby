@@ -468,7 +468,7 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
     @staticmethod
     @callback  # type: ignore[misc]
     def async_get_options_flow(
-        config_entry: ConfigEntry,  # noqa: ARG004
+        config_entry: ConfigEntry,
     ) -> EmbyOptionsFlowHandler:
         """Create the options flow.
 
