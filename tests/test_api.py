@@ -2857,3 +2857,71 @@ class TestRequestDeleteMethod:
                     item_id="item-456",
                 )
             await client.close()
+
+
+class TestSearchValidation:
+    """Tests for search term validation in API."""
+
+    @pytest.mark.asyncio
+    async def test_search_term_too_long(self) -> None:
+        """Test that overly long search terms raise ValueError."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-key",
+        )
+
+        long_search = "a" * 201  # MAX_SEARCH_TERM_LENGTH is 200
+        with pytest.raises(ValueError) as exc_info:
+            await client.async_search_items("user-123", long_search)
+
+        assert "exceeds maximum length" in str(exc_info.value)
+        await client.close()
+
+    @pytest.mark.asyncio
+    async def test_search_term_empty(self) -> None:
+        """Test that empty search terms raise ValueError."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-key",
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            await client.async_search_items("user-123", "   ")
+
+        assert "cannot be empty" in str(exc_info.value)
+        await client.close()
+
+    @pytest.mark.asyncio
+    async def test_search_term_valid_length(self) -> None:
+        """Test that valid length search terms work."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.json = AsyncMock(return_value={"Items": []})
+            mock_response.raise_for_status = MagicMock()
+
+            mock_context = MagicMock()
+            mock_context.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_context.__aexit__ = AsyncMock(return_value=None)
+            mock_session.request = MagicMock(return_value=mock_context)
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            # Force session creation
+            await client._get_session()
+
+            # Valid 200-character search term (exactly at limit)
+            valid_search = "a" * 200
+            result = await client.async_search_items("user-123", valid_search)
+
+            # Result is a list of items, should be empty list from our mock
+            assert result == []
+            await client.close()
