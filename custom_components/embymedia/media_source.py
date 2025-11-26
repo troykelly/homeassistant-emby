@@ -19,6 +19,7 @@ from homeassistant.components.media_source import (
 )
 
 from .const import DOMAIN, MIME_TYPES, EmbyBrowseItem
+from .exceptions import EmbyError
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -538,9 +539,14 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
         user_id = self._get_user_id(coordinator)
 
         if user_id:
-            years = await coordinator.client.async_get_years(
-                user_id, parent_id=library_id, include_item_types="Movie"
-            )
+            try:
+                years = await coordinator.client.async_get_years(
+                    user_id, parent_id=library_id, include_item_types="Movie"
+                )
+            except EmbyError as err:
+                _LOGGER.debug("Failed to get movie years: %s", err)
+                years = []
+
             for year_item in years:
                 year_name = year_item.get("Name", "Unknown")
                 children.append(
@@ -581,14 +587,20 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
         user_id = self._get_user_id(coordinator)
 
         if user_id:
-            result = await coordinator.client.async_get_items(
-                user_id,
-                parent_id=library_id,
-                include_item_types="Movie",
-                recursive=True,
-                years=year,
-            )
-            for item in result.get("Items", []):
+            try:
+                result = await coordinator.client.async_get_items(
+                    user_id,
+                    parent_id=library_id,
+                    include_item_types="Movie",
+                    recursive=True,
+                    years=year,
+                )
+                items = result.get("Items", [])
+            except EmbyError as err:
+                _LOGGER.debug("Failed to get movies by year %s: %s", year, err)
+                items = []
+
+            for item in items:
                 children.append(self._item_to_browse_media_source(coordinator, item))
 
         return BrowseMediaSource(
@@ -922,9 +934,14 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
         user_id = self._get_user_id(coordinator)
 
         if user_id:
-            years = await coordinator.client.async_get_years(
-                user_id, parent_id=library_id, include_item_types="Series"
-            )
+            try:
+                years = await coordinator.client.async_get_years(
+                    user_id, parent_id=library_id, include_item_types="Series"
+                )
+            except EmbyError as err:
+                _LOGGER.debug("Failed to get TV years: %s", err)
+                years = []
+
             for year_item in years:
                 year_name = year_item.get("Name", "Unknown")
                 children.append(
@@ -965,14 +982,20 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
         user_id = self._get_user_id(coordinator)
 
         if user_id:
-            result = await coordinator.client.async_get_items(
-                user_id,
-                parent_id=library_id,
-                include_item_types="Series",
-                recursive=True,
-                years=year,
-            )
-            for item in result.get("Items", []):
+            try:
+                result = await coordinator.client.async_get_items(
+                    user_id,
+                    parent_id=library_id,
+                    include_item_types="Series",
+                    recursive=True,
+                    years=year,
+                )
+                items = result.get("Items", [])
+            except EmbyError as err:
+                _LOGGER.debug("Failed to get TV shows by year %s: %s", year, err)
+                items = []
+
+            for item in items:
                 children.append(
                     self._item_to_browse_media_source(coordinator, item, content_type="series")
                 )

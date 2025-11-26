@@ -33,6 +33,7 @@ from .browse import (
     encode_content_id,
 )
 from .entity import EmbyEntity
+from .exceptions import EmbyError
 from .models import MediaType as EmbyMediaType
 
 if TYPE_CHECKING:
@@ -1767,13 +1768,17 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
         coordinator: EmbyDataUpdateCoordinator = self.coordinator
         client = coordinator.client
 
-        years = await client.async_get_years(
-            user_id,
-            parent_id=library_id,
-            include_item_types="Movie",
-        )
-
         children: list[BrowseMedia] = []
+        try:
+            years = await client.async_get_years(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Movie",
+            )
+        except EmbyError as err:
+            _LOGGER.debug("Failed to get movie years: %s", err)
+            years = []
+
         for year in years:
             children.append(
                 BrowseMedia(
@@ -1813,16 +1818,20 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
         coordinator: EmbyDataUpdateCoordinator = self.coordinator
         client = coordinator.client
 
-        result = await client.async_get_items(
-            user_id,
-            parent_id=library_id,
-            include_item_types="Movie",
-            recursive=True,
-            years=year,
-        )
-        items = result.get("Items", [])
-
         children: list[BrowseMedia] = []
+        try:
+            result = await client.async_get_items(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Movie",
+                recursive=True,
+                years=year,
+            )
+            items = result.get("Items", [])
+        except EmbyError as err:
+            _LOGGER.debug("Failed to get movies by year %s: %s", year, err)
+            items = []
+
         for item in items:
             children.append(self._item_to_browse_media(item))
 
@@ -2147,13 +2156,17 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
         coordinator: EmbyDataUpdateCoordinator = self.coordinator
         client = coordinator.client
 
-        years = await client.async_get_years(
-            user_id,
-            parent_id=library_id,
-            include_item_types="Series",
-        )
-
         children: list[BrowseMedia] = []
+        try:
+            years = await client.async_get_years(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Series",
+            )
+        except EmbyError as err:
+            _LOGGER.debug("Failed to get TV years: %s", err)
+            years = []
+
         for year in years:
             children.append(
                 BrowseMedia(
@@ -2193,16 +2206,20 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
         coordinator: EmbyDataUpdateCoordinator = self.coordinator
         client = coordinator.client
 
-        result = await client.async_get_items(
-            user_id,
-            parent_id=library_id,
-            include_item_types="Series",
-            recursive=True,
-            years=year,
-        )
-        items = result.get("Items", [])
-
         children: list[BrowseMedia] = []
+        try:
+            result = await client.async_get_items(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Series",
+                recursive=True,
+                years=year,
+            )
+            items = result.get("Items", [])
+        except EmbyError as err:
+            _LOGGER.debug("Failed to get TV shows by year %s: %s", year, err)
+            items = []
+
         for item in items:
             children.append(self._item_to_browse_media(item))
 
