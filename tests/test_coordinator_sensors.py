@@ -311,3 +311,132 @@ class TestEmbyLibraryCoordinator:
         assert "user_favorites_count" not in coordinator.data
         assert "user_played_count" not in coordinator.data
         assert "user_resumable_count" not in coordinator.data
+
+    async def test_coordinator_user_id_property(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test EmbyLibraryCoordinator user_id property returns correct value."""
+        from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
+
+        coordinator = EmbyLibraryCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="test-server-id",
+            config_entry=mock_config_entry,
+            user_id="test-user-id",
+        )
+
+        assert coordinator.user_id == "test-user-id"
+
+
+class TestCoordinatorErrorHandling:
+    """Tests for coordinator error handling."""
+
+    async def test_server_coordinator_connection_error(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test EmbyServerCoordinator handles connection errors."""
+        from homeassistant.helpers.update_coordinator import UpdateFailed
+
+        from custom_components.embymedia.coordinator_sensors import EmbyServerCoordinator
+        from custom_components.embymedia.exceptions import EmbyConnectionError
+
+        mock_emby_client.async_get_server_info = AsyncMock(
+            side_effect=EmbyConnectionError("Connection refused")
+        )
+
+        coordinator = EmbyServerCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        with pytest.raises(UpdateFailed, match="Failed to connect"):
+            await coordinator._async_update_data()
+
+    async def test_server_coordinator_emby_error(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test EmbyServerCoordinator handles generic Emby errors."""
+        from homeassistant.helpers.update_coordinator import UpdateFailed
+
+        from custom_components.embymedia.coordinator_sensors import EmbyServerCoordinator
+        from custom_components.embymedia.exceptions import EmbyError
+
+        mock_emby_client.async_get_server_info = AsyncMock(
+            side_effect=EmbyError("API error")
+        )
+
+        coordinator = EmbyServerCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        with pytest.raises(UpdateFailed, match="Error fetching server data"):
+            await coordinator._async_update_data()
+
+    async def test_library_coordinator_connection_error(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test EmbyLibraryCoordinator handles connection errors."""
+        from homeassistant.helpers.update_coordinator import UpdateFailed
+
+        from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
+        from custom_components.embymedia.exceptions import EmbyConnectionError
+
+        mock_emby_client.async_get_item_counts = AsyncMock(
+            side_effect=EmbyConnectionError("Connection refused")
+        )
+
+        coordinator = EmbyLibraryCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="test-server-id",
+            config_entry=mock_config_entry,
+        )
+
+        with pytest.raises(UpdateFailed, match="Failed to connect"):
+            await coordinator._async_update_data()
+
+    async def test_library_coordinator_emby_error(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test EmbyLibraryCoordinator handles generic Emby errors."""
+        from homeassistant.helpers.update_coordinator import UpdateFailed
+
+        from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
+        from custom_components.embymedia.exceptions import EmbyError
+
+        mock_emby_client.async_get_item_counts = AsyncMock(
+            side_effect=EmbyError("API error")
+        )
+
+        coordinator = EmbyLibraryCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="test-server-id",
+            config_entry=mock_config_entry,
+        )
+
+        with pytest.raises(UpdateFailed, match="Error fetching library data"):
+            await coordinator._async_update_data()

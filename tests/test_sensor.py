@@ -366,3 +366,182 @@ class TestAsyncSetupEntry:
 
         # Should have created sensors (version, active sessions, running tasks, library counts)
         assert len(entities_added) >= 6
+
+
+class TestSensorDataNone:
+    """Tests for sensors when coordinator data is None."""
+
+    async def test_version_sensor_returns_none_when_data_none(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test version sensor returns None when coordinator data is None."""
+        from custom_components.embymedia.coordinator_sensors import EmbyServerCoordinator
+        from custom_components.embymedia.sensor import EmbyVersionSensor
+
+        mock_coordinator = MagicMock(spec=EmbyServerCoordinator)
+        mock_coordinator.data = None
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.server_name = "Test Server"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyVersionSensor(coordinator=mock_coordinator)
+
+        assert sensor.native_value is None
+
+    async def test_running_tasks_sensor_returns_none_when_data_none(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test running tasks sensor returns None when coordinator data is None."""
+        from custom_components.embymedia.coordinator_sensors import EmbyServerCoordinator
+        from custom_components.embymedia.sensor import EmbyRunningTasksSensor
+
+        mock_coordinator = MagicMock(spec=EmbyServerCoordinator)
+        mock_coordinator.data = None
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.server_name = "Test Server"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyRunningTasksSensor(coordinator=mock_coordinator)
+
+        assert sensor.native_value is None
+
+    async def test_active_sessions_sensor_returns_zero_when_data_none(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test active sessions sensor returns 0 when coordinator data is None."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.sensor import EmbyActiveSessionsSensor
+
+        mock_coordinator = MagicMock(spec=EmbyDataUpdateCoordinator)
+        mock_coordinator.data = None
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.server_name = "Test Server"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyActiveSessionsSensor(coordinator=mock_coordinator)
+
+        # Should return 0 when data is None
+        assert sensor.native_value == 0
+
+    async def test_movie_count_sensor_returns_none_when_data_none(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test movie count sensor returns None when coordinator data is None."""
+        from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
+        from custom_components.embymedia.sensor import EmbyMovieCountSensor
+
+        mock_coordinator = MagicMock(spec=EmbyLibraryCoordinator)
+        mock_coordinator.data = None
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyMovieCountSensor(coordinator=mock_coordinator, server_name="Test Server")
+
+        assert sensor.native_value is None
+
+    async def test_series_count_sensor_returns_none_when_data_none(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test series count sensor returns None when coordinator data is None."""
+        from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
+        from custom_components.embymedia.sensor import EmbySeriesCountSensor
+
+        mock_coordinator = MagicMock(spec=EmbyLibraryCoordinator)
+        mock_coordinator.data = None
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbySeriesCountSensor(coordinator=mock_coordinator, server_name="Test Server")
+
+        assert sensor.native_value is None
+
+    async def test_episode_count_sensor_returns_none_when_data_none(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test episode count sensor returns None when coordinator data is None."""
+        from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
+        from custom_components.embymedia.sensor import EmbyEpisodeCountSensor
+
+        mock_coordinator = MagicMock(spec=EmbyLibraryCoordinator)
+        mock_coordinator.data = None
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyEpisodeCountSensor(coordinator=mock_coordinator, server_name="Test Server")
+
+        assert sensor.native_value is None
+
+    async def test_song_count_sensor_returns_none_when_data_none(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test song count sensor returns None when coordinator data is None."""
+        from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
+        from custom_components.embymedia.sensor import EmbySongCountSensor
+
+        mock_coordinator = MagicMock(spec=EmbyLibraryCoordinator)
+        mock_coordinator.data = None
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbySongCountSensor(coordinator=mock_coordinator, server_name="Test Server")
+
+        assert sensor.native_value is None
+
+    async def test_album_count_sensor_returns_none_when_data_none(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test album count sensor returns None when coordinator data is None."""
+        from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
+        from custom_components.embymedia.sensor import EmbyAlbumCountSensor
+
+        mock_coordinator = MagicMock(spec=EmbyLibraryCoordinator)
+        mock_coordinator.data = None
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyAlbumCountSensor(coordinator=mock_coordinator, server_name="Test Server")
+
+        assert sensor.native_value is None
+
+    async def test_artist_count_sensor_returns_none_when_data_none(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test artist count sensor returns None when coordinator data is None."""
+        from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
+        from custom_components.embymedia.sensor import EmbyArtistCountSensor
+
+        mock_coordinator = MagicMock(spec=EmbyLibraryCoordinator)
+        mock_coordinator.data = None
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyArtistCountSensor(coordinator=mock_coordinator, server_name="Test Server")
+
+        assert sensor.native_value is None

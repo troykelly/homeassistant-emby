@@ -339,3 +339,95 @@ class TestAsyncSetupEntry:
         await async_setup_entry(hass, mock_config_entry, mock_add_entities)
 
         assert len(entities_added) == 4  # 4 binary sensors
+
+
+class TestBinarySensorDataNone:
+    """Tests for binary sensors when coordinator data is None."""
+
+    async def test_pending_restart_returns_none_when_data_none(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test pending restart returns None when coordinator data is None."""
+        from custom_components.embymedia.binary_sensor import (
+            EmbyPendingRestartBinarySensor,
+        )
+        from custom_components.embymedia.coordinator_sensors import EmbyServerCoordinator
+
+        mock_coordinator = MagicMock(spec=EmbyServerCoordinator)
+        mock_coordinator.data = None
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.server_name = "Test Server"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyPendingRestartBinarySensor(coordinator=mock_coordinator)
+
+        assert sensor.is_on is None
+
+    async def test_update_available_returns_none_when_data_none(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test update available returns None when coordinator data is None."""
+        from custom_components.embymedia.binary_sensor import (
+            EmbyUpdateAvailableBinarySensor,
+        )
+        from custom_components.embymedia.coordinator_sensors import EmbyServerCoordinator
+
+        mock_coordinator = MagicMock(spec=EmbyServerCoordinator)
+        mock_coordinator.data = None
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.server_name = "Test Server"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyUpdateAvailableBinarySensor(coordinator=mock_coordinator)
+
+        assert sensor.is_on is None
+
+    async def test_library_scan_active_returns_none_when_data_none(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test library scan active returns None when coordinator data is None."""
+        from custom_components.embymedia.binary_sensor import (
+            EmbyLibraryScanActiveBinarySensor,
+        )
+        from custom_components.embymedia.coordinator_sensors import EmbyServerCoordinator
+
+        mock_coordinator = MagicMock(spec=EmbyServerCoordinator)
+        mock_coordinator.data = None
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.server_name = "Test Server"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyLibraryScanActiveBinarySensor(coordinator=mock_coordinator)
+
+        assert sensor.is_on is None
+
+    async def test_library_scan_extra_state_attributes_none_when_data_none(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test library scan extra_state_attributes returns None when data is None."""
+        from custom_components.embymedia.binary_sensor import (
+            EmbyLibraryScanActiveBinarySensor,
+        )
+        from custom_components.embymedia.coordinator_sensors import EmbyServerCoordinator
+
+        mock_coordinator = MagicMock(spec=EmbyServerCoordinator)
+        mock_coordinator.data = None
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.server_name = "Test Server"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyLibraryScanActiveBinarySensor(coordinator=mock_coordinator)
+
+        assert sensor.extra_state_attributes is None
