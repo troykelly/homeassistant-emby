@@ -15,6 +15,7 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.embymedia.const import (
     CONF_API_KEY,
+    CONF_PREFIX_MEDIA_PLAYER,
     CONF_VERIFY_SSL,
     DOMAIN,
 )
@@ -167,6 +168,9 @@ class TestAttachTrigger:
                 CONF_SSL: False,
                 CONF_API_KEY: "test-api-key",
                 CONF_VERIFY_SSL: True,
+            },
+            options={
+                CONF_PREFIX_MEDIA_PLAYER: False,  # Phase 11: Disable prefix for test
             },
             unique_id="test-server-id",
         )
