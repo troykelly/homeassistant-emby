@@ -2615,3 +2615,201 @@ class TestLibraryManagementAPI:
             mock_post.assert_called_once()
             call_args = mock_post.call_args
             assert "/Items/item-456/Refresh" in call_args[0][0]
+
+
+class TestRequestDeleteMethod:
+    """Test the _request_delete HTTP method."""
+
+    @pytest.mark.asyncio
+    async def test_request_delete_success(self) -> None:
+        """Test successful DELETE request."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 204
+            mock_response.reason = "No Content"
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.delete = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+
+            # This should succeed - async_mark_unplayed uses _request_delete
+            await client.async_mark_unplayed(
+                user_id="user-123",
+                item_id="item-456",
+            )
+
+            # Verify delete was called
+            mock_session.delete.assert_called()
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_request_delete_auth_error(self) -> None:
+        """Test authentication error in DELETE request."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 401
+            mock_response.reason = "Unauthorized"
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.delete = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+
+            with pytest.raises(EmbyAuthenticationError):
+                await client.async_mark_unplayed(
+                    user_id="user-123",
+                    item_id="item-456",
+                )
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_request_delete_ssl_error(self) -> None:
+        """Test SSL error in DELETE request."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            ssl_error = OSError("SSL certificate verify failed")
+            mock_session.delete = MagicMock(
+                side_effect=aiohttp.ClientSSLError(MagicMock(), ssl_error)
+            )
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8920,
+                api_key="test-key",
+                ssl=True,
+            )
+            with pytest.raises(EmbySSLError):
+                await client.async_remove_favorite(
+                    user_id="user-123",
+                    item_id="item-456",
+                )
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_request_delete_timeout(self) -> None:
+        """Test timeout in DELETE request."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.delete = MagicMock(side_effect=TimeoutError())
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            with pytest.raises(EmbyTimeoutError):
+                await client.async_remove_favorite(
+                    user_id="user-123",
+                    item_id="item-456",
+                )
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_request_delete_connection_error(self) -> None:
+        """Test connection error in DELETE request."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.delete = MagicMock(
+                side_effect=aiohttp.ClientConnectorError(MagicMock(), OSError("Connection refused"))
+            )
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            with pytest.raises(EmbyConnectionError):
+                await client.async_mark_unplayed(
+                    user_id="user-123",
+                    item_id="item-456",
+                )
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_request_delete_client_error(self) -> None:
+        """Test generic client error in DELETE request."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.delete = MagicMock(side_effect=aiohttp.ClientError("Generic error"))
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            with pytest.raises(EmbyConnectionError):
+                await client.async_mark_unplayed(
+                    user_id="user-123",
+                    item_id="item-456",
+                )
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_request_delete_unexpected_status_code(self) -> None:
+        """Test unexpected status code triggers raise_for_status."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 404
+            mock_response.reason = "Not Found"
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+            # Make raise_for_status raise an error
+            mock_response.raise_for_status = MagicMock(
+                side_effect=aiohttp.ClientResponseError(
+                    MagicMock(),
+                    (),
+                    status=404,
+                    message="Not Found",
+                )
+            )
+
+            mock_session = MagicMock()
+            mock_session.delete = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+
+            # ClientResponseError is a ClientError, so it should be wrapped
+            with pytest.raises(EmbyConnectionError):
+                await client.async_mark_unplayed(
+                    user_id="user-123",
+                    item_id="item-456",
+                )
+            await client.close()

@@ -1044,3 +1044,129 @@ class TestOptionsFlowUserSelection:
 
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert result["data"]["scan_interval"] == 15
+
+
+class TestConfigFlowEdgeCases:
+    """Test edge cases in config flow."""
+
+    @pytest.mark.asyncio
+    async def test_user_select_without_user_input_aborts(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test user_select step aborts if _user_input is None."""
+        from custom_components.embymedia.config_flow import EmbyConfigFlow
+
+        flow = EmbyConfigFlow()
+        flow.hass = hass
+        # Explicitly set _user_input to None (simulating invalid state)
+        flow._user_input = None
+        flow._server_info = {"ServerName": "Test Server", "Id": "server-123"}
+
+        result = await flow._async_create_entry_with_user("user-123")
+
+        assert result["type"] is FlowResultType.ABORT
+        assert result["reason"] == "unknown"
+
+    @pytest.mark.asyncio
+    async def test_create_entry_with_no_server_info(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test entry creation when server_info is None uses host as title."""
+        from custom_components.embymedia.config_flow import EmbyConfigFlow
+
+        flow = EmbyConfigFlow()
+        flow.hass = hass
+        flow._user_input = {
+            "host": "my-emby-server.local",
+            "port": 8096,
+            "ssl": False,
+            "api_key": "test-key",
+            "verify_ssl": True,
+        }
+        flow._server_info = None  # No server info
+
+        result = await flow._async_create_entry_with_user("")
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["title"] == "Emby (my-emby-server.local)"
+
+    @pytest.mark.asyncio
+    async def test_reauth_preserves_existing_user_id(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test reauth flow preserves existing user_id."""
+        from custom_components.embymedia.const import CONF_USER_ID
+
+        # Create entry with user_id
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "old-api-key",
+                CONF_VERIFY_SSL: True,
+                CONF_USER_ID: "existing-user-id",  # Existing user_id
+            },
+            unique_id="test-server-id-12345",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id-12345",
+                    "ServerName": "Test Emby Server",
+                    "Version": "4.8.0.0",
+                }
+            )
+            client.async_get_users = AsyncMock(return_value=[])
+
+            with (
+                patch(
+                    "custom_components.embymedia.EmbyClient", autospec=True
+                ) as mock_integration_client,
+                patch(
+                    "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                    new_callable=AsyncMock,
+                ),
+            ):
+                # Mock the integration client for setup
+                int_client = mock_integration_client.return_value
+                int_client.async_validate_connection = AsyncMock(return_value=True)
+                int_client.async_get_server_info = AsyncMock(
+                    return_value={
+                        "Id": "test-server-id-12345",
+                        "ServerName": "Test Server",
+                        "Version": "4.8.0.0",
+                    }
+                )
+                int_client.async_get_sessions = AsyncMock(return_value=[])
+                int_client.close = AsyncMock()
+
+                result = await hass.config_entries.flow.async_init(
+                    DOMAIN,
+                    context={
+                        "source": config_entries.SOURCE_REAUTH,
+                        "entry_id": mock_entry.entry_id,
+                    },
+                    data=mock_entry.data,
+                )
+
+                result = await hass.config_entries.flow.async_configure(
+                    result["flow_id"],
+                    {CONF_API_KEY: "new-api-key"},
+                )
+
+                assert result["type"] is FlowResultType.ABORT
+                assert result["reason"] == "reauth_successful"
+
+                # Check that user_id was preserved
+                updated_entry = hass.config_entries.async_get_entry(mock_entry.entry_id)
+                assert updated_entry is not None
+                assert updated_entry.data.get(CONF_USER_ID) == "existing-user-id"

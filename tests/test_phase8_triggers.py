@@ -134,11 +134,12 @@ class TestEventFiring:
         )
 
         # Create entity registry entry
+        # Unique ID format is: {server_id}_{device_id}
         entity_reg = er.async_get(hass)
         entity_reg.async_get_or_create(
             "media_player",
             DOMAIN,
-            "device-1",
+            "server-123_device-1",
         )
 
         # Track fired events

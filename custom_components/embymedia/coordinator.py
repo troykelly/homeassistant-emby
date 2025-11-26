@@ -450,9 +450,10 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         """
         entity_registry = er.async_get(self.hass)
 
-        # The unique_id of our media_player entities is the device_id
+        # The unique_id of our media_player entities is {server_id}_{device_id}
+        unique_id = f"{self.server_id}_{device_id}"
         entity_id: str | None = entity_registry.async_get_entity_id(
-            "media_player", DOMAIN, device_id
+            "media_player", DOMAIN, unique_id
         )
         return entity_id
 

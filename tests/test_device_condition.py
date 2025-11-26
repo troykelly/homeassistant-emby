@@ -579,3 +579,67 @@ class TestConditionFromConfig:
 
         # Should return False when entity doesn't exist
         assert condition_fn(hass) is False
+
+    @pytest.mark.asyncio
+    async def test_condition_is_off(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test is_off condition when entity is off."""
+        from custom_components.embymedia.device_condition import (
+            async_condition_from_config,
+        )
+
+        # Set up a state that's "off"
+        hass.states.async_set("media_player.test_off_player", "off")
+
+        condition_config = {
+            "entity_id": "media_player.test_off_player",
+            "type": "is_off",
+        }
+
+        condition_fn = await async_condition_from_config(hass, condition_config)
+
+        # Should return True when state is off
+        assert condition_fn(hass) is True
+
+    @pytest.mark.asyncio
+    async def test_condition_unknown_type_returns_false(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test that unknown condition type returns False."""
+        from custom_components.embymedia.device_condition import (
+            async_condition_from_config,
+        )
+
+        # Set up a state
+        hass.states.async_set("media_player.test_player", STATE_PLAYING)
+
+        condition_config = {
+            "entity_id": "media_player.test_player",
+            "type": "unknown_type",
+        }
+
+        condition_fn = await async_condition_from_config(hass, condition_config)
+
+        # Unknown condition type should return False
+        assert condition_fn(hass) is False
+
+
+class TestConditionCapabilities:
+    """Test condition capabilities."""
+
+    @pytest.mark.asyncio
+    async def test_get_condition_capabilities(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test async_get_condition_capabilities returns empty dict."""
+        from custom_components.embymedia.device_condition import (
+            async_get_condition_capabilities,
+        )
+
+        result = await async_get_condition_capabilities(hass, {})
+
+        assert result == {}

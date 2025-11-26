@@ -398,10 +398,17 @@ def _get_session_id_for_entity(
     if entry is None:
         return None
 
-    # Get device_id from the entity's device
-    device_id = entry.unique_id
-    if device_id is None:
+    # Get device_id from the entity's unique_id
+    # Unique ID format is: {server_id}_{device_id}
+    unique_id = entry.unique_id
+    if unique_id is None:
         return None
+
+    # Extract device_id by splitting on first underscore
+    parts = unique_id.split("_", 1)
+    if len(parts) < 2:
+        return None
+    device_id = parts[1]
 
     # Look up session by device_id
     if coordinator.data is None:
@@ -437,9 +444,16 @@ def _get_user_id_for_entity(
         return None
 
     # Get device_id from the entity's unique_id
-    device_id = entry.unique_id
-    if device_id is None:
+    # Unique ID format is: {server_id}_{device_id}
+    unique_id = entry.unique_id
+    if unique_id is None:
         return None
+
+    # Extract device_id by splitting on first underscore
+    parts = unique_id.split("_", 1)
+    if len(parts) < 2:
+        return None
+    device_id = parts[1]
 
     # Look up session to get user ID
     if coordinator.data is None:
