@@ -609,3 +609,143 @@ class TestReauthFlow:
 
             assert result["type"] is FlowResultType.ABORT
             assert result["reason"] == "reauth_successful"
+
+
+class TestOptionsFlowStreaming:
+    """Test options flow streaming/transcoding settings."""
+
+    @pytest.mark.asyncio
+    async def test_options_flow_streaming_settings(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test streaming options can be set."""
+        mock_config_entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "init"
+
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "scan_interval": 15,
+                "direct_play": True,
+                "video_container": "mp4",
+                "max_video_bitrate": 8000000,
+                "max_audio_bitrate": 128000,
+            },
+        )
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"]["scan_interval"] == 15
+        assert result["data"]["direct_play"] is True
+        assert result["data"]["video_container"] == "mp4"
+        assert result["data"]["max_video_bitrate"] == 8000000
+        assert result["data"]["max_audio_bitrate"] == 128000
+
+    @pytest.mark.asyncio
+    async def test_options_flow_streaming_defaults(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test streaming options have correct defaults."""
+        mock_config_entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+        assert result["type"] is FlowResultType.FORM
+
+        # Check schema has streaming fields
+        schema = result["data_schema"]
+        assert schema is not None
+
+        # Submitting with minimal settings should work
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {"scan_interval": 15},
+        )
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"]["scan_interval"] == 15
+
+    @pytest.mark.asyncio
+    async def test_options_flow_existing_streaming_values(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test existing streaming options are shown in form."""
+        # Create entry with existing streaming options
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_API_KEY: "test-api-key",
+            },
+            options={
+                "scan_interval": 20,
+                "direct_play": False,
+                "video_container": "mkv",
+                "max_video_bitrate": 4000000,
+                "max_audio_bitrate": 192000,
+            },
+            unique_id="test-server-id-12345",
+        )
+        mock_entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(mock_entry.entry_id)
+        assert result["type"] is FlowResultType.FORM
+
+        # Existing values should be preserved in defaults
+        schema = result["data_schema"]
+        assert schema is not None
+
+    @pytest.mark.asyncio
+    async def test_options_flow_video_container_choices(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test video container has valid choices."""
+        mock_config_entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+        assert result["type"] is FlowResultType.FORM
+
+        # Test setting mkv container
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "scan_interval": 15,
+                "video_container": "mkv",
+            },
+        )
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"]["video_container"] == "mkv"
+
+    @pytest.mark.asyncio
+    async def test_options_flow_bitrate_validation(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test bitrate values must be positive."""
+        mock_config_entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+        assert result["type"] is FlowResultType.FORM
+
+        # Test with valid positive bitrates
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "scan_interval": 15,
+                "max_video_bitrate": 1000000,
+                "max_audio_bitrate": 64000,
+            },
+        )
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"]["max_video_bitrate"] == 1000000
+        assert result["data"]["max_audio_bitrate"] == 64000

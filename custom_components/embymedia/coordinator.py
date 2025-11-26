@@ -256,9 +256,7 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
             )
             self.update_interval = timedelta(seconds=WEBSOCKET_POLL_INTERVAL)
         else:
-            _LOGGER.warning(
-                "WebSocket disconnected from Emby server. Using polling fallback"
-            )
+            _LOGGER.warning("WebSocket disconnected from Emby server. Using polling fallback")
             self.update_interval = timedelta(seconds=self._configured_scan_interval)
 
     def _process_sessions_data(

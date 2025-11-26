@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Self
 
 import aiohttp
 
+from .cache import BrowseCache
 from .const import (
     DEFAULT_TIMEOUT,
     DEFAULT_VERIFY_SSL,
@@ -101,6 +102,8 @@ class EmbyClient:
         self._session = session
         self._owns_session = session is None
         self._server_id: str | None = None
+        # Browse cache for expensive API calls (5 minute TTL)
+        self._browse_cache = BrowseCache(ttl_seconds=300.0, max_entries=500)
 
     async def __aenter__(self) -> Self:
         """Enter async context manager."""
@@ -153,6 +156,22 @@ class EmbyClient:
             Server ID or None if not yet connected.
         """
         return self._server_id
+
+    @property
+    def browse_cache(self) -> BrowseCache:
+        """Return the browse cache.
+
+        Returns:
+            The browse cache instance.
+        """
+        return self._browse_cache
+
+    def clear_browse_cache(self) -> None:
+        """Clear the browse cache.
+
+        Useful when library contents have changed.
+        """
+        self._browse_cache.clear()
 
     def _get_headers(self, include_auth: bool = True) -> dict[str, str]:
         """Build headers for API requests.
@@ -527,6 +546,32 @@ class EmbyClient:
         endpoint = f"/Sessions/{session_id}/Command/{command}"
         await self._request_post(endpoint, data=args)
 
+    async def async_send_general_command(
+        self,
+        session_id: str,
+        command: str,
+        args: dict[str, str] | None = None,
+    ) -> None:
+        """Send a general command with arguments to a session.
+
+        Used for commands like SetRepeatMode, SetShuffleQueue that require
+        a JSON body with Name and Arguments fields.
+
+        Args:
+            session_id: The session ID to send command to.
+            command: General command name (SetRepeatMode, SetShuffleQueue).
+            args: Command arguments as key-value pairs.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = f"/Sessions/{session_id}/Command"
+        body: dict[str, str | dict[str, str]] = {"Name": command}
+        if args:
+            body["Arguments"] = args
+        await self._request_post(endpoint, data=body)  # type: ignore[arg-type]
+
     async def async_get_user_views(self, user_id: str) -> list[EmbyLibraryItem]:
         """Get available libraries for a user.
 
@@ -555,6 +600,9 @@ class EmbyClient:
         limit: int = 100,
         start_index: int = 0,
         recursive: bool = False,
+        name_starts_with: str | None = None,
+        years: str | None = None,
+        genre_ids: str | None = None,
     ) -> EmbyItemsResponse:
         """Get items from a library or folder.
 
@@ -567,6 +615,9 @@ class EmbyClient:
             limit: Max items to return.
             start_index: Pagination offset.
             recursive: Include nested items.
+            name_starts_with: Filter by name starting with letter.
+            years: Comma-separated years to filter by (e.g., "2020,2021,2022").
+            genre_ids: Comma-separated genre IDs to filter by.
 
         Returns:
             Items response with items and total count.
@@ -588,6 +639,12 @@ class EmbyClient:
             params.append(f"IncludeItemTypes={include_item_types}")
         if recursive:
             params.append("Recursive=true")
+        if name_starts_with:
+            params.append(f"NameStartsWith={name_starts_with}")
+        if years:
+            params.append(f"Years={years}")
+        if genre_ids:
+            params.append(f"GenreIds={genre_ids}")
 
         query_string = "&".join(params)
         endpoint = f"/Users/{user_id}/Items?{query_string}"
@@ -640,6 +697,285 @@ class EmbyClient:
         endpoint = f"/Shows/{series_id}/Episodes?UserId={user_id}"
         if season_id:
             endpoint += f"&SeasonId={season_id}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    async def async_get_artist_albums(
+        self,
+        user_id: str,
+        artist_id: str,
+    ) -> list[EmbyBrowseItem]:
+        """Get albums for a music artist.
+
+        Args:
+            user_id: The user ID.
+            artist_id: The artist ID.
+
+        Returns:
+            List of album items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = (
+            f"/Users/{user_id}/Items?"
+            f"ArtistIds={artist_id}&"
+            f"IncludeItemTypes=MusicAlbum&"
+            f"SortBy=SortName&SortOrder=Ascending&Recursive=true"
+        )
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    async def async_get_album_tracks(
+        self,
+        user_id: str,
+        album_id: str,
+    ) -> list[EmbyBrowseItem]:
+        """Get tracks for a music album.
+
+        Args:
+            user_id: The user ID.
+            album_id: The album ID.
+
+        Returns:
+            List of audio track items sorted by track number.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = (
+            f"/Users/{user_id}/Items?"
+            f"ParentId={album_id}&"
+            f"IncludeItemTypes=Audio&"
+            f"SortBy=SortName&SortOrder=Ascending"
+        )
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    async def async_get_music_genres(
+        self,
+        user_id: str,
+        parent_id: str | None = None,
+    ) -> list[EmbyBrowseItem]:
+        """Get music genres from the library.
+
+        Args:
+            user_id: The user ID.
+            parent_id: Optional parent library ID to filter genres.
+
+        Returns:
+            List of genre items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        params = [f"UserId={user_id}", "SortBy=SortName", "SortOrder=Ascending"]
+        if parent_id:
+            params.append(f"ParentId={parent_id}")
+
+        query_string = "&".join(params)
+        endpoint = f"/MusicGenres?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    async def async_search_items(
+        self,
+        user_id: str,
+        search_term: str,
+        include_item_types: str | None = None,
+        limit: int = 50,
+    ) -> list[EmbyBrowseItem]:
+        """Search for items in the library.
+
+        Args:
+            user_id: The user ID.
+            search_term: The search query string.
+            include_item_types: Comma-separated item types to include (e.g., "Episode,Movie").
+            limit: Maximum number of results to return.
+
+        Returns:
+            List of matching items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        from urllib.parse import quote
+
+        params = [
+            f"SearchTerm={quote(search_term)}",
+            f"Limit={limit}",
+            "Recursive=true",
+            "SortBy=SortName",
+            "SortOrder=Ascending",
+        ]
+        if include_item_types:
+            params.append(f"IncludeItemTypes={quote(include_item_types)}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Users/{user_id}/Items?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    async def async_get_genres(
+        self,
+        user_id: str,
+        parent_id: str | None = None,
+        include_item_types: str | None = None,
+    ) -> list[EmbyBrowseItem]:
+        """Get genres from the library.
+
+        Args:
+            user_id: The user ID.
+            parent_id: Optional parent library ID to filter genres.
+            include_item_types: Optional item types to filter genres (e.g., "Movie", "Series").
+
+        Returns:
+            List of genre items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        # Check cache first
+        cache_key = self._browse_cache.generate_key(
+            "genres", user_id, parent_id=parent_id, include_item_types=include_item_types
+        )
+        cached = self._browse_cache.get(cache_key)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
+
+        params = [f"UserId={user_id}", "SortBy=SortName", "SortOrder=Ascending"]
+        if parent_id:
+            params.append(f"ParentId={parent_id}")
+        if include_item_types:
+            params.append(f"IncludeItemTypes={include_item_types}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Genres?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+
+        # Cache the result
+        self._browse_cache.set(cache_key, items)
+        return items
+
+    async def async_get_years(
+        self,
+        user_id: str,
+        parent_id: str | None = None,
+        include_item_types: str | None = None,
+    ) -> list[EmbyBrowseItem]:
+        """Get years from the library.
+
+        Args:
+            user_id: The user ID.
+            parent_id: Optional parent library ID to filter years.
+            include_item_types: Optional item types to filter years (e.g., "Movie", "Series").
+
+        Returns:
+            List of year items sorted newest first.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        # Check cache first
+        cache_key = self._browse_cache.generate_key(
+            "years", user_id, parent_id=parent_id, include_item_types=include_item_types
+        )
+        cached = self._browse_cache.get(cache_key)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
+
+        params = [f"UserId={user_id}", "SortBy=SortName", "SortOrder=Descending"]
+        if parent_id:
+            params.append(f"ParentId={parent_id}")
+        if include_item_types:
+            params.append(f"IncludeItemTypes={include_item_types}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Years?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+
+        # Cache the result
+        self._browse_cache.set(cache_key, items)
+        return items
+
+    async def async_get_playlist_items(
+        self,
+        user_id: str,
+        playlist_id: str,
+    ) -> list[EmbyBrowseItem]:
+        """Get items in a playlist.
+
+        Args:
+            user_id: The user ID.
+            playlist_id: The playlist ID.
+
+        Returns:
+            List of playlist items (audio, video, etc.).
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = f"/Playlists/{playlist_id}/Items?UserId={user_id}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    async def async_get_collection_items(
+        self,
+        user_id: str,
+        collection_id: str,
+    ) -> list[EmbyBrowseItem]:
+        """Get items in a collection (BoxSet).
+
+        Args:
+            user_id: The user ID.
+            collection_id: The collection (BoxSet) ID.
+
+        Returns:
+            List of collection items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = (
+            f"/Users/{user_id}/Items?ParentId={collection_id}&SortBy=SortName&SortOrder=Ascending"
+        )
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    async def async_get_live_tv_channels(
+        self,
+        user_id: str,
+    ) -> list[EmbyBrowseItem]:
+        """Get Live TV channels.
+
+        Args:
+            user_id: The user ID.
+
+        Returns:
+            List of Live TV channels.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = f"/LiveTv/Channels?UserId={user_id}"
         response = await self._request(HTTP_GET, endpoint)
         items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
         return items

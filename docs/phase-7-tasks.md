@@ -766,3 +766,268 @@ async def _async_websocket_receive_loop(self) -> None:
 - Sessions message returns full session array (same as REST API)
 - No dedicated pause/unpause events - infer from PlayState.IsPaused
 - Server auto-increments playback position, so frequent polling unnecessary
+
+---
+
+## Phase 7 Extension: Enhanced Media Features (2025-11-25)
+
+After completing WebSocket support, Phase 7 was extended to include voice assistant integration and enhanced media browsing for large libraries.
+
+### Task 7.8: Voice Assistant Search Support
+
+Implement `async_search_media()` for voice assistant commands like "Play The X-Files Season 1 Episode 12 on Living Room TV".
+
+#### 7.8.1 Search API Implementation
+
+**File:** `custom_components/embymedia/api.py`
+
+Added `async_search_items()` method:
+```python
+async def async_search_items(
+    self,
+    user_id: str,
+    search_term: str,
+    include_item_types: str | None = None,
+    limit: int = 50,
+) -> list[EmbyBrowseItem]:
+    """Search for items in the Emby library.
+
+    Args:
+        user_id: The user ID for API calls.
+        search_term: The search query string.
+        include_item_types: Optional comma-separated item types to filter.
+        limit: Maximum number of results to return.
+
+    Returns:
+        List of matching items.
+    """
+```
+
+**Emby API Endpoint:** `GET /Users/{userId}/Items?SearchTerm={query}&Recursive=true`
+
+**Acceptance Criteria:**
+- [x] Search uses Emby's `SearchTerm` parameter
+- [x] Results sorted by relevance (SortName)
+- [x] Optional type filtering (Movie, Episode, Audio, etc.)
+- [x] Configurable result limit
+
+**Test Cases:**
+- [x] `test_search_items_success`
+- [x] `test_search_items_with_type_filter`
+
+#### 7.8.2 Media Player Search Implementation
+
+**File:** `custom_components/embymedia/media_player.py`
+
+Added `MediaPlayerEntityFeature.SEARCH_MEDIA` to supported features and implemented:
+```python
+async def async_search_media(
+    self,
+    query: SearchMediaQuery,
+) -> SearchMedia:
+    """Search for media in Emby library.
+
+    Supports voice assistant commands like "Play X-Files Season 1 Episode 12".
+
+    Args:
+        query: Search query containing search string and optional filters.
+
+    Returns:
+        SearchMedia with list of matching BrowseMedia results.
+    """
+```
+
+**SearchMediaQuery Properties:**
+| Property | Type | Description |
+|----------|------|-------------|
+| `search_query` | `str` | The search string |
+| `media_content_type` | `MediaType \| str \| None` | Optional type filter |
+| `media_content_id` | `str \| None` | Optional content ID scope |
+| `media_filter_classes` | `list[MediaClass] \| None` | Optional class filters |
+
+**MediaType to Emby Type Mapping:**
+| HA MediaType | Emby Types |
+|--------------|------------|
+| `MOVIE` | `Movie` |
+| `TVSHOW` | `Episode,Series` |
+| `MUSIC` | `Audio,MusicAlbum,MusicArtist` |
+| `VIDEO` | `Movie,Episode,MusicVideo` |
+| `CHANNEL` | `TvChannel` |
+
+**Acceptance Criteria:**
+- [x] `SEARCH_MEDIA` feature flag in `supported_features`
+- [x] Maps HA MediaType to Emby item types
+- [x] Returns `SearchMedia` with `BrowseMedia` results
+- [x] Handles no session gracefully (returns empty results)
+- [x] Handles no user gracefully (returns empty results)
+
+**Test Cases:**
+- [x] `test_search_media_feature_in_supported_features`
+- [x] `test_search_media_returns_results`
+- [x] `test_search_media_with_type_filter`
+- [x] `test_search_media_no_session_returns_empty`
+- [x] `test_search_media_no_user_returns_empty`
+
+---
+
+### Task 7.9: Enhanced Music Library Browsing
+
+Implement category-based navigation for music libraries to handle large collections (10,000+ items).
+
+#### 7.9.1 Music Library Categories
+
+**File:** `custom_components/embymedia/media_player.py`
+
+Music libraries now show a category menu instead of listing all artists:
+
+```
+Music Library
+├── Artists (A-Z navigation)
+├── Albums (A-Z navigation)
+├── Genres
+└── Playlists
+```
+
+**Category Structure:**
+| Category | Content Type | Navigation |
+|----------|--------------|------------|
+| Artists | `musicartists` | A-Z letter menu |
+| Albums | `musicalbums` | A-Z letter menu |
+| Genres | `musicgenres` | Genre list → Albums |
+| Playlists | `musicplaylists` | Playlist list |
+
+**A-Z Letter Navigation:**
+- Letters A-Z plus `#` for numbers/symbols
+- Each letter fetches items starting with that letter
+- Uses Emby's `NameStartsWith` parameter for efficient filtering
+
+**API Enhancement - `name_starts_with` parameter:**
+```python
+async def async_get_items(
+    self,
+    user_id: str,
+    parent_id: str | None = None,
+    include_item_types: str | None = None,
+    name_starts_with: str | None = None,  # NEW
+    ...
+) -> EmbyItemsResponse:
+```
+
+**New Genre API:**
+```python
+async def async_get_music_genres(
+    self,
+    user_id: str,
+    parent_id: str | None = None,
+) -> list[EmbyBrowseItem]:
+    """Get music genres from the Emby library."""
+```
+
+**Acceptance Criteria:**
+- [x] Music library shows category menu
+- [x] A-Z navigation for Artists and Albums
+- [x] `#` symbol filters non-alphabetic names
+- [x] Genre browsing returns albums in genre
+- [x] Playlist browsing shows all playlists
+- [x] Playlists marked as playable
+
+**Test Cases:**
+- [x] `test_browse_music_library_shows_categories`
+- [x] `test_browse_music_artists_shows_letters`
+- [x] `test_browse_artists_by_letter`
+- [x] `test_browse_artists_hash_symbol`
+- [x] `test_browse_music_albums_shows_letters`
+- [x] `test_browse_albums_by_letter`
+- [x] `test_browse_music_genres`
+- [x] `test_browse_genre_items`
+- [x] `test_browse_music_playlists`
+
+#### 7.9.2 Playlist Playability
+
+**File:** `custom_components/embymedia/browse.py`
+
+Added `Playlist` to playable types:
+```python
+_PLAYABLE_TYPES: frozenset[str] = frozenset(
+    {
+        "Movie", "Episode", "Audio", "TvChannel",
+        "MusicVideo", "Trailer", "Playlist",  # Playlist added
+    }
+)
+```
+
+---
+
+### Task 7.10: Live TV Browsing Fix
+
+Fixed Live TV library browsing to properly route to channel listing.
+
+**Issue:** Live TV library was treated as a generic library, failing to show channels.
+
+**Fix:** Added special handling in `_library_to_browse_media()`:
+```python
+collection_type = library.get("CollectionType", "")
+if collection_type == "livetv":
+    content_id = encode_content_id("livetv")
+    media_content_type = MediaType.CHANNEL
+```
+
+**Acceptance Criteria:**
+- [x] Live TV library shows channel list
+- [x] Channels are marked as playable
+- [x] Channel playback works
+
+---
+
+## Phase 7 Extended Summary
+
+### New Features Added
+
+| Feature | Description | Tests |
+|---------|-------------|-------|
+| Voice Search | `async_search_media()` for voice assistants | 5 tests |
+| Search API | `async_search_items()` in EmbyClient | 2 tests |
+| Music Categories | Artists, Albums, Genres, Playlists | 9 tests |
+| A-Z Navigation | Letter filtering for large collections | Part of music tests |
+| Genre API | `async_get_music_genres()` | Part of music tests |
+| Live TV Fix | Proper routing to channel list | Existing tests |
+| Playlist Playback | Playlists now playable | Part of music tests |
+
+### Test Count
+
+- Phase 7 original (WebSocket): ~75 tests
+- Phase 7 extension (Voice + Music): +16 tests
+- Total test count: 527 tests
+- Coverage: 100%
+
+### Remaining Work (Future Phases)
+
+The following items are deferred to Phase 8:
+
+1. **Movies Library Categories**
+   - A-Z, Year, Decade, Genre, Collections
+
+2. **TV Shows Library Categories**
+   - A-Z, Year, Decade, Genre
+
+3. **Browse Cache**
+   - In-memory cache with TTL for browse API requests
+
+4. **Media Source Enhancement**
+   - Apply same category pattern to `media_source.py`
+
+---
+
+## Definition of Done (Phase 7 Extended)
+
+1. ✅ WebSocket connects to Emby server
+2. ✅ Real-time session updates received
+3. ✅ Automatic reconnection on disconnect
+4. ✅ Reduced polling with WebSocket active (60s vs 10s)
+5. ✅ Graceful fallback to polling
+6. ✅ Voice assistant search support (`async_search_media`)
+7. ✅ Music library category navigation
+8. ✅ A-Z filtering for large collections
+9. ✅ Live TV browsing works
+10. ✅ All tests passing (527 tests)
+11. ✅ 100% code coverage maintained

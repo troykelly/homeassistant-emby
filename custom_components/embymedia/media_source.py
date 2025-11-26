@@ -175,6 +175,84 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             # Browse library contents
             return await self._async_browse_library(coordinator, item_id)
 
+        if content_type == "livetv":
+            # Browse Live TV channels
+            return await self._async_browse_livetv(coordinator)
+
+        # Movie library category routing
+        if content_type == "movielibrary" and item_id:
+            return await self._async_browse_movie_library(coordinator, item_id)
+        if content_type == "movieaz" and item_id:
+            return await self._async_browse_movie_az(coordinator, item_id)
+        if content_type == "movieazletter" and item_id:
+            parts = item_id.split("/")
+            if len(parts) >= 2:
+                return await self._async_browse_movies_by_letter(
+                    coordinator, parts[0], parts[1]
+                )
+        if content_type == "movieyear" and item_id:
+            return await self._async_browse_movie_years(coordinator, item_id)
+        if content_type == "movieyearitems" and item_id:
+            parts = item_id.split("/")
+            if len(parts) >= 2:
+                return await self._async_browse_movies_by_year(
+                    coordinator, parts[0], parts[1]
+                )
+        if content_type == "moviedecade" and item_id:
+            return await self._async_browse_movie_decades(coordinator, item_id)
+        if content_type == "moviedecadeitems" and item_id:
+            parts = item_id.split("/")
+            if len(parts) >= 2:
+                return await self._async_browse_movies_by_decade(
+                    coordinator, parts[0], parts[1]
+                )
+        if content_type == "moviegenre" and item_id:
+            return await self._async_browse_movie_genres(coordinator, item_id)
+        if content_type == "moviegenreitems" and item_id:
+            parts = item_id.split("/")
+            if len(parts) >= 2:
+                return await self._async_browse_movies_by_genre(
+                    coordinator, parts[0], parts[1]
+                )
+        if content_type == "moviecollection" and item_id:
+            return await self._async_browse_movie_collections(coordinator, item_id)
+
+        # TV library category routing
+        if content_type == "tvlibrary" and item_id:
+            return await self._async_browse_tv_library(coordinator, item_id)
+        if content_type == "tvaz" and item_id:
+            return await self._async_browse_tv_az(coordinator, item_id)
+        if content_type == "tvazletter" and item_id:
+            parts = item_id.split("/")
+            if len(parts) >= 2:
+                return await self._async_browse_tv_by_letter(
+                    coordinator, parts[0], parts[1]
+                )
+        if content_type == "tvyear" and item_id:
+            return await self._async_browse_tv_years(coordinator, item_id)
+        if content_type == "tvyearitems" and item_id:
+            parts = item_id.split("/")
+            if len(parts) >= 2:
+                return await self._async_browse_tv_by_year(
+                    coordinator, parts[0], parts[1]
+                )
+        if content_type == "tvdecade" and item_id:
+            return await self._async_browse_tv_decades(coordinator, item_id)
+        if content_type == "tvdecadeitems" and item_id:
+            parts = item_id.split("/")
+            if len(parts) >= 2:
+                return await self._async_browse_tv_by_decade(
+                    coordinator, parts[0], parts[1]
+                )
+        if content_type == "tvgenre" and item_id:
+            return await self._async_browse_tv_genres(coordinator, item_id)
+        if content_type == "tvgenreitems" and item_id:
+            parts = item_id.split("/")
+            if len(parts) >= 2:
+                return await self._async_browse_tv_by_genre(
+                    coordinator, parts[0], parts[1]
+                )
+
         # Browse item (e.g., series, album)
         return await self._async_browse_item(coordinator, content_type, item_id)
 
@@ -242,12 +320,37 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
                 if view.get("ImageTags", {}).get("Primary"):
                     thumbnail = coordinator.client.get_image_url(view_id)
 
+                # Use special identifier for each library type
+                if collection_type == "livetv":
+                    identifier = build_identifier(coordinator.server_id, "livetv")
+                    media_content_type = MediaType.CHANNEL
+                elif collection_type == "movies":
+                    identifier = build_identifier(
+                        coordinator.server_id, "movielibrary", view_id
+                    )
+                    media_content_type = MediaType.VIDEO
+                elif collection_type == "tvshows":
+                    identifier = build_identifier(
+                        coordinator.server_id, "tvlibrary", view_id
+                    )
+                    media_content_type = MediaType.VIDEO
+                elif collection_type == "music":
+                    identifier = build_identifier(
+                        coordinator.server_id, "library", view_id
+                    )
+                    media_content_type = MediaType.MUSIC
+                else:
+                    identifier = build_identifier(
+                        coordinator.server_id, "library", view_id
+                    )
+                    media_content_type = MediaType.VIDEO
+
                 children.append(
                     BrowseMediaSource(
                         domain=DOMAIN,
-                        identifier=build_identifier(coordinator.server_id, "library", view_id),
+                        identifier=identifier,
                         media_class=media_class,
-                        media_content_type=MediaType.VIDEO,
+                        media_content_type=media_content_type,
                         title=view_name,
                         can_play=False,
                         can_expand=True,
@@ -300,6 +403,796 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             media_class=MediaClass.DIRECTORY,
             media_content_type=MediaType.VIDEO,
             title="Library",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_livetv(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+    ) -> BrowseMediaSource:
+        """Browse Live TV channels.
+
+        Args:
+            coordinator: The server's coordinator.
+
+        Returns:
+            Browse result with Live TV channels.
+        """
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            channels = await coordinator.client.async_get_live_tv_channels(user_id)
+
+            for channel in channels:
+                item_browse = self._item_to_browse_media_source(coordinator, channel)
+                children.append(item_browse)
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(coordinator.server_id, "livetv"),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.CHANNEL,
+            title="Live TV",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    # ==================== Movie Library Browsing ====================
+
+    async def _async_browse_movie_library(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse movie library categories."""
+        categories = [
+            ("A-Z", "movieaz", MediaClass.DIRECTORY),
+            ("Year", "movieyear", MediaClass.DIRECTORY),
+            ("Decade", "moviedecade", MediaClass.DIRECTORY),
+            ("Genre", "moviegenre", MediaClass.DIRECTORY),
+            ("Collections", "moviecollection", MediaClass.DIRECTORY),
+        ]
+
+        children: list[BrowseMediaSource] = []
+        for title, content_type, media_class in categories:
+            children.append(
+                BrowseMediaSource(
+                    domain=DOMAIN,
+                    identifier=build_identifier(
+                        coordinator.server_id, content_type, library_id
+                    ),
+                    media_class=media_class,
+                    media_content_type=MediaType.VIDEO,
+                    title=title,
+                    can_play=False,
+                    can_expand=True,
+                )
+            )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "movielibrary", library_id
+            ),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="Movies",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_movie_az(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse movies A-Z menu."""
+        letters = [*"ABCDEFGHIJKLMNOPQRSTUVWXYZ", "#"]
+        children: list[BrowseMediaSource] = []
+
+        for letter in letters:
+            children.append(
+                BrowseMediaSource(
+                    domain=DOMAIN,
+                    identifier=build_identifier(
+                        coordinator.server_id, "movieazletter", f"{library_id}/{letter}"
+                    ),
+                    media_class=MediaClass.DIRECTORY,
+                    media_content_type=MediaType.VIDEO,
+                    title=letter,
+                    can_play=False,
+                    can_expand=True,
+                )
+            )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(coordinator.server_id, "movieaz", library_id),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="A-Z",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_movies_by_letter(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+        letter: str,
+    ) -> BrowseMediaSource:
+        """Browse movies starting with a letter."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            name_filter = None if letter == "#" else letter
+            result = await coordinator.client.async_get_items(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Movie",
+                recursive=True,
+                name_starts_with=name_filter,
+            )
+            for item in result.get("Items", []):
+                children.append(self._item_to_browse_media_source(coordinator, item))
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "movieazletter", f"{library_id}/{letter}"
+            ),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title=letter,
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_movie_years(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse available years for movies."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            years = await coordinator.client.async_get_years(
+                user_id, parent_id=library_id, include_item_types="Movie"
+            )
+            for year_item in years:
+                year_name = year_item.get("Name", "Unknown")
+                children.append(
+                    BrowseMediaSource(
+                        domain=DOMAIN,
+                        identifier=build_identifier(
+                            coordinator.server_id,
+                            "movieyearitems",
+                            f"{library_id}/{year_name}",
+                        ),
+                        media_class=MediaClass.DIRECTORY,
+                        media_content_type=MediaType.VIDEO,
+                        title=year_name,
+                        can_play=False,
+                        can_expand=True,
+                    )
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(coordinator.server_id, "movieyear", library_id),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="Year",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_movies_by_year(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+        year: str,
+    ) -> BrowseMediaSource:
+        """Browse movies from a specific year."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            result = await coordinator.client.async_get_items(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Movie",
+                recursive=True,
+                years=year,
+            )
+            for item in result.get("Items", []):
+                children.append(self._item_to_browse_media_source(coordinator, item))
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "movieyearitems", f"{library_id}/{year}"
+            ),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title=year,
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_movie_decades(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse movies by decade."""
+        decades = [
+            "2020s",
+            "2010s",
+            "2000s",
+            "1990s",
+            "1980s",
+            "1970s",
+            "1960s",
+            "1950s",
+            "1940s",
+            "1930s",
+            "1920s",
+        ]
+        children: list[BrowseMediaSource] = []
+
+        for decade in decades:
+            children.append(
+                BrowseMediaSource(
+                    domain=DOMAIN,
+                    identifier=build_identifier(
+                        coordinator.server_id,
+                        "moviedecadeitems",
+                        f"{library_id}/{decade}",
+                    ),
+                    media_class=MediaClass.DIRECTORY,
+                    media_content_type=MediaType.VIDEO,
+                    title=decade,
+                    can_play=False,
+                    can_expand=True,
+                )
+            )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "moviedecade", library_id
+            ),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="Decade",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_movies_by_decade(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+        decade: str,
+    ) -> BrowseMediaSource:
+        """Browse movies from a specific decade."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            # Parse decade to get year range
+            start_year = int(decade[:-1])
+            years_param = ",".join(str(y) for y in range(start_year, start_year + 10))
+
+            result = await coordinator.client.async_get_items(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Movie",
+                recursive=True,
+                years=years_param,
+            )
+            for item in result.get("Items", []):
+                children.append(self._item_to_browse_media_source(coordinator, item))
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "moviedecadeitems", f"{library_id}/{decade}"
+            ),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title=decade,
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_movie_genres(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse movie genres."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            genres = await coordinator.client.async_get_genres(
+                user_id, parent_id=library_id, include_item_types="Movie"
+            )
+            for genre in genres:
+                genre_id = genre.get("Id", "")
+                genre_name = genre.get("Name", "Unknown")
+                children.append(
+                    BrowseMediaSource(
+                        domain=DOMAIN,
+                        identifier=build_identifier(
+                            coordinator.server_id,
+                            "moviegenreitems",
+                            f"{library_id}/{genre_id}",
+                        ),
+                        media_class=MediaClass.GENRE,
+                        media_content_type=MediaType.VIDEO,
+                        title=genre_name,
+                        can_play=False,
+                        can_expand=True,
+                    )
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(coordinator.server_id, "moviegenre", library_id),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="Genre",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_movies_by_genre(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+        genre_id: str,
+    ) -> BrowseMediaSource:
+        """Browse movies in a specific genre."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            result = await coordinator.client.async_get_items(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Movie",
+                recursive=True,
+                genre_ids=genre_id,
+            )
+            for item in result.get("Items", []):
+                children.append(self._item_to_browse_media_source(coordinator, item))
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "moviegenreitems", f"{library_id}/{genre_id}"
+            ),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="Genre",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_movie_collections(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse movie collections (BoxSets)."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            result = await coordinator.client.async_get_items(
+                user_id,
+                parent_id=library_id,
+                include_item_types="BoxSet",
+                recursive=True,
+            )
+            for item in result.get("Items", []):
+                children.append(
+                    self._item_to_browse_media_source(
+                        coordinator, item, content_type="collection"
+                    )
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "moviecollection", library_id
+            ),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="Collections",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    # ==================== TV Library Browsing ====================
+
+    async def _async_browse_tv_library(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse TV library categories."""
+        categories = [
+            ("A-Z", "tvaz", MediaClass.DIRECTORY),
+            ("Year", "tvyear", MediaClass.DIRECTORY),
+            ("Decade", "tvdecade", MediaClass.DIRECTORY),
+            ("Genre", "tvgenre", MediaClass.DIRECTORY),
+        ]
+
+        children: list[BrowseMediaSource] = []
+        for title, content_type, media_class in categories:
+            children.append(
+                BrowseMediaSource(
+                    domain=DOMAIN,
+                    identifier=build_identifier(
+                        coordinator.server_id, content_type, library_id
+                    ),
+                    media_class=media_class,
+                    media_content_type=MediaType.VIDEO,
+                    title=title,
+                    can_play=False,
+                    can_expand=True,
+                )
+            )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "tvlibrary", library_id
+            ),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="TV Shows",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_tv_az(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse TV shows A-Z menu."""
+        letters = [*"ABCDEFGHIJKLMNOPQRSTUVWXYZ", "#"]
+        children: list[BrowseMediaSource] = []
+
+        for letter in letters:
+            children.append(
+                BrowseMediaSource(
+                    domain=DOMAIN,
+                    identifier=build_identifier(
+                        coordinator.server_id, "tvazletter", f"{library_id}/{letter}"
+                    ),
+                    media_class=MediaClass.DIRECTORY,
+                    media_content_type=MediaType.VIDEO,
+                    title=letter,
+                    can_play=False,
+                    can_expand=True,
+                )
+            )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(coordinator.server_id, "tvaz", library_id),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="A-Z",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_tv_by_letter(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+        letter: str,
+    ) -> BrowseMediaSource:
+        """Browse TV shows starting with a letter."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            name_filter = None if letter == "#" else letter
+            result = await coordinator.client.async_get_items(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Series",
+                recursive=True,
+                name_starts_with=name_filter,
+            )
+            for item in result.get("Items", []):
+                children.append(
+                    self._item_to_browse_media_source(
+                        coordinator, item, content_type="series"
+                    )
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "tvazletter", f"{library_id}/{letter}"
+            ),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title=letter,
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_tv_years(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse available years for TV shows."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            years = await coordinator.client.async_get_years(
+                user_id, parent_id=library_id, include_item_types="Series"
+            )
+            for year_item in years:
+                year_name = year_item.get("Name", "Unknown")
+                children.append(
+                    BrowseMediaSource(
+                        domain=DOMAIN,
+                        identifier=build_identifier(
+                            coordinator.server_id,
+                            "tvyearitems",
+                            f"{library_id}/{year_name}",
+                        ),
+                        media_class=MediaClass.DIRECTORY,
+                        media_content_type=MediaType.VIDEO,
+                        title=year_name,
+                        can_play=False,
+                        can_expand=True,
+                    )
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(coordinator.server_id, "tvyear", library_id),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="Year",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_tv_by_year(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+        year: str,
+    ) -> BrowseMediaSource:
+        """Browse TV shows from a specific year."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            result = await coordinator.client.async_get_items(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Series",
+                recursive=True,
+                years=year,
+            )
+            for item in result.get("Items", []):
+                children.append(
+                    self._item_to_browse_media_source(
+                        coordinator, item, content_type="series"
+                    )
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "tvyearitems", f"{library_id}/{year}"
+            ),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title=year,
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_tv_decades(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse TV shows by decade."""
+        decades = [
+            "2020s",
+            "2010s",
+            "2000s",
+            "1990s",
+            "1980s",
+            "1970s",
+            "1960s",
+            "1950s",
+        ]
+        children: list[BrowseMediaSource] = []
+
+        for decade in decades:
+            children.append(
+                BrowseMediaSource(
+                    domain=DOMAIN,
+                    identifier=build_identifier(
+                        coordinator.server_id, "tvdecadeitems", f"{library_id}/{decade}"
+                    ),
+                    media_class=MediaClass.DIRECTORY,
+                    media_content_type=MediaType.VIDEO,
+                    title=decade,
+                    can_play=False,
+                    can_expand=True,
+                )
+            )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(coordinator.server_id, "tvdecade", library_id),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="Decade",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_tv_by_decade(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+        decade: str,
+    ) -> BrowseMediaSource:
+        """Browse TV shows from a specific decade."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            start_year = int(decade[:-1])
+            years_param = ",".join(str(y) for y in range(start_year, start_year + 10))
+
+            result = await coordinator.client.async_get_items(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Series",
+                recursive=True,
+                years=years_param,
+            )
+            for item in result.get("Items", []):
+                children.append(
+                    self._item_to_browse_media_source(
+                        coordinator, item, content_type="series"
+                    )
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "tvdecadeitems", f"{library_id}/{decade}"
+            ),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title=decade,
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_tv_genres(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse TV show genres."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            genres = await coordinator.client.async_get_genres(
+                user_id, parent_id=library_id, include_item_types="Series"
+            )
+            for genre in genres:
+                genre_id = genre.get("Id", "")
+                genre_name = genre.get("Name", "Unknown")
+                children.append(
+                    BrowseMediaSource(
+                        domain=DOMAIN,
+                        identifier=build_identifier(
+                            coordinator.server_id,
+                            "tvgenreitems",
+                            f"{library_id}/{genre_id}",
+                        ),
+                        media_class=MediaClass.GENRE,
+                        media_content_type=MediaType.VIDEO,
+                        title=genre_name,
+                        can_play=False,
+                        can_expand=True,
+                    )
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(coordinator.server_id, "tvgenre", library_id),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="Genre",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_tv_by_genre(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+        genre_id: str,
+    ) -> BrowseMediaSource:
+        """Browse TV shows in a specific genre."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            result = await coordinator.client.async_get_items(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Series",
+                recursive=True,
+                genre_ids=genre_id,
+            )
+            for item in result.get("Items", []):
+                children.append(
+                    self._item_to_browse_media_source(
+                        coordinator, item, content_type="series"
+                    )
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "tvgenreitems", f"{library_id}/{genre_id}"
+            ),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="Genre",
             can_play=False,
             can_expand=True,
             children=children,
@@ -388,7 +1281,7 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
         if content_type is None:
             content_type = item_type
 
-        can_play = item_type in ("movie", "episode", "audio", "musicvideo")
+        can_play = item_type in ("movie", "episode", "audio", "musicvideo", "tvchannel")
         can_expand = item_type in ("series", "season", "album", "folder")
 
         media_class = self._get_media_class_for_type(item_type)

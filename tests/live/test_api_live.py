@@ -3,7 +3,7 @@
 These tests run against a real Emby server to validate the API methods.
 They require EMBY_URL and EMBY_API_KEY environment variables.
 
-Run with: pytest tests/test_api_live.py -v -s --allow-socket
+Run with: python -m pytest tests/live/ -v -s -p no:socket
 """
 
 from __future__ import annotations
@@ -14,13 +14,6 @@ from urllib.parse import urlparse
 import pytest
 
 from custom_components.embymedia.api import EmbyClient
-
-# Mark tests to skip by default (run with --run-live-tests)
-# Also enable socket access when running
-pytestmark = [
-    pytest.mark.skip(reason="Live tests - run with pytest tests/test_api_live.py manually"),
-    pytest.mark.enable_socket,
-]
 
 
 @pytest.fixture
@@ -44,7 +37,9 @@ def requires_live_server(live_emby_url: str | None, live_emby_api_key: str | Non
 
 @pytest.fixture
 async def live_client(
-    live_emby_url: str | None, live_emby_api_key: str | None, requires_live_server: None
+    live_emby_url: str | None,
+    live_emby_api_key: str | None,
+    requires_live_server: None,
 ) -> EmbyClient:
     """Create client connected to live server."""
     assert live_emby_url is not None
