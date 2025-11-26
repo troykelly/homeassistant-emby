@@ -22,8 +22,8 @@ jobs:
 
       - name: Create release zip
         run: |
-          cd custom_components
-          zip -r ../embymedia.zip embymedia
+          cd custom_components/embymedia
+          zip -r ../../embymedia.zip .
 
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
