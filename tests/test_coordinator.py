@@ -17,7 +17,6 @@ from custom_components.embymedia.const import (
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
-
 from custom_components.embymedia.exceptions import (
     EmbyAuthenticationError,
     EmbyConnectionError,

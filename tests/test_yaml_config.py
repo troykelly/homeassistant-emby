@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL
 from homeassistant.core import HomeAssistant
-from homeassistant.setup import async_setup_component
 
 from custom_components.embymedia.const import (
     CONF_API_KEY,
