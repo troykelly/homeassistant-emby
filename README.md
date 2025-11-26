@@ -6,6 +6,9 @@ A custom Home Assistant integration for Emby Media Server providing full media p
 
 - **Dynamic Media Players** - Automatic entity creation for all Emby clients
 - **Full Playback Control** - Play, pause, stop, seek, volume, next/previous
+- **Remote Control** - Send navigation commands (GoHome, Back, Select, arrows, etc.)
+- **Notifications** - Send messages to Emby clients via standard notify platform
+- **Server Actions** - Button entities for server operations (library refresh)
 - **Media Browsing** - Navigate your entire Emby library from Home Assistant
 - **Media Source Provider** - Play Emby content on any Home Assistant media player
 - **Real-Time Updates** - WebSocket connection for instant state synchronization
@@ -81,6 +84,58 @@ Each Emby client creates a media player entity named after the device (e.g., `me
 - Mute
 - Next/Previous track
 
+### Remote Control
+
+Each Emby client also creates a remote entity (e.g., `remote.living_room_tv_remote`) for sending navigation commands.
+
+**Supported Commands:**
+- **Navigation**: `MoveUp`, `MoveDown`, `MoveLeft`, `MoveRight`, `PageUp`, `PageDown`
+- **Selection**: `Select`, `Back`, `GoHome`, `GoToSettings`
+- **Menus**: `ToggleContextMenu`, `ToggleOsdMenu`
+- **Volume**: `VolumeUp`, `VolumeDown`, `Mute`, `Unmute`, `ToggleMute`
+
+**Example:**
+```yaml
+service: remote.send_command
+target:
+  entity_id: remote.living_room_tv_remote
+data:
+  command:
+    - MoveDown
+    - MoveDown
+    - Select
+```
+
+### Notifications
+
+Each Emby client creates a notify entity (e.g., `notify.living_room_tv_notification`) for sending on-screen messages.
+
+**Example:**
+```yaml
+service: notify.send_message
+target:
+  entity_id: notify.living_room_tv_notification
+data:
+  message: "Dinner is ready!"
+  title: "Kitchen Alert"
+```
+
+### Server Buttons
+
+The integration creates button entities for server-level actions:
+
+| Button | Description |
+|--------|-------------|
+| `button.emby_server_refresh_library` | Triggers a full library scan |
+
+**Example:**
+```yaml
+# Trigger library refresh after adding new media
+service: button.press
+target:
+  entity_id: button.emby_server_refresh_library
+```
+
 ### Media Browser
 
 Access the Emby media browser from any media player card:
@@ -144,6 +199,56 @@ automation:
       - service: media_player.media_pause
         target:
           entity_id: media_player.living_room_tv
+```
+
+### Send Notification to TV
+
+```yaml
+automation:
+  - alias: "Notify TV when laundry done"
+    trigger:
+      - platform: state
+        entity_id: sensor.washer
+        to: "complete"
+    action:
+      - service: notify.send_message
+        target:
+          entity_id: notify.living_room_tv_notification
+        data:
+          message: "Laundry is done!"
+          title: "Washer"
+```
+
+### Navigate with Remote
+
+```yaml
+automation:
+  - alias: "Go home on idle"
+    trigger:
+      - platform: state
+        entity_id: media_player.living_room_tv
+        to: "idle"
+        for: "00:05:00"
+    action:
+      - service: remote.send_command
+        target:
+          entity_id: remote.living_room_tv_remote
+        data:
+          command: GoHome
+```
+
+### Nightly Library Refresh
+
+```yaml
+automation:
+  - alias: "Refresh Emby library at 3am"
+    trigger:
+      - platform: time
+        at: "03:00:00"
+    action:
+      - service: button.press
+        target:
+          entity_id: button.emby_server_refresh_library
 ```
 
 ### Play Music at Sunrise

@@ -56,10 +56,27 @@ custom_components/embymedia/
 ├── config_flow.py        # UI configuration flow
 ├── const.py              # Constants, types, TypedDicts
 ├── coordinator.py        # DataUpdateCoordinator
-├── media_player.py       # MediaPlayerEntity implementation
 ├── entity.py             # Base EmbyEntity class
 ├── api.py                # Emby API client wrapper
 ├── models.py             # Dataclasses for internal models
+│
+│   # Entity Platforms
+├── media_player.py       # MediaPlayerEntity - playback control
+├── remote.py             # RemoteEntity - navigation commands
+├── notify.py             # NotifyEntity - on-screen messages
+├── button.py             # ButtonEntity - server actions
+│
+│   # Media Features
+├── media_source.py       # MediaSource provider
+├── browse.py             # Media browser helpers
+├── image.py              # Image proxy for album art
+│
+│   # Supporting
+├── services.py           # Custom services
+├── websocket.py          # WebSocket client
+├── cache.py              # Response caching
+├── exceptions.py         # Custom exceptions
+├── diagnostics.py        # Diagnostic download
 ├── strings.json          # English translations
 └── translations/
     └── en.json
@@ -67,10 +84,14 @@ custom_components/embymedia/
 tests/
 ├── conftest.py           # Pytest fixtures
 ├── test_init.py          # Setup/unload tests
-├── test_config_flow.py   # Config flow tests (all branches)
+├── test_config_flow.py   # Config flow tests
 ├── test_coordinator.py   # Coordinator tests
-├── test_media_player.py  # Media player entity tests
-└── test_api.py           # API client tests
+├── test_api.py           # API client tests
+├── test_media_player.py  # Media player tests
+├── test_remote.py        # Remote entity tests
+├── test_notify.py        # Notify entity tests
+├── test_button.py        # Button entity tests
+└── ...                   # Additional test files
 ```
 
 ## Key Technologies
