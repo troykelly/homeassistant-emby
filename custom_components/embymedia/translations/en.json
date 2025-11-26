@@ -58,6 +58,22 @@
       "reauth_confirm": {
         "title": "Re-authenticate Emby Server",
         "description": "The API key for {server_name} is no longer valid. Please enter a new API key."
+      },
+      "entity_options": {
+        "title": "Entity Naming Options",
+        "description": "Configure how entity names appear for {server_name}. By default, device names are prefixed with 'Emby' (e.g., 'Emby Living Room TV'). You can disable this for cleaner names.",
+        "data": {
+          "prefix_media_player": "Prefix media player names with 'Emby'",
+          "prefix_notify": "Prefix notify names with 'Emby'",
+          "prefix_remote": "Prefix remote names with 'Emby'",
+          "prefix_button": "Prefix button names with 'Emby'"
+        },
+        "data_description": {
+          "prefix_media_player": "When enabled, media player devices will be named 'Emby <device>' (e.g., 'Emby Living Room TV')",
+          "prefix_notify": "When enabled, notification devices will have 'Emby' prefix",
+          "prefix_remote": "When enabled, remote control devices will have 'Emby' prefix",
+          "prefix_button": "When enabled, server action buttons will have 'Emby' prefix"
+        }
       }
     },
     "error": {
@@ -89,7 +105,11 @@
           "direct_play": "Enable direct play",
           "video_container": "Video container",
           "max_video_bitrate": "Max video bitrate (kbps)",
-          "max_audio_bitrate": "Max audio bitrate (kbps)"
+          "max_audio_bitrate": "Max audio bitrate (kbps)",
+          "prefix_media_player": "Prefix media player names with 'Emby'",
+          "prefix_notify": "Prefix notify names with 'Emby'",
+          "prefix_remote": "Prefix remote names with 'Emby'",
+          "prefix_button": "Prefix button names with 'Emby'"
         },
         "data_description": {
           "scan_interval": "How often to poll the Emby server for updates (5-300 seconds)",
@@ -99,7 +119,11 @@
           "direct_play": "Try direct play before transcoding",
           "video_container": "Preferred video container format for transcoding",
           "max_video_bitrate": "Maximum video bitrate for transcoding (leave empty for unlimited)",
-          "max_audio_bitrate": "Maximum audio bitrate for transcoding (leave empty for unlimited)"
+          "max_audio_bitrate": "Maximum audio bitrate for transcoding (leave empty for unlimited)",
+          "prefix_media_player": "When enabled, device names will start with 'Emby' (e.g., 'Emby Living Room TV')",
+          "prefix_notify": "When enabled, notification entities will have 'Emby' prefix in their device names",
+          "prefix_remote": "When enabled, remote entities will have 'Emby' prefix in their device names",
+          "prefix_button": "When enabled, button entities will have 'Emby' prefix in their device names"
         }
       }
     }
