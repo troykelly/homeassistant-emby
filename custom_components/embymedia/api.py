@@ -1307,6 +1307,36 @@ class EmbyClient:
         url = f"{self.base_url}/Videos/{item_id}/master.m3u8"
         return f"{url}?api_key={self._api_key}"
 
+    def get_user_image_url(
+        self,
+        user_id: str,
+        image_tag: str | None = None,
+        max_width: int | None = None,
+        max_height: int | None = None,
+    ) -> str:
+        """Generate URL for user profile image (avatar).
+
+        Args:
+            user_id: User ID.
+            image_tag: Optional image tag for cache busting.
+            max_width: Optional maximum width for image.
+            max_height: Optional maximum height for image.
+
+        Returns:
+            Full URL to the user's profile image with authentication.
+        """
+        url = f"{self.base_url}/Users/{user_id}/Images/Primary"
+        params: list[str] = [f"api_key={self._api_key}"]
+
+        if image_tag is not None:
+            params.append(f"tag={image_tag}")
+        if max_width is not None:
+            params.append(f"maxWidth={max_width}")
+        if max_height is not None:
+            params.append(f"maxHeight={max_height}")
+
+        return f"{url}?{'&'.join(params)}"
+
     async def close(self) -> None:
         """Close the client session.
 

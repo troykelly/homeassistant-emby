@@ -147,10 +147,10 @@ The integration provides:
 - [x] Image tag caching to prevent unnecessary refreshes
 - [x] Fallback hierarchy (item → parent → series)
 
-### 4.2 Image Proxy (Optional)
-- [ ] Proxy images through Home Assistant for auth
-- [ ] Cache headers for browser caching
-- [ ] Resize/quality parameters
+### 4.2 Image Proxy
+- [x] Proxy images through Home Assistant for auth (`EmbyImageProxyView`)
+- [x] Cache headers for browser caching (1 year with tag, 5 min without)
+- [x] Resize/quality parameters (maxWidth, maxHeight, quality)
 
 **Deliverables:**
 - ✅ Media artwork displays in Home Assistant UI
@@ -207,8 +207,8 @@ The integration provides:
 - [x] Generate authenticated stream URLs
 - [x] Support transcoding parameters
 - [x] Direct play vs transcoded play options
-- [ ] Audio stream selection (optional)
-- [ ] Subtitle stream selection (optional)
+- [x] Audio stream selection (API: `audio_stream_index` parameter)
+- [x] Subtitle stream selection (API: `subtitle_stream_index` parameter)
 
 ### 6.3 Stream URL Endpoints
 - [x] `GET /Videos/{id}/stream` - Video streaming
@@ -331,7 +331,7 @@ The integration provides:
 - [x] Per-user authentication option (user selection in config flow)
 - [x] User-specific libraries and restrictions (user_id context)
 - [x] User context in coordinator
-- [ ] User avatar display (optional, not implemented)
+- [x] User avatar display (API: `get_user_image_url()` method)
 
 ### 8.2 Remote Control Features ✅
 - [x] Send messages to clients (`embymedia.send_message` service)

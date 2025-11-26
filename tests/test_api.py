@@ -2277,6 +2277,54 @@ class TestStreamUrls:
         assert audio_url.startswith("https://")
         assert hls_url.startswith("https://")
 
+    def test_get_user_image_url_basic(self) -> None:
+        """Test user image URL generation with basic parameters."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_user_image_url("user-123")
+        assert "emby.local:8096" in url
+        assert "/Users/user-123/Images/Primary" in url
+        assert "api_key=test-api-key" in url
+
+    def test_get_user_image_url_with_tag(self) -> None:
+        """Test user image URL with cache tag."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_user_image_url("user-123", image_tag="abc123")
+        assert "tag=abc123" in url
+
+    def test_get_user_image_url_with_dimensions(self) -> None:
+        """Test user image URL with size constraints."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+        url = client.get_user_image_url(
+            "user-123",
+            max_width=100,
+            max_height=100,
+        )
+        assert "maxWidth=100" in url
+        assert "maxHeight=100" in url
+
+    def test_get_user_image_url_with_ssl(self) -> None:
+        """Test user image URL with HTTPS."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8920,
+            api_key="test-api-key",
+            ssl=True,
+        )
+        url = client.get_user_image_url("user-123")
+        assert url.startswith("https://")
+
 
 class TestBrowseCacheIntegration:
     """Tests for browse cache integration in API client."""

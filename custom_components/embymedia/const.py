@@ -124,6 +124,8 @@ class EmbyUser(TypedDict):
     ServerId: str
     HasPassword: bool
     HasConfiguredPassword: bool
+    PrimaryImageTag: NotRequired[str]
+    HasPrimaryImage: NotRequired[bool]
 
 
 class EmbyErrorResponse(TypedDict):
