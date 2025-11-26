@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from datetime import timedelta
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
@@ -1206,10 +1207,8 @@ class TestCoordinatorRecovery:
 
         # Simulate consecutive failures up to max (default is 5)
         for _ in range(5):
-            try:
+            with contextlib.suppress(Exception):
                 await coordinator._async_update_data()
-            except Exception:
-                pass
 
         # Should have attempted recovery (called async_get_server_info)
         mock_emby_client.async_get_server_info.assert_called()
@@ -1554,7 +1553,12 @@ class TestCoordinatorPlaybackEvents:
 
         from custom_components.embymedia.const import DOMAIN
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
-        from custom_components.embymedia.models import EmbyMediaItem, EmbyPlaybackState, EmbySession, MediaType
+        from custom_components.embymedia.models import (
+            EmbyMediaItem,
+            EmbyPlaybackState,
+            EmbySession,
+            MediaType,
+        )
 
         mock_emby_client.async_get_sessions = AsyncMock(return_value=[])
 

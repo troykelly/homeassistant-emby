@@ -17,7 +17,6 @@ from custom_components.embymedia.const import (
     CONF_VERIFY_SSL,
     DOMAIN,
 )
-from custom_components.embymedia.models import EmbySession
 from custom_components.embymedia.services import (
     _get_coordinator_for_entity,
     _get_entity_ids_from_call,
@@ -229,9 +228,8 @@ class TestGetCoordinatorForEntity:
         # Mock async_get_entry to return None (simulating stale config entry reference)
         with patch.object(
             hass.config_entries, "async_get_entry", return_value=None
-        ):
-            with pytest.raises(HomeAssistantError) as exc_info:
-                _get_coordinator_for_entity(hass, entry.entity_id)
+        ), pytest.raises(HomeAssistantError) as exc_info:
+            _get_coordinator_for_entity(hass, entry.entity_id)
 
         assert "Config entry" in str(exc_info.value) and "not found" in str(exc_info.value)
 
