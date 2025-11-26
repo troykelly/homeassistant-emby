@@ -20,11 +20,14 @@ from .api import EmbyClient
 from .const import (
     CONF_API_KEY,
     CONF_DIRECT_PLAY,
+    CONF_ENABLE_WEBSOCKET,
+    CONF_IGNORED_DEVICES,
     CONF_MAX_AUDIO_BITRATE,
     CONF_MAX_VIDEO_BITRATE,
     CONF_VERIFY_SSL,
     CONF_VIDEO_CONTAINER,
     DEFAULT_DIRECT_PLAY,
+    DEFAULT_ENABLE_WEBSOCKET,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SSL,
@@ -368,7 +371,7 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
     @staticmethod
     @callback  # type: ignore[misc]
     def async_get_options_flow(
-        config_entry: ConfigEntry,
+        config_entry: ConfigEntry,  # noqa: ARG004
     ) -> EmbyOptionsFlowHandler:
         """Create the options flow.
 
@@ -378,19 +381,11 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
         Returns:
             Options flow handler instance.
         """
-        return EmbyOptionsFlowHandler(config_entry)
+        return EmbyOptionsFlowHandler()
 
 
 class EmbyOptionsFlowHandler(OptionsFlow):  # type: ignore[misc]
     """Handle Emby options."""
-
-    def __init__(self, config_entry: ConfigEntry) -> None:
-        """Initialize options flow.
-
-        Args:
-            config_entry: The config entry being configured.
-        """
-        self.config_entry = config_entry
 
     async def async_step_init(
         self,
@@ -420,6 +415,18 @@ class EmbyOptionsFlowHandler(OptionsFlow):  # type: ignore[misc]
                         vol.Coerce(int),
                         vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
                     ),
+                    vol.Optional(
+                        CONF_ENABLE_WEBSOCKET,
+                        default=self.config_entry.options.get(
+                            CONF_ENABLE_WEBSOCKET, DEFAULT_ENABLE_WEBSOCKET
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_IGNORED_DEVICES,
+                        default=self.config_entry.options.get(
+                            CONF_IGNORED_DEVICES, ""
+                        ),
+                    ): str,
                     vol.Optional(
                         CONF_DIRECT_PLAY,
                         default=self.config_entry.options.get(

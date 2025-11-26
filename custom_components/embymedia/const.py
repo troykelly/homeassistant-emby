@@ -29,6 +29,10 @@ CONF_VIDEO_CONTAINER: Final = "video_container"
 CONF_MAX_VIDEO_BITRATE: Final = "max_video_bitrate"
 CONF_MAX_AUDIO_BITRATE: Final = "max_audio_bitrate"
 
+# Feature toggle option keys
+CONF_ENABLE_WEBSOCKET: Final = "enable_websocket"
+CONF_IGNORED_DEVICES: Final = "ignored_devices"
+
 # Default values
 DEFAULT_PORT: Final = 8096
 DEFAULT_SSL: Final = False
@@ -37,6 +41,8 @@ DEFAULT_SCAN_INTERVAL: Final = 10  # seconds
 DEFAULT_TIMEOUT: Final = 10  # seconds
 DEFAULT_DIRECT_PLAY: Final = True
 DEFAULT_VIDEO_CONTAINER: Final = "mp4"
+DEFAULT_ENABLE_WEBSOCKET: Final = True
+DEFAULT_IGNORED_DEVICES: Final[list[str]] = []
 
 # Video container options
 VIDEO_CONTAINERS: Final[list[str]] = ["mp4", "mkv", "webm"]
