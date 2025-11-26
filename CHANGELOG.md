@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2024-XX-XX
+## [0.1.0] - 2025-11-26
 
 ### Added
 - Initial release of Home Assistant Emby Media integration
@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - WebSocket enable/disable
   - Device filtering
   - Transcoding options (direct play, container, bitrate)
+  - Entity name prefix toggles ("Emby" prefix per entity type)
 - Multiple users support with per-user libraries
 - Custom services:
   - `embymedia.send_message` - Display notifications on clients
