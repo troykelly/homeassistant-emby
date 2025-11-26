@@ -111,6 +111,20 @@ class EmbyEntity(CoordinatorEntity["EmbyDataUpdateCoordinator"]):  # type: ignor
         """
         return f"{self.coordinator.server_id}_{self._device_id}"
 
+    @property
+    def suggested_object_id(self) -> str | None:
+        """Return suggested object ID for entity ID generation.
+
+        This ensures the entity ID includes the 'Emby' prefix when the option
+        is enabled, matching the device name. Without this override, the entity
+        ID would be generated from the device name in the registry, which may
+        not yet have the prefix applied during initial entity registration.
+
+        Returns:
+            Suggested object ID string (e.g., "emby_macos" or "macos").
+        """
+        return self._get_device_name(self._prefix_key, self._prefix_default)
+
     def _get_device_name(self, prefix_key: str, prefix_default: bool) -> str:
         """Get device name with optional 'Emby' prefix.
 

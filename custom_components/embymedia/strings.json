@@ -58,6 +58,22 @@
       "reauth_confirm": {
         "title": "Re-authenticate Emby Server",
         "description": "The API key for {server_name} is no longer valid. Please enter a new API key."
+      },
+      "entity_options": {
+        "title": "Entity Naming Options",
+        "description": "Configure how entity names appear for {server_name}. By default, device names are prefixed with 'Emby' (e.g., 'Emby Living Room TV'). You can disable this for cleaner names.",
+        "data": {
+          "prefix_media_player": "Prefix media player names with 'Emby'",
+          "prefix_notify": "Prefix notify names with 'Emby'",
+          "prefix_remote": "Prefix remote names with 'Emby'",
+          "prefix_button": "Prefix button names with 'Emby'"
+        },
+        "data_description": {
+          "prefix_media_player": "When enabled, media player devices will be named 'Emby <device>' (e.g., 'Emby Living Room TV')",
+          "prefix_notify": "When enabled, notification devices will have 'Emby' prefix",
+          "prefix_remote": "When enabled, remote control devices will have 'Emby' prefix",
+          "prefix_button": "When enabled, server action buttons will have 'Emby' prefix"
+        }
       }
     },
     "error": {

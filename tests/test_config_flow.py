@@ -71,6 +71,16 @@ class TestConfigFlow:
             {"user_id": "user-1"},
         )
 
+        # Now we have entity options step
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "entity_options"
+
+        # Accept default entity options
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {},
+        )
+
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert result["title"] == "Test Emby Server"
         assert result["data"][CONF_HOST] == "emby.local"
@@ -312,6 +322,16 @@ class TestConfigFlow:
             {"user_id": "__none__"},
         )
 
+        # Now we have entity options step
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "entity_options"
+
+        # Accept default entity options
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {},
+        )
+
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert result["data"][CONF_HOST] == "emby.local"
 
@@ -357,6 +377,16 @@ class TestConfigFlow:
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
                 {"user_id": "__none__"},
+            )
+
+            # Now we have entity options step
+            assert result["type"] is FlowResultType.FORM
+            assert result["step_id"] == "entity_options"
+
+            # Accept default entity options
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {},
             )
 
             assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -440,6 +470,16 @@ class TestConfigFlow:
                 {"user_id": "__none__"},
             )
 
+            # Now we have entity options step
+            assert result["type"] is FlowResultType.FORM
+            assert result["step_id"] == "entity_options"
+
+            # Accept default entity options
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {},
+            )
+
             assert result["type"] is FlowResultType.CREATE_ENTRY
 
     @pytest.mark.asyncio
@@ -484,6 +524,16 @@ class TestConfigFlow:
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
                 {"user_id": "__none__"},
+            )
+
+            # Now we have entity options step
+            assert result["type"] is FlowResultType.FORM
+            assert result["step_id"] == "entity_options"
+
+            # Accept default entity options
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {},
             )
 
             # Invalid versions are allowed to pass
@@ -891,6 +941,16 @@ class TestUserSelectionFlow:
                 {"user_id": "user-1"},
             )
 
+            # Now we have entity options step
+            assert result["type"] is FlowResultType.FORM
+            assert result["step_id"] == "entity_options"
+
+            # Accept default entity options
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {},
+            )
+
             assert result["type"] is FlowResultType.CREATE_ENTRY
             assert result["data"]["user_id"] == "user-1"
 
@@ -961,6 +1021,16 @@ class TestUserSelectionFlow:
                 {"user_id": "user-2"},
             )
 
+            # Now we have entity options step
+            assert result["type"] is FlowResultType.FORM
+            assert result["step_id"] == "entity_options"
+
+            # Accept default entity options
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {},
+            )
+
             assert result["type"] is FlowResultType.CREATE_ENTRY
             assert result["data"]["user_id"] == "user-2"
 
@@ -1002,6 +1072,16 @@ class TestUserSelectionFlow:
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
                 {"user_id": "__none__"},  # Empty means admin context
+            )
+
+            # Now we have entity options step
+            assert result["type"] is FlowResultType.FORM
+            assert result["step_id"] == "entity_options"
+
+            # Accept default entity options
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {},
             )
 
             assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -1334,3 +1414,141 @@ class TestOptionsFlowPrefixToggles:
         assert result["data"][CONF_PREFIX_NOTIFY] is False
         assert result["data"][CONF_PREFIX_REMOTE] is True
         assert result["data"][CONF_PREFIX_BUTTON] is False
+
+
+class TestEntityOptionsStep:
+    """Test entity_options step in config flow (Phase 11)."""
+
+    @pytest.mark.asyncio
+    async def test_entity_options_step_shown(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test entity_options step is shown after user selection."""
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+        )
+
+        # User selection step
+        assert result["step_id"] == "user_select"
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"user_id": "__none__"},
+        )
+
+        # Entity options step should be shown
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "entity_options"
+
+    @pytest.mark.asyncio
+    async def test_entity_options_custom_settings(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test custom entity options are saved to config entry."""
+        from custom_components.embymedia.const import (
+            CONF_PREFIX_BUTTON,
+            CONF_PREFIX_MEDIA_PLAYER,
+            CONF_PREFIX_NOTIFY,
+            CONF_PREFIX_REMOTE,
+        )
+
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+        )
+
+        # User selection step
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"user_id": "__none__"},
+        )
+
+        # Entity options step - set custom values (disable some prefixes)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_PREFIX_MEDIA_PLAYER: False,  # Disable
+                CONF_PREFIX_NOTIFY: True,  # Enable
+                CONF_PREFIX_REMOTE: False,  # Disable
+                CONF_PREFIX_BUTTON: True,  # Enable
+            },
+        )
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        # Options should be saved in the entry
+        assert result["options"][CONF_PREFIX_MEDIA_PLAYER] is False
+        assert result["options"][CONF_PREFIX_NOTIFY] is True
+        assert result["options"][CONF_PREFIX_REMOTE] is False
+        assert result["options"][CONF_PREFIX_BUTTON] is True
+
+    @pytest.mark.asyncio
+    async def test_entity_options_defaults_enabled(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test entity options default to enabled when accepting defaults."""
+        from custom_components.embymedia.const import (
+            CONF_PREFIX_BUTTON,
+            CONF_PREFIX_MEDIA_PLAYER,
+            CONF_PREFIX_NOTIFY,
+            CONF_PREFIX_REMOTE,
+        )
+
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+        )
+
+        # User selection step
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {"user_id": "__none__"},
+        )
+
+        # Entity options step - accept all defaults (empty dict)
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            {},  # Accept defaults
+        )
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        # All defaults should be True
+        assert result["options"].get(CONF_PREFIX_MEDIA_PLAYER, True) is True
+        assert result["options"].get(CONF_PREFIX_NOTIFY, True) is True
+        assert result["options"].get(CONF_PREFIX_REMOTE, True) is True
+        assert result["options"].get(CONF_PREFIX_BUTTON, True) is True

@@ -407,3 +407,66 @@ class TestEmbyEntityDeviceNameHelper:
 
         # Should use fallback name without prefix
         assert result == "Client device-a"
+
+
+class TestEmbyEntitySuggestedObjectId:
+    """Test suggested_object_id for correct entity ID generation (Phase 11)."""
+
+    def test_suggested_object_id_with_prefix_enabled(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+        mock_session: MagicMock,
+    ) -> None:
+        """Test suggested_object_id includes 'Emby' prefix when enabled."""
+        from custom_components.embymedia.const import CONF_PREFIX_MEDIA_PLAYER
+        from custom_components.embymedia.entity import EmbyEntity
+
+        mock_coordinator.config_entry.options = {CONF_PREFIX_MEDIA_PLAYER: True}
+        mock_coordinator.get_session.return_value = mock_session
+
+        entity = EmbyEntity(
+            coordinator=mock_coordinator,
+            device_id="device-abc-123",
+        )
+
+        assert entity.suggested_object_id == "Emby Living Room TV"
+
+    def test_suggested_object_id_with_prefix_disabled(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+        mock_session: MagicMock,
+    ) -> None:
+        """Test suggested_object_id excludes prefix when disabled."""
+        from custom_components.embymedia.const import CONF_PREFIX_MEDIA_PLAYER
+        from custom_components.embymedia.entity import EmbyEntity
+
+        mock_coordinator.config_entry.options = {CONF_PREFIX_MEDIA_PLAYER: False}
+        mock_coordinator.get_session.return_value = mock_session
+
+        entity = EmbyEntity(
+            coordinator=mock_coordinator,
+            device_id="device-abc-123",
+        )
+
+        assert entity.suggested_object_id == "Living Room TV"
+
+    def test_suggested_object_id_fallback_when_session_none(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test suggested_object_id uses fallback when session is None."""
+        from custom_components.embymedia.const import CONF_PREFIX_MEDIA_PLAYER
+        from custom_components.embymedia.entity import EmbyEntity
+
+        mock_coordinator.config_entry.options = {CONF_PREFIX_MEDIA_PLAYER: True}
+        mock_coordinator.get_session.return_value = None
+
+        entity = EmbyEntity(
+            coordinator=mock_coordinator,
+            device_id="device-abc-123",
+        )
+
+        assert entity.suggested_object_id == "Emby Client device-a"

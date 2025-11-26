@@ -207,3 +207,49 @@ class TestAsyncSetupEntry:
             None,
         )
         assert refresh_button is not None
+
+
+class TestEmbyRefreshLibraryButtonSuggestedObjectId:
+    """Test button suggested_object_id for correct entity ID generation (Phase 11)."""
+
+    def test_suggested_object_id_with_prefix_enabled(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test suggested_object_id includes 'Emby' prefix and entity name."""
+        from custom_components.embymedia.button import EmbyRefreshLibraryButton
+        from custom_components.embymedia.const import CONF_PREFIX_BUTTON
+
+        mock_config_entry = MagicMock()
+        mock_config_entry.options = {CONF_PREFIX_BUTTON: True}
+
+        mock_coordinator = MagicMock()
+        mock_coordinator.server_id = "server-123"
+        mock_coordinator.server_name = "Test Server"
+        mock_coordinator.config_entry = mock_config_entry
+        mock_coordinator.async_add_listener = MagicMock(return_value=MagicMock())
+
+        button = EmbyRefreshLibraryButton(mock_coordinator)
+
+        assert button.suggested_object_id == "Emby Test Server Refresh Library"
+
+    def test_suggested_object_id_with_prefix_disabled(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test suggested_object_id excludes prefix when disabled."""
+        from custom_components.embymedia.button import EmbyRefreshLibraryButton
+        from custom_components.embymedia.const import CONF_PREFIX_BUTTON
+
+        mock_config_entry = MagicMock()
+        mock_config_entry.options = {CONF_PREFIX_BUTTON: False}
+
+        mock_coordinator = MagicMock()
+        mock_coordinator.server_id = "server-123"
+        mock_coordinator.server_name = "Test Server"
+        mock_coordinator.config_entry = mock_config_entry
+        mock_coordinator.async_add_listener = MagicMock(return_value=MagicMock())
+
+        button = EmbyRefreshLibraryButton(mock_coordinator)
+
+        assert button.suggested_object_id == "Test Server Refresh Library"

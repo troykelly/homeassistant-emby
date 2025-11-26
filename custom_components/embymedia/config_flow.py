@@ -115,6 +115,7 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
         self._user_input: EmbyConfigFlowUserInput | None = None
         self._users: list[EmbyUser] | None = None
         self._client: EmbyClient | None = None
+        self._selected_user_id: str = ""
 
     async def async_step_user(
         self,
@@ -293,7 +294,9 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
             user_id = user_input.get(CONF_USER_ID, "")
             if user_id == "__none__":
                 user_id = ""
-            return await self._async_create_entry_with_user(user_id)
+            self._selected_user_id = user_id
+            # Proceed to entity prefix options step
+            return await self.async_step_entity_options()
 
         # Build user selection options
         # Use "__none__" as sentinel for admin context since empty string fails validation
@@ -321,14 +324,82 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
             },
         )
 
+    async def async_step_entity_options(
+        self,
+        user_input: dict[str, bool] | None = None,
+    ) -> ConfigFlowResult:
+        """Handle entity naming options step.
+
+        Allows users to configure entity name prefixes during initial setup.
+
+        Args:
+            user_input: User-provided prefix options.
+
+        Returns:
+            Config flow result (form or entry creation).
+        """
+        if user_input is not None:
+            # Create entry with prefix options
+            options: dict[str, bool] = {
+                CONF_PREFIX_MEDIA_PLAYER: user_input.get(
+                    CONF_PREFIX_MEDIA_PLAYER, DEFAULT_PREFIX_MEDIA_PLAYER
+                ),
+                CONF_PREFIX_NOTIFY: user_input.get(
+                    CONF_PREFIX_NOTIFY, DEFAULT_PREFIX_NOTIFY
+                ),
+                CONF_PREFIX_REMOTE: user_input.get(
+                    CONF_PREFIX_REMOTE, DEFAULT_PREFIX_REMOTE
+                ),
+                CONF_PREFIX_BUTTON: user_input.get(
+                    CONF_PREFIX_BUTTON, DEFAULT_PREFIX_BUTTON
+                ),
+            }
+            return await self._async_create_entry_with_user(
+                self._selected_user_id, options
+            )
+
+        # Show entity options form with all prefixes enabled by default
+        return self.async_show_form(
+            step_id="entity_options",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_PREFIX_MEDIA_PLAYER,
+                        default=DEFAULT_PREFIX_MEDIA_PLAYER,
+                    ): bool,
+                    vol.Optional(
+                        CONF_PREFIX_NOTIFY,
+                        default=DEFAULT_PREFIX_NOTIFY,
+                    ): bool,
+                    vol.Optional(
+                        CONF_PREFIX_REMOTE,
+                        default=DEFAULT_PREFIX_REMOTE,
+                    ): bool,
+                    vol.Optional(
+                        CONF_PREFIX_BUTTON,
+                        default=DEFAULT_PREFIX_BUTTON,
+                    ): bool,
+                }
+            ),
+            description_placeholders={
+                "server_name": (
+                    self._server_info.get("ServerName", "Emby Server")
+                    if self._server_info
+                    else "Emby Server"
+                ),
+            },
+        )
+
     async def _async_create_entry_with_user(
         self,
         user_id: str,
+        options: dict[str, bool] | None = None,
     ) -> ConfigFlowResult:
-        """Create config entry with user selection.
+        """Create config entry with user selection and options.
 
         Args:
             user_id: Selected user ID (empty for admin context).
+            options: Optional dict of prefix options from entity_options step.
 
         Returns:
             Config entry creation result.
@@ -342,7 +413,7 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
         else:
             server_name = f"Emby ({self._user_input['host']})"
 
-        data = {
+        data: dict[str, object] = {
             CONF_HOST: self._user_input["host"],
             CONF_PORT: self._user_input["port"],
             CONF_SSL: self._user_input.get("ssl", DEFAULT_SSL),
@@ -357,6 +428,7 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
         return self.async_create_entry(
             title=server_name,
             data=data,
+            options=options or {},
         )
 
     def _validate_input(

@@ -132,6 +132,16 @@ class TestConfigFlowUserSelection:
                 {CONF_USER_ID: "user-1"},
             )
 
+            # Now we have entity options step
+            assert result["type"] is FlowResultType.FORM
+            assert result["step_id"] == "entity_options"
+
+            # Accept default entity options
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {},
+            )
+
             assert result["type"] is FlowResultType.CREATE_ENTRY
             assert result["data"][CONF_USER_ID] == "user-1"
 
@@ -181,6 +191,16 @@ class TestConfigFlowUserSelection:
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
                 {CONF_USER_ID: "__none__"},
+            )
+
+            # Now we have entity options step
+            assert result["type"] is FlowResultType.FORM
+            assert result["step_id"] == "entity_options"
+
+            # Accept default entity options
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                {},
             )
 
             assert result["type"] is FlowResultType.CREATE_ENTRY
