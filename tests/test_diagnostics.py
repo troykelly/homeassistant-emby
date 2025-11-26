@@ -51,6 +51,14 @@ def mock_coordinator() -> MagicMock:
     return coordinator
 
 
+@pytest.fixture
+def mock_runtime_data(mock_coordinator: MagicMock) -> MagicMock:
+    """Create a mock runtime data wrapper with session_coordinator."""
+    runtime_data = MagicMock()
+    runtime_data.session_coordinator = mock_coordinator
+    return runtime_data
+
+
 class TestConfigEntryDiagnostics:
     """Test config entry diagnostics."""
 
@@ -59,14 +67,14 @@ class TestConfigEntryDiagnostics:
         self,
         hass: HomeAssistant,
         mock_config_entry: MagicMock,
-        mock_coordinator: MagicMock,
+        mock_runtime_data: MagicMock,
     ) -> None:
         """Test diagnostics redacts sensitive API key."""
         from custom_components.embymedia.diagnostics import (
             async_get_config_entry_diagnostics,
         )
 
-        mock_config_entry.runtime_data = mock_coordinator
+        mock_config_entry.runtime_data = mock_runtime_data
 
         result = await async_get_config_entry_diagnostics(hass, mock_config_entry)
 
@@ -81,14 +89,14 @@ class TestConfigEntryDiagnostics:
         self,
         hass: HomeAssistant,
         mock_config_entry: MagicMock,
-        mock_coordinator: MagicMock,
+        mock_runtime_data: MagicMock,
     ) -> None:
         """Test diagnostics includes server information."""
         from custom_components.embymedia.diagnostics import (
             async_get_config_entry_diagnostics,
         )
 
-        mock_config_entry.runtime_data = mock_coordinator
+        mock_config_entry.runtime_data = mock_runtime_data
 
         result = await async_get_config_entry_diagnostics(hass, mock_config_entry)
 
@@ -101,14 +109,14 @@ class TestConfigEntryDiagnostics:
         self,
         hass: HomeAssistant,
         mock_config_entry: MagicMock,
-        mock_coordinator: MagicMock,
+        mock_runtime_data: MagicMock,
     ) -> None:
         """Test diagnostics includes connection status."""
         from custom_components.embymedia.diagnostics import (
             async_get_config_entry_diagnostics,
         )
 
-        mock_config_entry.runtime_data = mock_coordinator
+        mock_config_entry.runtime_data = mock_runtime_data
 
         result = await async_get_config_entry_diagnostics(hass, mock_config_entry)
 
@@ -121,6 +129,7 @@ class TestConfigEntryDiagnostics:
         self,
         hass: HomeAssistant,
         mock_config_entry: MagicMock,
+        mock_runtime_data: MagicMock,
         mock_coordinator: MagicMock,
     ) -> None:
         """Test diagnostics includes session information."""
@@ -136,7 +145,7 @@ class TestConfigEntryDiagnostics:
         mock_session.now_playing = None
 
         mock_coordinator.data = {"device-123": mock_session}
-        mock_config_entry.runtime_data = mock_coordinator
+        mock_config_entry.runtime_data = mock_runtime_data
 
         result = await async_get_config_entry_diagnostics(hass, mock_config_entry)
 
@@ -151,6 +160,7 @@ class TestConfigEntryDiagnostics:
         self,
         hass: HomeAssistant,
         mock_config_entry: MagicMock,
+        mock_runtime_data: MagicMock,
         mock_coordinator: MagicMock,
     ) -> None:
         """Test diagnostics includes cache statistics when available."""
@@ -164,7 +174,7 @@ class TestConfigEntryDiagnostics:
             "misses": 20,
             "entries": 50,
         }
-        mock_config_entry.runtime_data = mock_coordinator
+        mock_config_entry.runtime_data = mock_runtime_data
 
         result = await async_get_config_entry_diagnostics(hass, mock_config_entry)
 
@@ -178,6 +188,7 @@ class TestConfigEntryDiagnostics:
         self,
         hass: HomeAssistant,
         mock_config_entry: MagicMock,
+        mock_runtime_data: MagicMock,
         mock_coordinator: MagicMock,
     ) -> None:
         """Test diagnostics handles missing coordinator data."""
@@ -186,7 +197,7 @@ class TestConfigEntryDiagnostics:
         )
 
         mock_coordinator.data = None
-        mock_config_entry.runtime_data = mock_coordinator
+        mock_config_entry.runtime_data = mock_runtime_data
 
         result = await async_get_config_entry_diagnostics(hass, mock_config_entry)
 
@@ -202,6 +213,7 @@ class TestDeviceDiagnostics:
         self,
         hass: HomeAssistant,
         mock_config_entry: MagicMock,
+        mock_runtime_data: MagicMock,
         mock_coordinator: MagicMock,
     ) -> None:
         """Test diagnostics for online device."""
@@ -224,7 +236,7 @@ class TestDeviceDiagnostics:
         mock_session.play_state.is_muted = False
 
         mock_coordinator.data = {"device-123": mock_session}
-        mock_config_entry.runtime_data = mock_coordinator
+        mock_config_entry.runtime_data = mock_runtime_data
 
         # Mock device
         mock_device = MagicMock()
@@ -242,6 +254,7 @@ class TestDeviceDiagnostics:
         self,
         hass: HomeAssistant,
         mock_config_entry: MagicMock,
+        mock_runtime_data: MagicMock,
         mock_coordinator: MagicMock,
     ) -> None:
         """Test diagnostics for offline device."""
@@ -250,7 +263,7 @@ class TestDeviceDiagnostics:
         )
 
         mock_coordinator.data = {}  # Empty - device not active
-        mock_config_entry.runtime_data = mock_coordinator
+        mock_config_entry.runtime_data = mock_runtime_data
 
         # Mock device
         mock_device = MagicMock()
@@ -266,6 +279,7 @@ class TestDeviceDiagnostics:
         self,
         hass: HomeAssistant,
         mock_config_entry: MagicMock,
+        mock_runtime_data: MagicMock,
         mock_coordinator: MagicMock,
     ) -> None:
         """Test diagnostics when device not found."""
@@ -274,7 +288,7 @@ class TestDeviceDiagnostics:
         )
 
         mock_coordinator.data = {}
-        mock_config_entry.runtime_data = mock_coordinator
+        mock_config_entry.runtime_data = mock_runtime_data
 
         # Mock device with unknown identifier
         mock_device = MagicMock()
@@ -289,6 +303,7 @@ class TestDeviceDiagnostics:
         self,
         hass: HomeAssistant,
         mock_config_entry: MagicMock,
+        mock_runtime_data: MagicMock,
         mock_coordinator: MagicMock,
     ) -> None:
         """Test diagnostics includes now playing info."""
@@ -318,7 +333,7 @@ class TestDeviceDiagnostics:
         mock_session.play_state.is_muted = False
 
         mock_coordinator.data = {"device-123": mock_session}
-        mock_config_entry.runtime_data = mock_coordinator
+        mock_config_entry.runtime_data = mock_runtime_data
 
         # Mock device
         mock_device = MagicMock()

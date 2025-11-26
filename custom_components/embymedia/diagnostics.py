@@ -33,7 +33,7 @@ async def async_get_config_entry_diagnostics(
     Returns:
         Dictionary containing diagnostic information.
     """
-    coordinator: EmbyDataUpdateCoordinator = entry.runtime_data
+    coordinator: EmbyDataUpdateCoordinator = entry.runtime_data.session_coordinator
 
     # Build session list
     sessions_list: list[dict[str, str | bool]] = []
@@ -89,7 +89,7 @@ async def async_get_device_diagnostics(
     Returns:
         Dictionary containing device diagnostic information.
     """
-    coordinator: EmbyDataUpdateCoordinator = entry.runtime_data
+    coordinator: EmbyDataUpdateCoordinator = entry.runtime_data.session_coordinator
 
     # Find device_id from device identifiers
     device_id: str | None = None

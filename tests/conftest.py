@@ -131,3 +131,101 @@ def mock_aiohttp_session() -> Generator[MagicMock]:
         session.closed = False
         session.close = AsyncMock()
         yield session
+
+
+def create_mock_session_coordinator(
+    server_id: str = "test-server-id-12345",
+    server_name: str = "Test Emby Server",
+) -> MagicMock:
+    """Create a mock session coordinator with required attributes.
+
+    Args:
+        server_id: The server ID for the coordinator.
+        server_name: The server name for the coordinator.
+
+    Returns:
+        A MagicMock configured as a session coordinator.
+    """
+    coordinator = MagicMock()
+    coordinator.server_id = server_id
+    coordinator.server_name = server_name
+    coordinator.async_config_entry_first_refresh = AsyncMock()
+    coordinator.async_setup_websocket = AsyncMock()
+    coordinator.async_shutdown_websocket = AsyncMock()
+    coordinator.data = {}
+    coordinator.last_update_success = True
+    return coordinator
+
+
+def create_mock_server_coordinator(
+    server_id: str = "test-server-id-12345",
+    server_name: str = "Test Emby Server",
+) -> MagicMock:
+    """Create a mock server coordinator with required attributes.
+
+    Args:
+        server_id: The server ID for the coordinator.
+        server_name: The server name for the coordinator.
+
+    Returns:
+        A MagicMock configured as a server coordinator.
+    """
+    coordinator = MagicMock()
+    coordinator.server_id = server_id
+    coordinator.server_name = server_name
+    coordinator.async_config_entry_first_refresh = AsyncMock()
+    coordinator.data = {
+        "server_version": "4.9.2.0",
+        "has_pending_restart": False,
+        "has_update_available": False,
+        "is_shutting_down": False,
+        "running_tasks_count": 0,
+        "running_tasks": [],
+        "libraries": [],
+    }
+    coordinator.last_update_success = True
+    return coordinator
+
+
+def create_mock_library_coordinator(
+    server_id: str = "test-server-id-12345",
+) -> MagicMock:
+    """Create a mock library coordinator with required attributes.
+
+    Args:
+        server_id: The server ID for the coordinator.
+
+    Returns:
+        A MagicMock configured as a library coordinator.
+    """
+    coordinator = MagicMock()
+    coordinator.server_id = server_id
+    coordinator.async_config_entry_first_refresh = AsyncMock()
+    coordinator.data = {
+        "movie_count": 100,
+        "series_count": 50,
+        "episode_count": 500,
+        "song_count": 1000,
+        "album_count": 100,
+        "artist_count": 50,
+    }
+    coordinator.last_update_success = True
+    return coordinator
+
+
+@pytest.fixture
+def mock_session_coordinator() -> MagicMock:
+    """Create a mock session coordinator fixture."""
+    return create_mock_session_coordinator()
+
+
+@pytest.fixture
+def mock_server_coordinator() -> MagicMock:
+    """Create a mock server coordinator fixture."""
+    return create_mock_server_coordinator()
+
+
+@pytest.fixture
+def mock_library_coordinator() -> MagicMock:
+    """Create a mock library coordinator fixture."""
+    return create_mock_library_coordinator()

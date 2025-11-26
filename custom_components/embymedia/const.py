@@ -10,12 +10,45 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
 
     from .coordinator import EmbyDataUpdateCoordinator
+    from .coordinator_sensors import EmbyLibraryCoordinator, EmbyServerCoordinator
 
 # Integration domain
 DOMAIN: Final = "embymedia"
 
+
+# Runtime data class to hold all coordinators
+class EmbyRuntimeData:
+    """Runtime data for Emby integration.
+
+    Holds all coordinators for the config entry.
+    """
+
+    def __init__(
+        self,
+        session_coordinator: EmbyDataUpdateCoordinator,
+        server_coordinator: EmbyServerCoordinator,
+        library_coordinator: EmbyLibraryCoordinator,
+    ) -> None:
+        """Initialize runtime data.
+
+        Args:
+            session_coordinator: Coordinator for session/media player data.
+            server_coordinator: Coordinator for server status data.
+            library_coordinator: Coordinator for library counts data.
+        """
+        self.session_coordinator = session_coordinator
+        self.server_coordinator = server_coordinator
+        self.library_coordinator = library_coordinator
+
+    # Provide backward compatibility as the old coordinator
+    @property
+    def coordinator(self) -> EmbyDataUpdateCoordinator:
+        """Return the session coordinator (for backward compatibility)."""
+        return self.session_coordinator
+
+
 # Type alias for config entry with runtime data
-type EmbyConfigEntry = ConfigEntry[EmbyDataUpdateCoordinator]
+type EmbyConfigEntry = ConfigEntry[EmbyRuntimeData]
 
 # Configuration keys (use HA constants where available)
 CONF_API_KEY: Final = "api_key"

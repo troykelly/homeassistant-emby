@@ -101,7 +101,7 @@ class TestImageProxyGet:
             },
             unique_id="server-123",
         )
-        entry.runtime_data = mock_coordinator
+        entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
         return entry
 
     async def test_get_image_proxies_request(
@@ -387,7 +387,7 @@ class TestImageProxyGet:
             },
             unique_id="different-unique-id",  # Different from server_id
         )
-        mock_config_entry.runtime_data = mock_coordinator
+        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
         mock_config_entry.add_to_hass(hass)
 
         mock_response = MagicMock()
@@ -444,7 +444,7 @@ class TestImageProxyResize:
             },
             unique_id="server-123",
         )
-        entry.runtime_data = mock_coordinator
+        entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
         return entry
 
     async def test_resize_params_forwarded(
@@ -521,7 +521,7 @@ class TestImageProxyErrors:
             },
             unique_id="server-123",
         )
-        entry.runtime_data = mock_coordinator
+        entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
         return entry
 
     async def test_get_image_timeout_error(

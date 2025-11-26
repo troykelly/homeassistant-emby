@@ -39,7 +39,7 @@ async def async_setup_entry(
         entry: Config entry.
         async_add_entities: Callback to add entities.
     """
-    coordinator: EmbyDataUpdateCoordinator = entry.runtime_data
+    coordinator: EmbyDataUpdateCoordinator = entry.runtime_data.session_coordinator
     known_devices: set[str] = set()
 
     @callback  # type: ignore[misc]

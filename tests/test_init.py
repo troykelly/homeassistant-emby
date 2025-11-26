@@ -17,10 +17,17 @@ from custom_components.embymedia.const import (
     CONF_VERIFY_SSL,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    EmbyRuntimeData,
 )
 from custom_components.embymedia.exceptions import (
     EmbyAuthenticationError,
     EmbyConnectionError,
+)
+
+from .conftest import (
+    create_mock_library_coordinator,
+    create_mock_server_coordinator,
+    create_mock_session_coordinator,
 )
 
 
@@ -34,38 +41,49 @@ class TestSetupEntry:
         mock_config_entry: MockConfigEntry,
         mock_server_info: dict[str, Any],
     ) -> None:
-        """Test entry sets up correctly with coordinator."""
-
+        """Test entry sets up correctly with all coordinators."""
         mock_config_entry.add_to_hass(hass)
+
+        session_coordinator = create_mock_session_coordinator()
+        server_coordinator = create_mock_server_coordinator()
+        library_coordinator = create_mock_library_coordinator()
 
         with (
             patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
-                autospec=True,
-            ) as mock_coordinator_class,
+            ) as mock_session_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyServerCoordinator",
+            ) as mock_server_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyLibraryCoordinator",
+            ) as mock_library_coordinator_class,
         ):
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(return_value=mock_server_info)
             client.async_get_sessions = AsyncMock(return_value=[])
 
-            coordinator = mock_coordinator_class.return_value
-            coordinator.async_config_entry_first_refresh = AsyncMock()
-            coordinator.data = {}
+            mock_session_coordinator_class.return_value = session_coordinator
+            mock_server_coordinator_class.return_value = server_coordinator
+            mock_library_coordinator_class.return_value = library_coordinator
 
             result = await hass.config_entries.async_setup(mock_config_entry.entry_id)
 
             assert result is True
             assert mock_config_entry.state is ConfigEntryState.LOADED
-            # Verify coordinator was created with correct params
-            mock_coordinator_class.assert_called_once()
-            call_kwargs = mock_coordinator_class.call_args.kwargs
+            # Verify session coordinator was created with correct params
+            mock_session_coordinator_class.assert_called_once()
+            call_kwargs = mock_session_coordinator_class.call_args.kwargs
             assert call_kwargs["hass"] is hass
             assert call_kwargs["server_id"] == mock_server_info["Id"]
             assert call_kwargs["server_name"] == mock_server_info["ServerName"]
-            # Verify runtime_data is the coordinator
-            assert mock_config_entry.runtime_data is coordinator
+            # Verify runtime_data is EmbyRuntimeData with all coordinators
+            assert isinstance(mock_config_entry.runtime_data, EmbyRuntimeData)
+            assert mock_config_entry.runtime_data.session_coordinator is session_coordinator
+            assert mock_config_entry.runtime_data.server_coordinator is server_coordinator
+            assert mock_config_entry.runtime_data.library_coordinator is library_coordinator
 
     @pytest.mark.asyncio
     async def test_setup_entry_coordinator_first_refresh(
@@ -74,27 +92,39 @@ class TestSetupEntry:
         mock_config_entry: MockConfigEntry,
         mock_server_info: dict[str, Any],
     ) -> None:
-        """Test coordinator first refresh is called during setup."""
+        """Test all coordinator first refreshes are called during setup."""
         mock_config_entry.add_to_hass(hass)
+
+        session_coordinator = create_mock_session_coordinator()
+        server_coordinator = create_mock_server_coordinator()
+        library_coordinator = create_mock_library_coordinator()
 
         with (
             patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
-                autospec=True,
-            ) as mock_coordinator_class,
+            ) as mock_session_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyServerCoordinator",
+            ) as mock_server_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyLibraryCoordinator",
+            ) as mock_library_coordinator_class,
         ):
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(return_value=mock_server_info)
 
-            coordinator = mock_coordinator_class.return_value
-            coordinator.async_config_entry_first_refresh = AsyncMock()
-            coordinator.data = {}
+            mock_session_coordinator_class.return_value = session_coordinator
+            mock_server_coordinator_class.return_value = server_coordinator
+            mock_library_coordinator_class.return_value = library_coordinator
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
 
-            coordinator.async_config_entry_first_refresh.assert_called_once()
+            # All coordinators should have first refresh called
+            session_coordinator.async_config_entry_first_refresh.assert_called_once()
+            server_coordinator.async_config_entry_first_refresh.assert_called_once()
+            library_coordinator.async_config_entry_first_refresh.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_setup_entry_scan_interval_from_options(
@@ -119,24 +149,33 @@ class TestSetupEntry:
         )
         entry.add_to_hass(hass)
 
+        session_coordinator = create_mock_session_coordinator()
+        server_coordinator = create_mock_server_coordinator()
+        library_coordinator = create_mock_library_coordinator()
+
         with (
             patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
-                autospec=True,
-            ) as mock_coordinator_class,
+            ) as mock_session_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyServerCoordinator",
+            ) as mock_server_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyLibraryCoordinator",
+            ) as mock_library_coordinator_class,
         ):
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(return_value=mock_server_info)
 
-            coordinator = mock_coordinator_class.return_value
-            coordinator.async_config_entry_first_refresh = AsyncMock()
-            coordinator.data = {}
+            mock_session_coordinator_class.return_value = session_coordinator
+            mock_server_coordinator_class.return_value = server_coordinator
+            mock_library_coordinator_class.return_value = library_coordinator
 
             await hass.config_entries.async_setup(entry.entry_id)
 
-            call_kwargs = mock_coordinator_class.call_args.kwargs
+            call_kwargs = mock_session_coordinator_class.call_args.kwargs
             assert call_kwargs["scan_interval"] == custom_scan_interval
 
     @pytest.mark.asyncio
@@ -149,24 +188,33 @@ class TestSetupEntry:
         """Test default scan interval when not in options."""
         mock_config_entry.add_to_hass(hass)
 
+        session_coordinator = create_mock_session_coordinator()
+        server_coordinator = create_mock_server_coordinator()
+        library_coordinator = create_mock_library_coordinator()
+
         with (
             patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
-                autospec=True,
-            ) as mock_coordinator_class,
+            ) as mock_session_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyServerCoordinator",
+            ) as mock_server_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyLibraryCoordinator",
+            ) as mock_library_coordinator_class,
         ):
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(return_value=mock_server_info)
 
-            coordinator = mock_coordinator_class.return_value
-            coordinator.async_config_entry_first_refresh = AsyncMock()
-            coordinator.data = {}
+            mock_session_coordinator_class.return_value = session_coordinator
+            mock_server_coordinator_class.return_value = server_coordinator
+            mock_library_coordinator_class.return_value = library_coordinator
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
 
-            call_kwargs = mock_coordinator_class.call_args.kwargs
+            call_kwargs = mock_session_coordinator_class.call_args.kwargs
             assert call_kwargs["scan_interval"] == DEFAULT_SCAN_INTERVAL
 
     @pytest.mark.asyncio
@@ -223,20 +271,29 @@ class TestUnloadEntry:
         """Test entry unloads cleanly."""
         mock_config_entry.add_to_hass(hass)
 
+        session_coordinator = create_mock_session_coordinator()
+        server_coordinator = create_mock_server_coordinator()
+        library_coordinator = create_mock_library_coordinator()
+
         with (
             patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
-                autospec=True,
-            ) as mock_coordinator_class,
+            ) as mock_session_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyServerCoordinator",
+            ) as mock_server_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyLibraryCoordinator",
+            ) as mock_library_coordinator_class,
         ):
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(return_value=mock_server_info)
 
-            coordinator = mock_coordinator_class.return_value
-            coordinator.async_config_entry_first_refresh = AsyncMock()
-            coordinator.data = {}
+            mock_session_coordinator_class.return_value = session_coordinator
+            mock_server_coordinator_class.return_value = server_coordinator
+            mock_library_coordinator_class.return_value = library_coordinator
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             assert mock_config_entry.state is ConfigEntryState.LOADED
@@ -260,20 +317,29 @@ class TestOptionsUpdate:
         """Test options update triggers reload."""
         mock_config_entry.add_to_hass(hass)
 
+        session_coordinator = create_mock_session_coordinator()
+        server_coordinator = create_mock_server_coordinator()
+        library_coordinator = create_mock_library_coordinator()
+
         with (
             patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
-                autospec=True,
-            ) as mock_coordinator_class,
+            ) as mock_session_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyServerCoordinator",
+            ) as mock_server_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyLibraryCoordinator",
+            ) as mock_library_coordinator_class,
         ):
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(return_value=mock_server_info)
 
-            coordinator = mock_coordinator_class.return_value
-            coordinator.async_config_entry_first_refresh = AsyncMock()
-            coordinator.data = {}
+            mock_session_coordinator_class.return_value = session_coordinator
+            mock_server_coordinator_class.return_value = server_coordinator
+            mock_library_coordinator_class.return_value = library_coordinator
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             assert mock_config_entry.state is ConfigEntryState.LOADED
@@ -303,8 +369,13 @@ class TestMultipleEntries:
             patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
-                autospec=True,
-            ) as mock_coordinator_class,
+            ) as mock_session_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyServerCoordinator",
+            ) as mock_server_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyLibraryCoordinator",
+            ) as mock_library_coordinator_class,
         ):
             # Mock to return different info based on host
             def create_client(*args: object, **kwargs: object) -> MagicMock:
@@ -319,9 +390,27 @@ class TestMultipleEntries:
 
             mock_client_class.side_effect = create_client
 
-            coordinator = mock_coordinator_class.return_value
-            coordinator.async_config_entry_first_refresh = AsyncMock()
-            coordinator.data = {}
+            # Create coordinators for each call
+            def create_session_coord(*args: object, **kwargs: object) -> MagicMock:
+                return create_mock_session_coordinator(
+                    server_id=str(kwargs.get("server_id", "test")),
+                    server_name=str(kwargs.get("server_name", "Test")),
+                )
+
+            def create_server_coord(*args: object, **kwargs: object) -> MagicMock:
+                return create_mock_server_coordinator(
+                    server_id=str(kwargs.get("server_id", "test")),
+                    server_name=str(kwargs.get("server_name", "Test")),
+                )
+
+            def create_library_coord(*args: object, **kwargs: object) -> MagicMock:
+                return create_mock_library_coordinator(
+                    server_id=str(kwargs.get("server_id", "test")),
+                )
+
+            mock_session_coordinator_class.side_effect = create_session_coord
+            mock_server_coordinator_class.side_effect = create_server_coord
+            mock_library_coordinator_class.side_effect = create_library_coord
 
             # Create and add entries one at a time to ensure they setup properly
             entry1 = MockConfigEntry(
@@ -358,9 +447,11 @@ class TestMultipleEntries:
             assert result2 is True
             assert entry1.state is ConfigEntryState.LOADED
             assert entry2.state is ConfigEntryState.LOADED
-            # Both entries have coordinators in runtime_data
-            assert entry1.runtime_data is not None
-            assert entry2.runtime_data is not None
+            # Both entries have EmbyRuntimeData with coordinators
+            assert isinstance(entry1.runtime_data, EmbyRuntimeData)
+            assert isinstance(entry2.runtime_data, EmbyRuntimeData)
+            assert entry1.runtime_data.session_coordinator is not None
+            assert entry2.runtime_data.session_coordinator is not None
 
 
 class TestServerDeviceRegistration:
@@ -382,21 +473,29 @@ class TestServerDeviceRegistration:
 
         mock_config_entry.add_to_hass(hass)
 
+        session_coordinator = create_mock_session_coordinator()
+        server_coordinator = create_mock_server_coordinator()
+        library_coordinator = create_mock_library_coordinator()
+
         with (
             patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
-                autospec=True,
-            ) as mock_coordinator_class,
+            ) as mock_session_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyServerCoordinator",
+            ) as mock_server_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyLibraryCoordinator",
+            ) as mock_library_coordinator_class,
         ):
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(return_value=mock_server_info)
 
-            coordinator = mock_coordinator_class.return_value
-            coordinator.async_config_entry_first_refresh = AsyncMock()
-            coordinator.data = {}
-            coordinator.server_id = mock_server_info["Id"]
+            mock_session_coordinator_class.return_value = session_coordinator
+            mock_server_coordinator_class.return_value = server_coordinator
+            mock_library_coordinator_class.return_value = library_coordinator
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
 
@@ -424,21 +523,29 @@ class TestServerDeviceRegistration:
 
         mock_config_entry.add_to_hass(hass)
 
+        session_coordinator = create_mock_session_coordinator()
+        server_coordinator = create_mock_server_coordinator()
+        library_coordinator = create_mock_library_coordinator()
+
         with (
             patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
-                autospec=True,
-            ) as mock_coordinator_class,
+            ) as mock_session_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyServerCoordinator",
+            ) as mock_server_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyLibraryCoordinator",
+            ) as mock_library_coordinator_class,
         ):
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(return_value=mock_server_info)
 
-            coordinator = mock_coordinator_class.return_value
-            coordinator.async_config_entry_first_refresh = AsyncMock()
-            coordinator.data = {}
-            coordinator.server_id = mock_server_info["Id"]
+            mock_session_coordinator_class.return_value = session_coordinator
+            mock_server_coordinator_class.return_value = server_coordinator
+            mock_library_coordinator_class.return_value = library_coordinator
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
 
@@ -464,27 +571,34 @@ class TestWebSocketSetup:
         """Test WebSocket is started during setup."""
         mock_config_entry.add_to_hass(hass)
 
+        session_coordinator = create_mock_session_coordinator()
+        server_coordinator = create_mock_server_coordinator()
+        library_coordinator = create_mock_library_coordinator()
+
         with (
             patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
-                autospec=True,
-            ) as mock_coordinator_class,
+            ) as mock_session_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyServerCoordinator",
+            ) as mock_server_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyLibraryCoordinator",
+            ) as mock_library_coordinator_class,
         ):
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(return_value=mock_server_info)
 
-            coordinator = mock_coordinator_class.return_value
-            coordinator.async_config_entry_first_refresh = AsyncMock()
-            coordinator.async_setup_websocket = AsyncMock()
-            coordinator.async_shutdown_websocket = AsyncMock()
-            coordinator.data = {}
+            mock_session_coordinator_class.return_value = session_coordinator
+            mock_server_coordinator_class.return_value = server_coordinator
+            mock_library_coordinator_class.return_value = library_coordinator
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
 
-            # WebSocket setup should be called
-            coordinator.async_setup_websocket.assert_called_once()
+            # WebSocket setup should be called on session coordinator
+            session_coordinator.async_setup_websocket.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_unload_stops_websocket(
@@ -496,22 +610,29 @@ class TestWebSocketSetup:
         """Test WebSocket is stopped during unload."""
         mock_config_entry.add_to_hass(hass)
 
+        session_coordinator = create_mock_session_coordinator()
+        server_coordinator = create_mock_server_coordinator()
+        library_coordinator = create_mock_library_coordinator()
+
         with (
             patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
-                autospec=True,
-            ) as mock_coordinator_class,
+            ) as mock_session_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyServerCoordinator",
+            ) as mock_server_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyLibraryCoordinator",
+            ) as mock_library_coordinator_class,
         ):
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(return_value=mock_server_info)
 
-            coordinator = mock_coordinator_class.return_value
-            coordinator.async_config_entry_first_refresh = AsyncMock()
-            coordinator.async_setup_websocket = AsyncMock()
-            coordinator.async_shutdown_websocket = AsyncMock()
-            coordinator.data = {}
+            mock_session_coordinator_class.return_value = session_coordinator
+            mock_server_coordinator_class.return_value = server_coordinator
+            mock_library_coordinator_class.return_value = library_coordinator
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             assert mock_config_entry.state is ConfigEntryState.LOADED
@@ -519,7 +640,7 @@ class TestWebSocketSetup:
             await hass.config_entries.async_unload(mock_config_entry.entry_id)
 
             # WebSocket shutdown should be called via on_unload callback
-            coordinator.async_shutdown_websocket.assert_called_once()
+            session_coordinator.async_shutdown_websocket.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_setup_succeeds_if_websocket_fails(
@@ -531,26 +652,77 @@ class TestWebSocketSetup:
         """Test integration setup succeeds even if WebSocket setup fails."""
         mock_config_entry.add_to_hass(hass)
 
+        session_coordinator = create_mock_session_coordinator()
+        # Make WebSocket setup fail
+        session_coordinator.async_setup_websocket = AsyncMock(side_effect=Exception("WebSocket failed"))
+        server_coordinator = create_mock_server_coordinator()
+        library_coordinator = create_mock_library_coordinator()
+
         with (
             patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.EmbyDataUpdateCoordinator",
-                autospec=True,
-            ) as mock_coordinator_class,
+            ) as mock_session_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyServerCoordinator",
+            ) as mock_server_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyLibraryCoordinator",
+            ) as mock_library_coordinator_class,
         ):
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(return_value=mock_server_info)
 
-            coordinator = mock_coordinator_class.return_value
-            coordinator.async_config_entry_first_refresh = AsyncMock()
-            # WebSocket setup raises an exception
-            coordinator.async_setup_websocket = AsyncMock(side_effect=Exception("WebSocket failed"))
-            coordinator.async_shutdown_websocket = AsyncMock()
-            coordinator.data = {}
+            mock_session_coordinator_class.return_value = session_coordinator
+            mock_server_coordinator_class.return_value = server_coordinator
+            mock_library_coordinator_class.return_value = library_coordinator
 
             # Setup should still succeed
             result = await hass.config_entries.async_setup(mock_config_entry.entry_id)
 
             assert result is True
             assert mock_config_entry.state is ConfigEntryState.LOADED
+
+
+class TestBackwardCompatibility:
+    """Test backward compatibility with old runtime_data access."""
+
+    @pytest.mark.asyncio
+    async def test_coordinator_property_returns_session_coordinator(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_server_info: dict[str, Any],
+    ) -> None:
+        """Test that runtime_data.coordinator returns session_coordinator for backward compatibility."""
+        mock_config_entry.add_to_hass(hass)
+
+        session_coordinator = create_mock_session_coordinator()
+        server_coordinator = create_mock_server_coordinator()
+        library_coordinator = create_mock_library_coordinator()
+
+        with (
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
+            patch(
+                "custom_components.embymedia.EmbyDataUpdateCoordinator",
+            ) as mock_session_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyServerCoordinator",
+            ) as mock_server_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyLibraryCoordinator",
+            ) as mock_library_coordinator_class,
+        ):
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(return_value=mock_server_info)
+
+            mock_session_coordinator_class.return_value = session_coordinator
+            mock_server_coordinator_class.return_value = server_coordinator
+            mock_library_coordinator_class.return_value = library_coordinator
+
+            await hass.config_entries.async_setup(mock_config_entry.entry_id)
+
+            # The .coordinator property should return session_coordinator
+            assert mock_config_entry.runtime_data.coordinator is session_coordinator
