@@ -128,7 +128,7 @@ class EmbyRemoteEntity(EmbyEntity, RemoteEntity):  # type: ignore[misc]
         _attr_supported_features: No special features (basic command sending).
     """
 
-    _attr_name = "Remote"
+    _attr_name: str | None = None  # Phase 11: Use device name only (no suffix)
     _attr_supported_features = RemoteEntityFeature(0)
 
     def __init__(
