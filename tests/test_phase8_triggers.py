@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
@@ -158,8 +158,8 @@ class TestEventFiring:
             now_playing=None,
         )
 
-        # New state: something playing
-        new_session = EmbySession(
+        # New state: something playing (for reference, actual processing uses raw data)
+        _new_session = EmbySession(
             session_id="sess-1",
             device_id="device-1",
             device_name="Test Device",

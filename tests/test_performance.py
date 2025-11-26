@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 import sys
-from dataclasses import fields
-
-import pytest
 
 
 class TestDataclassSlots:
@@ -143,9 +140,7 @@ class TestCoordinatorEfficiency:
         self,
     ) -> None:
         """Test coordinator only stores necessary session data."""
-        from unittest.mock import MagicMock
 
-        from homeassistant.core import HomeAssistant
 
         # This test verifies the coordinator design doesn't
         # duplicate session data unnecessarily

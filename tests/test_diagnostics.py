@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from custom_components.embymedia.const import DOMAIN
 
 if TYPE_CHECKING:
-    from homeassistant.config_entries import ConfigEntry
+    pass
 
 
 @pytest.fixture
