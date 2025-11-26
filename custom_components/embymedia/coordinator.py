@@ -7,7 +7,9 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
+from homeassistant.const import CONF_ENTITY_ID, CONF_TYPE
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.update_coordinator import (
     DataUpdateCoordinator,
     UpdateFailed,
@@ -268,6 +270,7 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         Args:
             sessions_data: List of session data dictionaries from the API.
         """
+        old_sessions = self.data or {}
         sessions: dict[str, EmbySession] = {}
 
         for session_data in sessions_data:
@@ -283,7 +286,7 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
                 )
                 continue
 
-        # Log session changes
+        # Detect changes and fire events
         current_devices = set(sessions.keys())
         added = current_devices - self._previous_sessions
         removed = self._previous_sessions - current_devices
@@ -295,14 +298,112 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
                 session.device_name,
                 session.client_name,
             )
+            self._fire_event(device_id, "session_connected")
 
         for device_id in removed:
             _LOGGER.debug("Session removed: %s", device_id)
+            self._fire_event(device_id, "session_disconnected")
+
+        # Check for playback state changes
+        for device_id, session in sessions.items():
+            old_session = old_sessions.get(device_id)
+            if old_session is None:
+                # New session, already handled
+                continue
+
+            # Check playback started/stopped
+            old_playing = old_session.now_playing
+            new_playing = session.now_playing
+
+            if old_playing is None and new_playing is not None:
+                # Playback started
+                self._fire_event(
+                    device_id,
+                    "playback_started",
+                    {
+                        "media_content_id": new_playing.item_id,
+                        "media_content_type": new_playing.media_type.value if new_playing.media_type else None,
+                        "media_title": new_playing.name,
+                    },
+                )
+            elif old_playing is not None and new_playing is None:
+                # Playback stopped
+                self._fire_event(device_id, "playback_stopped")
+            elif old_playing is not None and new_playing is not None:
+                # Check for media change
+                if old_playing.item_id != new_playing.item_id:
+                    self._fire_event(
+                        device_id,
+                        "media_changed",
+                        {
+                            "media_content_id": new_playing.item_id,
+                            "media_content_type": new_playing.media_type.value if new_playing.media_type else None,
+                            "media_title": new_playing.name,
+                        },
+                    )
+
+                # Check pause state
+                old_paused = old_session.play_state.is_paused if old_session.play_state else False
+                new_paused = session.play_state.is_paused if session.play_state else False
+                if old_paused != new_paused:
+                    if new_paused:
+                        self._fire_event(device_id, "playback_paused")
+                    else:
+                        self._fire_event(device_id, "playback_resumed")
 
         self._previous_sessions = current_devices
 
         # Update coordinator data and notify listeners
         self.async_set_updated_data(sessions)
+
+    def _fire_event(
+        self,
+        device_id: str,
+        event_type: str,
+        extra_data: dict[str, str | None] | None = None,
+    ) -> None:
+        """Fire an Emby event for automations.
+
+        Args:
+            device_id: The device ID the event is for.
+            event_type: Type of event (playback_started, etc).
+            extra_data: Optional extra data to include in the event.
+        """
+        entity_id = self._get_entity_id_for_device(device_id)
+        if not entity_id:
+            _LOGGER.debug(
+                "Cannot fire event %s for device %s - no entity found",
+                event_type,
+                device_id,
+            )
+            return
+
+        data: dict[str, str | None] = {
+            CONF_ENTITY_ID: entity_id,
+            CONF_TYPE: event_type,
+        }
+        if extra_data:
+            data.update(extra_data)
+
+        self.hass.bus.async_fire(f"{DOMAIN}_event", data)
+        _LOGGER.debug("Fired %s event for %s", event_type, entity_id)
+
+    def _get_entity_id_for_device(self, device_id: str) -> str | None:
+        """Get entity ID for a device ID.
+
+        Args:
+            device_id: The device ID to look up.
+
+        Returns:
+            Entity ID if found, None otherwise.
+        """
+        entity_registry = er.async_get(self.hass)
+
+        # The unique_id of our media_player entities is the device_id
+        entity_id: str | None = entity_registry.async_get_entity_id(
+            "media_player", DOMAIN, device_id
+        )
+        return entity_id
 
 
 __all__ = ["EmbyDataUpdateCoordinator"]
