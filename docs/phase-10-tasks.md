@@ -560,12 +560,338 @@ ignore_missing_imports = true
 
 ---
 
+## Task 10.8: Progressive Code Review
+
+A systematic, deep code review to ensure production quality before release. This review is conducted in progressive stages, from high-level architecture down to implementation details.
+
+### 10.8.1 Stage 1: Architecture Review
+
+**Focus:** Overall structure, patterns, and design decisions.
+
+**Checklist:**
+- [ ] **Integration structure** follows Home Assistant patterns
+  - Config flow → Coordinator → Entities
+  - Proper use of `hass.data` storage
+  - Clean entry/unload lifecycle
+- [ ] **Separation of concerns**
+  - API client isolated from HA-specific code
+  - Models separate from entities
+  - Services separate from entity methods
+- [ ] **Error handling strategy** is consistent
+  - Custom exceptions hierarchy
+  - Graceful degradation
+  - User-friendly error messages
+- [ ] **State management** is predictable
+  - Coordinator as single source of truth
+  - Entity state derived from coordinator data
+  - No hidden state in entities
+
+**Review files:**
+| File | Review Focus |
+|------|--------------|
+| `__init__.py` | Setup/unload, platform forwarding |
+| `coordinator.py` | Data flow, update logic |
+| `entity.py` | Base entity patterns |
+| `api.py` | API abstraction, error handling |
+
+### 10.8.2 Stage 2: API & Data Layer Review
+
+**Focus:** External communication, data parsing, and type safety.
+
+**Checklist:**
+- [ ] **API client design**
+  - Single responsibility (HTTP communication only)
+  - Consistent error handling
+  - Proper timeout handling
+  - Connection pooling (aiohttp session reuse)
+- [ ] **Type definitions** are complete
+  - All API responses have TypedDicts
+  - No `Any` types (except required overrides)
+  - Proper use of `NotRequired` for optional fields
+- [ ] **Data parsing** is defensive
+  - Handle missing fields gracefully
+  - Validate data before use
+  - Convert types explicitly (ticks → seconds)
+- [ ] **Authentication** is secure
+  - API key not logged
+  - Credentials not exposed in URLs
+  - Proper header handling
+
+**Review files:**
+| File | Review Focus |
+|------|--------------|
+| `api.py` | HTTP methods, error handling, auth |
+| `const.py` | TypedDicts, type definitions |
+| `models.py` | Dataclasses, parsing logic |
+| `websocket.py` | WebSocket handling, reconnection |
+
+### 10.8.3 Stage 3: Entity Implementation Review
+
+**Focus:** Home Assistant entity best practices and features.
+
+**Checklist:**
+- [ ] **Entity attributes** follow HA patterns
+  - Use `_attr_*` pattern for static attributes
+  - Properties for dynamic attributes
+  - No I/O in properties
+- [ ] **Device info** is consistent
+  - All entities link to correct device
+  - Device identifiers are stable
+  - Proper manufacturer/model info
+- [ ] **State management**
+  - State reflects actual device state
+  - Unavailable when appropriate
+  - State updates trigger properly
+- [ ] **Supported features** are accurate
+  - Feature flags match actual capabilities
+  - Features update based on session capabilities
+- [ ] **Service methods** are robust
+  - Validate inputs
+  - Handle unavailable states
+  - Proper async patterns
+
+**Review files:**
+| File | Review Focus |
+|------|--------------|
+| `media_player.py` | State, features, playback control |
+| `notify.py` | Send message implementation |
+| `remote.py` | Command handling |
+| `button.py` | Action execution |
+| `entity.py` | Base class, device info |
+
+### 10.8.4 Stage 4: Config Flow & Options Review
+
+**Focus:** User configuration experience and validation.
+
+**Checklist:**
+- [ ] **Config flow steps** are logical
+  - Clear step progression
+  - Proper error messages
+  - Abort conditions handled
+- [ ] **Validation** is comprehensive
+  - Connection tested before save
+  - Invalid inputs rejected with feedback
+  - Edge cases handled (empty strings, etc.)
+- [ ] **Options flow** allows reconfiguration
+  - All configurable options exposed
+  - Changes apply without restart where possible
+  - Defaults are sensible
+- [ ] **YAML import** works correctly
+  - Legacy config migrated
+  - All fields mapped properly
+- [ ] **Unique ID handling**
+  - Server ID used for uniqueness
+  - Duplicate entries prevented
+
+**Review files:**
+| File | Review Focus |
+|------|--------------|
+| `config_flow.py` | Steps, validation, options |
+| `strings.json` | Error messages, labels |
+| `translations/en.json` | User-facing text |
+
+### 10.8.5 Stage 5: Media Browsing Review
+
+**Focus:** Browse media implementation and media source provider.
+
+**Checklist:**
+- [ ] **Browse hierarchy** is intuitive
+  - Logical navigation structure
+  - Consistent content types
+  - Proper parent/child relationships
+- [ ] **Content ID encoding** is robust
+  - IDs survive round-trip encoding
+  - Special characters handled
+  - Type information preserved
+- [ ] **Thumbnail URLs** are correct
+  - Authentication included
+  - Fallback images work
+  - Cache headers set
+- [ ] **Playability flags** are accurate
+  - `can_play` matches actual capability
+  - `can_expand` for containers only
+- [ ] **Media source** mirrors media player
+  - Same browse structure
+  - Consistent behavior
+  - Cross-player compatibility
+
+**Review files:**
+| File | Review Focus |
+|------|--------------|
+| `media_player.py` | `async_browse_media` method |
+| `media_source.py` | MediaSource implementation |
+| `browse.py` | Browse helpers, content ID encoding |
+| `image.py` | Image proxy, URL generation |
+
+### 10.8.6 Stage 6: WebSocket & Real-time Review
+
+**Focus:** Real-time updates and connection resilience.
+
+**Checklist:**
+- [ ] **Connection handling**
+  - Proper URL construction
+  - Authentication via query parameter
+  - SSL/TLS support
+- [ ] **Reconnection logic**
+  - Exponential backoff
+  - Maximum retry interval
+  - Clean reconnection state
+- [ ] **Message handling**
+  - All message types handled
+  - Malformed messages don't crash
+  - Updates propagate to coordinator
+- [ ] **Hybrid mode** works correctly
+  - Polling continues as fallback
+  - Interval adjusts based on WebSocket state
+  - No duplicate updates
+
+**Review files:**
+| File | Review Focus |
+|------|--------------|
+| `websocket.py` | Connection, messages, reconnection |
+| `coordinator.py` | WebSocket integration, hybrid mode |
+
+### 10.8.7 Stage 7: Services & Automation Review
+
+**Focus:** Custom services and automation integration.
+
+**Checklist:**
+- [ ] **Service schemas** are valid
+  - Required/optional fields correct
+  - Proper validation
+  - Clear descriptions
+- [ ] **Service handlers** are robust
+  - Entity validation
+  - Error handling
+  - Proper async patterns
+- [ ] **Device triggers** work correctly
+  - Events fire on state changes
+  - Trigger types are useful
+  - Event data is complete
+- [ ] **Integration with HA automations**
+  - Services callable from automations
+  - Triggers usable in automation UI
+
+**Review files:**
+| File | Review Focus |
+|------|--------------|
+| `services.py` | Service definitions, handlers |
+| `services.yaml` | Service descriptions |
+| `device_trigger.py` | Trigger definitions |
+| `device_condition.py` | Condition definitions |
+
+### 10.8.8 Stage 8: Error Handling & Edge Cases
+
+**Focus:** Resilience and graceful degradation.
+
+**Checklist:**
+- [ ] **Network errors** handled gracefully
+  - Connection refused
+  - Timeout
+  - DNS failure
+- [ ] **Auth errors** provide clear feedback
+  - Invalid API key
+  - Expired token
+  - Permission denied
+- [ ] **Missing data** doesn't crash
+  - Optional fields missing
+  - Null/None values
+  - Empty responses
+- [ ] **Concurrent operations** are safe
+  - No race conditions
+  - Proper locking if needed
+  - Async-safe patterns
+- [ ] **Resource cleanup** is complete
+  - Sessions closed on unload
+  - WebSocket disconnected
+  - Background tasks cancelled
+
+**Review approach:** Search for exception handlers, check finally blocks, verify cleanup in unload.
+
+### 10.8.9 Stage 9: Performance & Efficiency Review
+
+**Focus:** Resource usage and optimization.
+
+**Checklist:**
+- [ ] **No unnecessary API calls**
+  - Caching used appropriately
+  - Batch requests where possible
+  - Polling interval reasonable
+- [ ] **Memory efficiency**
+  - Large responses not held unnecessarily
+  - Dataclass slots used
+  - Cache has size limits
+- [ ] **Async patterns** are correct
+  - No blocking I/O
+  - Proper use of `async`/`await`
+  - No `run_until_complete` in async code
+- [ ] **Coordinator efficiency**
+  - Updates only when needed
+  - Listeners properly managed
+
+**Review approach:** Profile with large libraries, check memory usage, verify async patterns.
+
+### 10.8.10 Stage 10: Security Review
+
+**Focus:** Security best practices.
+
+**Checklist:**
+- [ ] **Credentials** are protected
+  - API key not logged
+  - Not exposed in entity attributes
+  - Not in error messages
+- [ ] **Input validation**
+  - User inputs sanitized
+  - Media IDs validated
+  - No injection vulnerabilities
+- [ ] **URL handling**
+  - No user-controlled URLs executed
+  - Proper URL encoding
+  - HTTPS preferred
+- [ ] **Diagnostics** redact sensitive data
+  - API keys masked
+  - Server URLs optionally redacted
+  - User IDs handled appropriately
+
+**Review files:**
+| File | Review Focus |
+|------|--------------|
+| `diagnostics.py` | Data redaction |
+| `api.py` | Credential handling |
+| `config_flow.py` | Input validation |
+
+---
+
+### Code Review Tracking
+
+| Stage | Status | Reviewer | Date | Issues Found |
+|-------|--------|----------|------|--------------|
+| 1. Architecture | [ ] Pending | | | |
+| 2. API & Data | [ ] Pending | | | |
+| 3. Entities | [ ] Pending | | | |
+| 4. Config Flow | [ ] Pending | | | |
+| 5. Media Browsing | [ ] Pending | | | |
+| 6. WebSocket | [ ] Pending | | | |
+| 7. Services | [ ] Pending | | | |
+| 8. Error Handling | [ ] Pending | | | |
+| 9. Performance | [ ] Pending | | | |
+| 10. Security | [ ] Pending | | | |
+
+### Code Review Acceptance Criteria
+
+- [ ] All 10 stages reviewed
+- [ ] All critical issues resolved
+- [ ] All high-priority issues resolved or documented
+- [ ] Medium/low issues tracked for future
+
+---
+
 ## Acceptance Criteria Summary
 
 ### Required for Phase 10 Complete
 
 **CI/CD:**
-- [ ] Test workflow tests Python 3.12 and 3.13
+- [ ] Test workflow tests Python 3.13
 - [ ] HACS validation workflow added
 - [ ] Hassfest validation workflow added
 - [ ] Release workflow creates versioned zip
@@ -593,6 +919,11 @@ ignore_missing_imports = true
 - [ ] CHANGELOG.md created
 - [ ] Installation guide accurate
 
+**Code Review:**
+- [ ] All 10 review stages completed
+- [ ] All critical issues resolved
+- [ ] All high-priority issues resolved or documented
+
 ### Definition of Done
 
 1. ✅ All GitHub Actions workflows passing
@@ -603,6 +934,8 @@ ignore_missing_imports = true
 6. ✅ At least one GitHub release published
 7. ✅ 100% test coverage maintained
 8. ✅ Documentation complete
+9. ✅ Progressive code review completed (all 10 stages)
+10. ✅ All critical/high-priority review issues resolved
 
 ---
 
