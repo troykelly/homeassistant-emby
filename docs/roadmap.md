@@ -482,48 +482,48 @@ The integration provides:
 
 ---
 
-## Phase 11: Entity Naming Customization
+## Phase 11: Entity Naming Customization ✅
 
-### Part A: Remove Redundant Suffixes (Breaking Change)
+### Part A: Remove Redundant Suffixes (Breaking Change) ✅
 
 ### 11.1 Remove Entity Name Suffixes
-- [ ] Change `notify.py` `_attr_name` from `"Notification"` to `None`
-- [ ] Change `remote.py` `_attr_name` from `"Remote"` to `None`
-- [ ] Update all tests expecting old entity ID patterns
-- [ ] Document breaking change in CHANGELOG
+- [x] Change `notify.py` `_attr_name` from `"Notification"` to `None`
+- [x] Change `remote.py` `_attr_name` from `"Remote"` to `None`
+- [x] Update all tests expecting old entity ID patterns
+- [x] Document breaking change in CHANGELOG
 
 **Entity ID Changes:**
 - `notify.living_room_tv_notification` → `notify.living_room_tv`
 - `remote.living_room_tv_remote` → `remote.living_room_tv`
 
-### Part B: Add "Prefix with Emby" Toggles (Per Entity Type)
+### Part B: Add "Prefix with Emby" Toggles (Per Entity Type) ✅
 
 ### 11.2 Configuration Options
-- [ ] Add `CONF_PREFIX_MEDIA_PLAYER`, `CONF_PREFIX_NOTIFY`, `CONF_PREFIX_REMOTE`, `CONF_PREFIX_BUTTON`
-- [ ] Add corresponding defaults (all `True`)
+- [x] Add `CONF_PREFIX_MEDIA_PLAYER`, `CONF_PREFIX_NOTIFY`, `CONF_PREFIX_REMOTE`, `CONF_PREFIX_BUTTON`
+- [x] Add corresponding defaults (all `True`)
 
 ### 11.3 Options Flow Enhancement
-- [ ] Add four boolean toggles to options flow
-- [ ] All toggles default ON
+- [x] Add four boolean toggles to options flow
+- [x] All toggles default ON
 
 ### 11.4 Entity Updates
-- [ ] Add `_get_device_name()` helper to `entity.py`
-- [ ] Override `device_info` in each entity type to use its toggle
+- [x] Add `_get_device_name()` helper to `entity.py`
+- [x] Override `device_info` in each entity type to use its toggle
 
 ### 11.5 Translations
-- [ ] Add strings.json entries for all four toggles
+- [x] Add strings.json entries for all four toggles
 
 ### 11.6 Testing & Documentation
-- [ ] 100% test coverage for new code
-- [ ] Update README with entity naming section
-- [ ] Document entity ID patterns and breaking changes
+- [x] 100% test coverage for new code
+- [x] Update README with entity naming section
+- [x] Document entity ID patterns and breaking changes
 
 **Deliverables:**
-- Clean entity IDs without redundant suffixes
-- Per-entity-type toggles to prefix device names with "Emby"
-- All toggles ON by default → `notify.emby_living_room_tv`
-- Individual toggles can be turned OFF
-- Clear documentation for users
+- ✅ Clean entity IDs without redundant suffixes
+- ✅ Per-entity-type toggles to prefix device names with "Emby"
+- ✅ All toggles ON by default → `notify.emby_living_room_tv`
+- ✅ Individual toggles can be turned OFF
+- ✅ Clear documentation for users
 
 ---
 

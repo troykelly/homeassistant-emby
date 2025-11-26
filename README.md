@@ -118,16 +118,18 @@ See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for all options.
 
 ### Media Player Entities
 
-Each Emby client automatically creates a media player entity:
+Each Emby client automatically creates a media player entity with an "Emby" prefix:
 
-- `media_player.living_room_tv`
-- `media_player.bedroom_roku`
-- `media_player.samsung_tv`
+- `media_player.emby_living_room_tv`
+- `media_player.emby_bedroom_roku`
+- `media_player.emby_samsung_tv`
+
+> **Note**: Device names are prefixed with "Emby" by default. You can disable this per entity type in integration options.
 
 **Lovelace Card Example:**
 ```yaml
 type: media-control
-entity: media_player.living_room_tv
+entity: media_player.emby_living_room_tv
 ```
 
 ### Browsing Media
@@ -157,7 +159,7 @@ Send navigation commands to Emby clients:
 ```yaml
 service: remote.send_command
 target:
-  entity_id: remote.living_room_tv_remote
+  entity_id: remote.emby_living_room_tv
 data:
   command: Select  # or: MoveUp, MoveDown, Back, GoHome
 ```
@@ -169,7 +171,7 @@ Display messages on Emby client screens:
 ```yaml
 service: notify.send_message
 target:
-  entity_id: notify.living_room_tv_notification
+  entity_id: notify.emby_living_room_tv
 data:
   title: "Dinner Time!"
   message: "Food is ready 🍕"
@@ -185,11 +187,11 @@ automation:
   - alias: "Dim lights for movies"
     trigger:
       - platform: state
-        entity_id: media_player.living_room_tv
+        entity_id: media_player.emby_living_room_tv
         to: "playing"
     condition:
       - condition: template
-        value_template: "{{ state_attr('media_player.living_room_tv', 'media_content_type') == 'movie' }}"
+        value_template: "{{ state_attr('media_player.emby_living_room_tv', 'media_content_type') == 'movie' }}"
     action:
       - service: light.turn_on
         target:
@@ -213,10 +215,10 @@ automation:
     action:
       - service: media_player.media_pause
         target:
-          entity_id: media_player.living_room_tv
+          entity_id: media_player.emby_living_room_tv
       - service: notify.send_message
         target:
-          entity_id: notify.living_room_tv_notification
+          entity_id: notify.emby_living_room_tv
         data:
           title: "Doorbell"
           message: "Someone is at the door"
@@ -236,7 +238,7 @@ automation:
     action:
       - service: notify.send_message
         target:
-          entity_id: notify.living_room_tv_notification
+          entity_id: notify.emby_living_room_tv
         data:
           title: "Laundry"
           message: "Washing machine is done!"
