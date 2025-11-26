@@ -1000,25 +1000,164 @@ if collection_type == "livetv":
 - Total test count: 527 tests
 - Coverage: 100%
 
-### Remaining Work (Future Phases)
+---
 
-The following items are deferred to Phase 8:
+## Phase 7.5: Extended Media Features (2025-11-26)
 
-1. **Movies Library Categories**
-   - A-Z, Year, Decade, Genre, Collections
+After Phase 7 was merged, additional media browsing features were implemented.
 
-2. **TV Shows Library Categories**
-   - A-Z, Year, Decade, Genre
+### Task 7.11: Image Proxy
 
-3. **Browse Cache**
-   - In-memory cache with TTL for browse API requests
+**Files:** `custom_components/embymedia/image.py`, `custom_components/embymedia/cache.py`
 
-4. **Media Source Enhancement**
-   - Apply same category pattern to `media_source.py`
+Implemented authenticated image proxy for secure media thumbnails.
+
+**Features:**
+- `EmbyImageProxyView` - HTTP view for proxying Emby images
+- URL pattern: `/api/embymedia/image/{server_id}/{item_id}/{image_type}`
+- Handles authentication internally (no API key exposure)
+- Cache headers for browser caching (1 year with tag, 5 min without)
+
+**Cache Module:**
+- `BrowseCache` - In-memory LRU cache with TTL
+- Decorator-based caching for browse API responses
+- Configurable max size and TTL
+
+**Acceptance Criteria:**
+- [x] Image proxy serves authenticated images
+- [x] Cache headers set appropriately
+- [x] Browse cache reduces API calls
+
+**Test Cases:**
+- [x] `test_image_proxy_success`
+- [x] `test_image_proxy_not_found`
+- [x] `test_cache_hit_and_miss`
+- [x] `test_cache_expiry`
 
 ---
 
-## Definition of Done (Phase 7 Extended)
+### Task 7.12: Movie Library Category Browsing
+
+**File:** `custom_components/embymedia/media_player.py`, `custom_components/embymedia/media_source.py`
+
+Movie libraries now show category navigation:
+
+```
+Movie Library
+├── A-Z (letter navigation)
+├── Year (individual years)
+├── Decade (1950s, 1960s, ..., 2020s)
+├── Genre (genre list → movies)
+└── Collections (BoxSets)
+```
+
+**Content Type Routing:**
+| Content Type | Handler | Description |
+|--------------|---------|-------------|
+| `movielibrary` | `_browse_movie_library` | Category menu |
+| `movieaz` | `_browse_movie_az` | A-Z letters |
+| `movieazletter` | `_browse_movie_az_letter` | Movies by letter |
+| `movieyears` | `_browse_movie_years` | Year list |
+| `movieyear` | `_browse_movie_year` | Movies by year |
+| `moviedecades` | `_browse_movie_decades` | Decade list |
+| `moviedecade` | `_browse_movie_decade` | Movies by decade |
+| `moviegenres` | `_browse_movie_genres` | Genre list |
+| `moviegenre` | `_browse_movie_genre` | Movies by genre |
+| `moviecollections` | `_browse_movie_collections` | Collection list |
+| `moviecollection` | `_browse_movie_collection` | Collection contents |
+
+**Acceptance Criteria:**
+- [x] Movie library shows category menu
+- [x] A-Z navigation works
+- [x] Year filtering works
+- [x] Decade filtering works
+- [x] Genre filtering works
+- [x] Collections browsing works
+- [x] Applied to both media_player.py and media_source.py
+
+**Test Cases:**
+- [x] `test_browse_movie_library_shows_categories`
+- [x] `test_browse_movie_az_shows_letters`
+- [x] `test_browse_movies_by_letter`
+- [x] `test_browse_movie_years`
+- [x] `test_browse_movies_by_year`
+- [x] `test_browse_movie_decades`
+- [x] `test_browse_movies_by_decade`
+- [x] `test_browse_movie_genres`
+- [x] `test_browse_movies_by_genre`
+- [x] `test_browse_movie_collections`
+- [x] `test_browse_collection_contents`
+
+---
+
+### Task 7.13: TV Library Category Browsing
+
+**File:** `custom_components/embymedia/media_player.py`, `custom_components/embymedia/media_source.py`
+
+TV libraries now show category navigation:
+
+```
+TV Library
+├── A-Z (letter navigation)
+├── Year (individual years)
+├── Decade (1950s, 1960s, ..., 2020s)
+└── Genre (genre list → shows)
+```
+
+**Content Type Routing:**
+| Content Type | Handler | Description |
+|--------------|---------|-------------|
+| `tvlibrary` | `_browse_tv_library` | Category menu |
+| `tvaz` | `_browse_tv_az` | A-Z letters |
+| `tvazletter` | `_browse_tv_az_letter` | Shows by letter |
+| `tvyears` | `_browse_tv_years` | Year list |
+| `tvyear` | `_browse_tv_year` | Shows by year |
+| `tvdecades` | `_browse_tv_decades` | Decade list |
+| `tvdecade` | `_browse_tv_decade` | Shows by decade |
+| `tvgenres` | `_browse_tv_genres` | Genre list |
+| `tvgenre` | `_browse_tv_genre` | Shows by genre |
+
+**Acceptance Criteria:**
+- [x] TV library shows category menu
+- [x] A-Z navigation works
+- [x] Year filtering works
+- [x] Decade filtering works
+- [x] Genre filtering works
+- [x] Applied to both media_player.py and media_source.py
+
+**Test Cases:**
+- [x] `test_browse_tv_library_shows_categories`
+- [x] `test_browse_tv_az_shows_letters`
+- [x] `test_browse_shows_by_letter`
+- [x] `test_browse_tv_years`
+- [x] `test_browse_shows_by_year`
+- [x] `test_browse_tv_decades`
+- [x] `test_browse_shows_by_decade`
+- [x] `test_browse_tv_genres`
+- [x] `test_browse_shows_by_genre`
+
+---
+
+## Phase 7.5 Summary
+
+### New Files Added
+
+| File | Purpose |
+|------|---------|
+| `cache.py` | In-memory LRU cache with TTL for browse API |
+| `image.py` | Image proxy view for authenticated Emby images |
+| `tests/test_cache.py` | Cache module tests |
+| `tests/test_image.py` | Image proxy tests |
+| `tests/live/` | Reorganized live server tests |
+
+### Test Count
+
+- Phase 7.5 total: 587 tests
+- Coverage: 100%
+
+---
+
+## Definition of Done (Phase 7 + 7.5 Complete)
 
 1. ✅ WebSocket connects to Emby server
 2. ✅ Real-time session updates received
@@ -1029,5 +1168,10 @@ The following items are deferred to Phase 8:
 7. ✅ Music library category navigation
 8. ✅ A-Z filtering for large collections
 9. ✅ Live TV browsing works
-10. ✅ All tests passing (527 tests)
-11. ✅ 100% code coverage maintained
+10. ✅ Image proxy for authenticated images
+11. ✅ Browse cache for performance
+12. ✅ Movie library category navigation (A-Z, Year, Decade, Genre, Collections)
+13. ✅ TV library category navigation (A-Z, Year, Decade, Genre)
+14. ✅ Media source supports all library categories
+15. ✅ All tests passing (587 tests)
+16. ✅ 100% code coverage maintained

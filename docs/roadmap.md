@@ -287,6 +287,44 @@ The integration provides:
 
 ---
 
+## Phase 7.5: Extended Media Features ✅
+
+### 7.5.1 Image Proxy
+- [x] `EmbyImageProxyView` for authenticated image access
+- [x] URL pattern: `/api/embymedia/image/{server_id}/{item_id}/{image_type}`
+- [x] Cache headers for browser caching
+
+### 7.5.2 Browse Cache
+- [x] In-memory LRU cache with TTL
+- [x] Decorator-based caching for browse API responses
+- [x] Configurable max size and TTL
+
+### 7.5.3 Movie Library Categories
+- [x] A-Z letter navigation
+- [x] Year filtering
+- [x] Decade filtering (1950s-2020s)
+- [x] Genre browsing
+- [x] Collections (BoxSets)
+
+### 7.5.4 TV Library Categories
+- [x] A-Z letter navigation
+- [x] Year filtering
+- [x] Decade filtering (1950s-2020s)
+- [x] Genre browsing
+
+### 7.5.5 Media Source Enhancement
+- [x] All library categories available in media_source.py
+- [x] Cross-player compatibility for all library types
+
+**Deliverables:**
+- ✅ Image proxy for secure media thumbnails
+- ✅ Browse cache for improved performance
+- ✅ Movie library category navigation
+- ✅ TV library category navigation
+- ✅ Consistent browsing across media_player and media_source
+
+---
+
 ## Phase 8: Advanced Features
 
 ### 8.1 Multiple Users Support
