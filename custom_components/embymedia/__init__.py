@@ -1,25 +1,61 @@
-"""The Emby integration."""
+"""The Emby integration.
+
+Supports both YAML configuration and UI-based config flow.
+
+YAML Configuration Example:
+    embymedia:
+      host: emby.local
+      api_key: !secret emby_api_key
+      port: 8096
+      ssl: false
+      verify_ssl: true
+      scan_interval: 10
+      enable_websocket: true
+      ignored_devices: "Device1,Device2"
+      direct_play: true
+      video_container: mp4
+      max_video_bitrate: 10000
+      max_audio_bitrate: 320
+"""
 
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
+import voluptuous as vol
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.typing import ConfigType
 
 from .api import EmbyClient
 from .const import (
     CONF_API_KEY,
+    CONF_DIRECT_PLAY,
+    CONF_ENABLE_WEBSOCKET,
+    CONF_IGNORE_WEB_PLAYERS,
+    CONF_IGNORED_DEVICES,
+    CONF_MAX_AUDIO_BITRATE,
+    CONF_MAX_VIDEO_BITRATE,
     CONF_SCAN_INTERVAL,
     CONF_VERIFY_SSL,
+    CONF_VIDEO_CONTAINER,
+    DEFAULT_DIRECT_PLAY,
+    DEFAULT_ENABLE_WEBSOCKET,
+    DEFAULT_IGNORE_WEB_PLAYERS,
+    DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SSL,
     DEFAULT_VERIFY_SSL,
+    DEFAULT_VIDEO_CONTAINER,
     DOMAIN,
+    MAX_SCAN_INTERVAL,
+    MIN_SCAN_INTERVAL,
     PLATFORMS,
+    VIDEO_CONTAINERS,
     EmbyConfigEntry,
 )
 from .coordinator import EmbyDataUpdateCoordinator
@@ -31,6 +67,83 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
+
+# YAML Configuration Schema
+CONFIG_SCHEMA: Final = vol.Schema(
+    {
+        DOMAIN: vol.Schema(
+            {
+                vol.Required(CONF_HOST): cv.string,
+                vol.Required(CONF_API_KEY): cv.string,
+                vol.Optional(CONF_PORT, default=DEFAULT_PORT): cv.port,
+                vol.Optional(CONF_SSL, default=DEFAULT_SSL): cv.boolean,
+                vol.Optional(CONF_VERIFY_SSL, default=DEFAULT_VERIFY_SSL): cv.boolean,
+                vol.Optional(
+                    CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
+                ): vol.All(
+                    cv.positive_int,
+                    vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
+                ),
+                vol.Optional(
+                    CONF_ENABLE_WEBSOCKET, default=DEFAULT_ENABLE_WEBSOCKET
+                ): cv.boolean,
+                vol.Optional(CONF_IGNORED_DEVICES, default=""): cv.string,
+                vol.Optional(
+                    CONF_IGNORE_WEB_PLAYERS, default=DEFAULT_IGNORE_WEB_PLAYERS
+                ): cv.boolean,
+                vol.Optional(CONF_DIRECT_PLAY, default=DEFAULT_DIRECT_PLAY): cv.boolean,
+                vol.Optional(
+                    CONF_VIDEO_CONTAINER, default=DEFAULT_VIDEO_CONTAINER
+                ): vol.In(VIDEO_CONTAINERS),
+                vol.Optional(CONF_MAX_VIDEO_BITRATE): cv.positive_int,
+                vol.Optional(CONF_MAX_AUDIO_BITRATE): cv.positive_int,
+            }
+        )
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up Emby integration from YAML configuration.
+
+    This function handles YAML-based configuration by triggering the
+    config flow import process, which converts YAML config to a
+    config entry.
+
+    Args:
+        hass: Home Assistant instance.
+        config: Full configuration dictionary.
+
+    Returns:
+        True to indicate setup was successful.
+
+    Example YAML:
+        embymedia:
+          host: emby.local
+          api_key: !secret emby_api_key
+          ssl: true
+          port: 443
+    """
+    if DOMAIN not in config:
+        return True
+
+    conf = config[DOMAIN]
+    _LOGGER.info(
+        "Importing Emby configuration from YAML for host: %s",
+        conf.get(CONF_HOST),
+    )
+
+    # Trigger the config flow import step
+    hass.async_create_task(
+        hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": "import"},
+            data=conf,
+        )
+    )
+
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> bool:
@@ -80,6 +193,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> bool
         client=client,
         server_id=server_id,
         server_name=server_name,
+        config_entry=entry,
         scan_interval=scan_interval,
     )
 

@@ -309,7 +309,7 @@ class TestConfigFlow:
         # Complete user selection
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {"user_id": ""},
+            {"user_id": "__none__"},
         )
 
         assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -356,7 +356,7 @@ class TestConfigFlow:
             # Complete user selection
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
-                {"user_id": ""},
+                {"user_id": "__none__"},
             )
 
             assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -437,7 +437,7 @@ class TestConfigFlow:
             # Complete user selection
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
-                {"user_id": ""},
+                {"user_id": "__none__"},
             )
 
             assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -483,7 +483,7 @@ class TestConfigFlow:
             # Complete user selection
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
-                {"user_id": ""},
+                {"user_id": "__none__"},
             )
 
             # Invalid versions are allowed to pass
@@ -1001,7 +1001,7 @@ class TestUserSelectionFlow:
             # Skip user selection (use admin context)
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
-                {"user_id": ""},  # Empty means admin context
+                {"user_id": "__none__"},  # Empty means admin context
             )
 
             assert result["type"] is FlowResultType.CREATE_ENTRY

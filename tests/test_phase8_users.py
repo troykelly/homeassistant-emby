@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -10,9 +11,30 @@ from homeassistant.data_entry_flow import FlowResultType
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.embymedia.const import (
+    CONF_API_KEY,
     CONF_USER_ID,
     DOMAIN,
 )
+
+if TYPE_CHECKING:
+    from custom_components.embymedia.const import EmbyConfigEntry
+
+
+@pytest.fixture
+def mock_config_entry(hass: HomeAssistant) -> EmbyConfigEntry:
+    """Create a mock config entry."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            "host": "emby.local",
+            "port": 8096,
+            CONF_API_KEY: "test-api-key",
+        },
+        options={},
+        unique_id="server-123",
+    )
+    entry.add_to_hass(hass)
+    return entry  # type: ignore[return-value]
 
 
 class TestConfigFlowUserSelection:
@@ -167,10 +189,10 @@ class TestConfigFlowUserSelection:
                 },
             )
 
-            # Skip user selection (empty string means admin context)
+            # Skip user selection (__none__ sentinel means admin context)
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
-                {CONF_USER_ID: ""},
+                {CONF_USER_ID: "__none__"},
             )
 
             assert result["type"] is FlowResultType.CREATE_ENTRY
@@ -185,6 +207,7 @@ class TestCoordinatorUserContext:
     async def test_coordinator_has_user_id_property(
         self,
         hass: HomeAssistant,
+        mock_config_entry: EmbyConfigEntry,
     ) -> None:
         """Test coordinator exposes user_id property."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -197,6 +220,7 @@ class TestCoordinatorUserContext:
             client=mock_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
             user_id="user-1",
         )
 
@@ -206,6 +230,7 @@ class TestCoordinatorUserContext:
     async def test_coordinator_user_id_none_when_not_set(
         self,
         hass: HomeAssistant,
+        mock_config_entry: EmbyConfigEntry,
     ) -> None:
         """Test coordinator user_id is None when not configured."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -218,6 +243,7 @@ class TestCoordinatorUserContext:
             client=mock_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         assert coordinator.user_id is None

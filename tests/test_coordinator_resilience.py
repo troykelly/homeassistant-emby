@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import UpdateFailed
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.embymedia.const import CONF_API_KEY, DOMAIN
 from custom_components.embymedia.exceptions import EmbyConnectionError
+
+if TYPE_CHECKING:
+    from custom_components.embymedia.const import EmbyConfigEntry
 
 
 @pytest.fixture
@@ -18,6 +24,23 @@ def mock_emby_client() -> MagicMock:
     client.async_get_sessions = AsyncMock(return_value=[])
     client.async_get_server_info = AsyncMock(return_value={"Id": "server-123"})
     return client
+
+
+@pytest.fixture
+def mock_config_entry(hass: HomeAssistant) -> EmbyConfigEntry:
+    """Create a mock config entry."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            "host": "emby.local",
+            "port": 8096,
+            CONF_API_KEY: "test-api-key",
+        },
+        options={},
+        unique_id="server-123",
+    )
+    entry.add_to_hass(hass)
+    return entry  # type: ignore[return-value]
 
 
 @pytest.fixture
@@ -44,7 +67,8 @@ class TestGracefulDegradation:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
-        mock_session_data: list[dict[str, object]],
+        mock_config_entry: EmbyConfigEntry,
+        mock_session_data: list[dict[str, object]]
     ) -> None:
         """Test coordinator returns cached data on connection failure."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -57,6 +81,7 @@ class TestGracefulDegradation:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # Fetch initial data successfully
@@ -80,6 +105,7 @@ class TestGracefulDegradation:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry
     ) -> None:
         """Test coordinator raises UpdateFailed on first connection failure (no cached data)."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -93,6 +119,7 @@ class TestGracefulDegradation:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # No cached data, should raise UpdateFailed
@@ -105,6 +132,7 @@ class TestGracefulDegradation:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry
     ) -> None:
         """Test coordinator continues processing when some sessions fail to parse."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -141,6 +169,7 @@ class TestGracefulDegradation:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # Should succeed and have 2 valid sessions
@@ -154,8 +183,9 @@ class TestGracefulDegradation:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
         mock_session_data: list[dict[str, object]],
-        caplog: pytest.LogCaptureFixture,
+        caplog: pytest.LogCaptureFixture
     ) -> None:
         """Test warning is logged when using cached data."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -167,6 +197,7 @@ class TestGracefulDegradation:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # Get initial data
@@ -191,7 +222,8 @@ class TestAutomaticRecovery:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
-        mock_session_data: list[dict[str, object]],
+        mock_config_entry: EmbyConfigEntry,
+        mock_session_data: list[dict[str, object]]
     ) -> None:
         """Test consecutive failures are tracked."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -204,6 +236,7 @@ class TestAutomaticRecovery:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         await coordinator.async_refresh()
@@ -226,8 +259,9 @@ class TestAutomaticRecovery:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
         mock_session_data: list[dict[str, object]],
-        caplog: pytest.LogCaptureFixture,
+        caplog: pytest.LogCaptureFixture
     ) -> None:
         """Test automatic recovery is triggered after threshold failures."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -240,6 +274,7 @@ class TestAutomaticRecovery:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         await coordinator.async_refresh()
@@ -264,7 +299,8 @@ class TestAutomaticRecovery:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
-        mock_session_data: list[dict[str, object]],
+        mock_config_entry: EmbyConfigEntry,
+        mock_session_data: list[dict[str, object]]
     ) -> None:
         """Test successful fetch resets failure count."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -277,6 +313,7 @@ class TestAutomaticRecovery:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         await coordinator.async_refresh()
@@ -299,7 +336,8 @@ class TestAutomaticRecovery:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
-        mock_session_data: list[dict[str, object]],
+        mock_config_entry: EmbyConfigEntry,
+        mock_session_data: list[dict[str, object]]
     ) -> None:
         """Test recovery attempts to reconnect WebSocket."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -311,6 +349,7 @@ class TestAutomaticRecovery:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         await coordinator.async_refresh()
@@ -336,8 +375,9 @@ class TestAutomaticRecovery:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
         mock_session_data: list[dict[str, object]],
-        caplog: pytest.LogCaptureFixture,
+        caplog: pytest.LogCaptureFixture
     ) -> None:
         """Test successful recovery is logged."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -349,6 +389,7 @@ class TestAutomaticRecovery:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         await coordinator.async_refresh()
@@ -369,8 +410,9 @@ class TestAutomaticRecovery:
         self,
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
         mock_session_data: list[dict[str, object]],
-        caplog: pytest.LogCaptureFixture,
+        caplog: pytest.LogCaptureFixture
     ) -> None:
         """Test failed recovery is logged."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -382,6 +424,7 @@ class TestAutomaticRecovery:
             client=mock_emby_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         await coordinator.async_refresh()

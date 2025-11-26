@@ -37,7 +37,9 @@ A custom Home Assistant integration for Emby Media Server providing full media p
 
 ## Configuration
 
-### Adding the Integration
+This integration supports both UI-based configuration and YAML file configuration.
+
+### UI Configuration (Recommended)
 
 1. Go to **Settings** > **Devices & Services**
 2. Click **+ Add Integration**
@@ -48,6 +50,31 @@ A custom Home Assistant integration for Emby Media Server providing full media p
    - **Use SSL**: Enable for HTTPS connections
    - **API Key**: Generate from Emby Dashboard > Advanced > API Keys
    - **Verify SSL**: Disable only for self-signed certificates
+
+### YAML Configuration
+
+Add the following to your `configuration.yaml`:
+
+```yaml
+embymedia:
+  host: emby.local
+  api_key: !secret emby_api_key
+  port: 8096              # Optional, default: 8096
+  ssl: false              # Optional, default: false
+  verify_ssl: true        # Optional, default: true
+  scan_interval: 10       # Optional, default: 10 (seconds, 5-300)
+  enable_websocket: true  # Optional, default: true
+  ignored_devices: ""     # Optional, comma-separated device names
+  ignore_web_players: false  # Optional, default: false - hide web browser sessions
+  direct_play: true       # Optional, default: true
+  video_container: mp4    # Optional, default: mp4 (mp4, mkv, webm)
+  max_video_bitrate: 10000  # Optional, in kbps
+  max_audio_bitrate: 320    # Optional, in kbps
+```
+
+**Required fields:** `host`, `api_key`
+
+When configured via YAML, settings will automatically import into a config entry, so you can still modify options through the UI after initial setup.
 
 ### Getting an API Key
 
@@ -66,6 +93,7 @@ After setup, configure optional settings via **Configure** on the integration:
 | Scan Interval | 10 seconds | How often to poll for updates (5-300 seconds) |
 | Enable WebSocket | Yes | Use WebSocket for real-time updates |
 | Ignored Devices | (empty) | Comma-separated device names to ignore |
+| Ignore Web Players | No | Hide media players from web browser sessions |
 | Direct Play | Yes | Try direct play before transcoding |
 | Video Container | mp4 | Preferred format for transcoding (mp4, mkv, webm) |
 | Max Video Bitrate | (unlimited) | Maximum video bitrate in kbps |

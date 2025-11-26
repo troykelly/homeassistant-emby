@@ -16,13 +16,35 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .api import EmbyClient
-from .const import DEFAULT_SCAN_INTERVAL, DOMAIN, WEBSOCKET_POLL_INTERVAL
+from .const import (
+    CONF_IGNORE_WEB_PLAYERS,
+    DEFAULT_IGNORE_WEB_PLAYERS,
+    DEFAULT_SCAN_INTERVAL,
+    DOMAIN,
+    WEBSOCKET_POLL_INTERVAL,
+    EmbyConfigEntry,
+)
 from .exceptions import EmbyConnectionError, EmbyError
 from .models import EmbySession, parse_session
 from .websocket import EmbyWebSocket
 
 if TYPE_CHECKING:
     from .const import EmbySessionResponse
+
+# Client names that indicate web browser sessions
+WEB_PLAYER_CLIENTS: frozenset[str] = frozenset({
+    "Emby Web",
+    "Emby Mobile Web",
+    "Chrome",
+    "Firefox",
+    "Safari",
+    "Edge",
+    "Opera",
+    "Brave",
+    "Vivaldi",
+    "Internet Explorer",
+    "Microsoft Edge",
+})
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,6 +67,7 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
     client: EmbyClient
     server_id: str
     server_name: str
+    config_entry: EmbyConfigEntry
 
     def __init__(
         self,
@@ -52,6 +75,7 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         client: EmbyClient,
         server_id: str,
         server_name: str,
+        config_entry: EmbyConfigEntry,
         scan_interval: int = DEFAULT_SCAN_INTERVAL,
         user_id: str | None = None,
     ) -> None:
@@ -62,6 +86,7 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
             client: Emby API client.
             server_id: Unique server identifier.
             server_name: Human-readable server name.
+            config_entry: Config entry for reading options.
             scan_interval: Polling interval in seconds.
             user_id: Optional user ID for user-specific context.
         """
@@ -74,6 +99,7 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         self.client = client
         self.server_id = server_id
         self.server_name = server_name
+        self.config_entry = config_entry
         self._user_id = user_id
         self._previous_sessions: set[str] = set()
         self._websocket: EmbyWebSocket | None = None
@@ -101,6 +127,27 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
     def websocket_enabled(self) -> bool:
         """Return True if WebSocket is enabled."""
         return self._websocket_enabled
+
+    @property
+    def ignore_web_players(self) -> bool:
+        """Return True if web browser players should be ignored."""
+        return bool(
+            self.config_entry.options.get(
+                CONF_IGNORE_WEB_PLAYERS, DEFAULT_IGNORE_WEB_PLAYERS
+            )
+        )
+
+    def _is_web_player(self, session: EmbySession) -> bool:
+        """Check if a session is from a web browser.
+
+        Args:
+            session: The session to check.
+
+        Returns:
+            True if the session is from a web browser client.
+        """
+        client_name = session.client_name.lower()
+        return any(web_client.lower() in client_name for web_client in WEB_PLAYER_CLIENTS)
 
     async def _async_update_data(self) -> dict[str, EmbySession]:
         """Fetch session data from Emby server with graceful degradation.
@@ -135,13 +182,23 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
 
         # Parse sessions and index by device_id
         sessions: dict[str, EmbySession] = {}
+        ignore_web = self.ignore_web_players
         for session_data in sessions_data:
             try:
                 session = parse_session(session_data)
                 # Filter to only sessions that support remote control
                 # These are the ones we can create media players for
-                if session.supports_remote_control:
-                    sessions[session.device_id] = session
+                if not session.supports_remote_control:
+                    continue
+                # Filter out web browser players if option is enabled
+                if ignore_web and self._is_web_player(session):
+                    _LOGGER.debug(
+                        "Ignoring web browser session: %s (%s)",
+                        session.device_name,
+                        session.client_name,
+                    )
+                    continue
+                sessions[session.device_id] = session
             except (KeyError, ValueError) as err:
                 _LOGGER.warning(
                     "Failed to parse session data: %s - %s",

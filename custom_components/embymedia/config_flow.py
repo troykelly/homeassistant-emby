@@ -21,14 +21,17 @@ from .const import (
     CONF_API_KEY,
     CONF_DIRECT_PLAY,
     CONF_ENABLE_WEBSOCKET,
+    CONF_IGNORE_WEB_PLAYERS,
     CONF_IGNORED_DEVICES,
     CONF_MAX_AUDIO_BITRATE,
     CONF_MAX_VIDEO_BITRATE,
+    CONF_SCAN_INTERVAL,
     CONF_USER_ID,
     CONF_VERIFY_SSL,
     CONF_VIDEO_CONTAINER,
     DEFAULT_DIRECT_PLAY,
     DEFAULT_ENABLE_WEBSOCKET,
+    DEFAULT_IGNORE_WEB_PLAYERS,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SSL,
@@ -149,6 +152,122 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
             errors=errors,
         )
 
+    async def async_step_import(
+        self,
+        import_data: dict[str, object],
+    ) -> ConfigFlowResult:
+        """Handle import from YAML configuration.
+
+        This step is triggered when the integration is configured via YAML.
+        It validates the connection and creates a config entry.
+
+        Args:
+            import_data: Configuration data from YAML.
+
+        Returns:
+            Config flow result (create_entry or abort).
+        """
+        # Extract and normalize connection data
+        host = normalize_host(str(import_data.get(CONF_HOST, "")))
+        port_value = import_data.get(CONF_PORT, DEFAULT_PORT)
+        port = int(port_value) if isinstance(port_value, (int, str)) else DEFAULT_PORT
+        ssl = bool(import_data.get(CONF_SSL, DEFAULT_SSL))
+        api_key = str(import_data.get(CONF_API_KEY, ""))
+        verify_ssl = bool(import_data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL))
+
+        # Create client and validate connection
+        session = async_get_clientsession(self.hass)
+        client = EmbyClient(
+            host=host,
+            port=port,
+            api_key=api_key,
+            ssl=ssl,
+            verify_ssl=verify_ssl,
+            session=session,
+        )
+
+        try:
+            await client.async_validate_connection()
+            server_info = await client.async_get_server_info()
+
+            # Set unique ID and check for duplicates
+            server_id = str(server_info["Id"])
+            await self.async_set_unique_id(server_id)
+            self._abort_if_unique_id_configured()
+
+            server_name = str(server_info.get("ServerName", f"Emby ({host})"))
+
+        except EmbyAuthenticationError:
+            _LOGGER.error("Invalid API key for YAML Emby configuration: %s", host)
+            return self.async_abort(reason="invalid_auth")
+        except EmbyConnectionError:
+            _LOGGER.error("Cannot connect to Emby server from YAML configuration: %s", host)
+            return self.async_abort(reason="cannot_connect")
+        except AbortFlow:
+            # Re-raise AbortFlow exceptions (e.g., already_configured)
+            raise
+        except Exception:
+            _LOGGER.exception("Unexpected error during YAML import for Emby")
+            return self.async_abort(reason="unknown")
+
+        # Build data dict (connection info)
+        data: dict[str, object] = {
+            CONF_HOST: host,
+            CONF_PORT: port,
+            CONF_SSL: ssl,
+            CONF_API_KEY: api_key,
+            CONF_VERIFY_SSL: verify_ssl,
+        }
+
+        # Build options dict (tunable settings from YAML)
+        options: dict[str, object] = {}
+
+        # Scan interval
+        if CONF_SCAN_INTERVAL in import_data:
+            scan_val = import_data[CONF_SCAN_INTERVAL]
+            if isinstance(scan_val, (int, str)):
+                options[CONF_SCAN_INTERVAL] = int(scan_val)
+
+        # WebSocket toggle
+        if CONF_ENABLE_WEBSOCKET in import_data:
+            options[CONF_ENABLE_WEBSOCKET] = bool(import_data[CONF_ENABLE_WEBSOCKET])
+
+        # Ignored devices (comma-separated string)
+        if CONF_IGNORED_DEVICES in import_data:
+            options[CONF_IGNORED_DEVICES] = str(import_data[CONF_IGNORED_DEVICES])
+
+        # Ignore web players option
+        if CONF_IGNORE_WEB_PLAYERS in import_data:
+            options[CONF_IGNORE_WEB_PLAYERS] = bool(import_data[CONF_IGNORE_WEB_PLAYERS])
+
+        # Streaming/transcoding options
+        if CONF_DIRECT_PLAY in import_data:
+            options[CONF_DIRECT_PLAY] = bool(import_data[CONF_DIRECT_PLAY])
+
+        if CONF_VIDEO_CONTAINER in import_data:
+            options[CONF_VIDEO_CONTAINER] = str(import_data[CONF_VIDEO_CONTAINER])
+
+        if CONF_MAX_VIDEO_BITRATE in import_data:
+            video_bitrate_val = import_data[CONF_MAX_VIDEO_BITRATE]
+            if isinstance(video_bitrate_val, (int, str)):
+                options[CONF_MAX_VIDEO_BITRATE] = int(video_bitrate_val)
+
+        if CONF_MAX_AUDIO_BITRATE in import_data:
+            audio_bitrate_val = import_data[CONF_MAX_AUDIO_BITRATE]
+            if isinstance(audio_bitrate_val, (int, str)):
+                options[CONF_MAX_AUDIO_BITRATE] = int(audio_bitrate_val)
+
+        _LOGGER.info(
+            "Imported Emby configuration from YAML for server: %s",
+            server_name,
+        )
+
+        return self.async_create_entry(
+            title=server_name,
+            data=data,
+            options=options,
+        )
+
     async def async_step_user_select(
         self,
         user_input: dict[str, str] | None = None,
@@ -162,26 +281,27 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
             Config flow result (form or entry creation).
         """
         if user_input is not None:
-            # Store selected user ID (empty string means admin context)
+            # Store selected user ID (convert sentinel to empty string for admin context)
             user_id = user_input.get(CONF_USER_ID, "")
+            if user_id == "__none__":
+                user_id = ""
             return await self._async_create_entry_with_user(user_id)
 
         # Build user selection options
-        user_options: dict[str, str] = {}
+        # Use "__none__" as sentinel for admin context since empty string fails validation
+        user_options: dict[str, str] = {"__none__": "Use admin context (no user)"}
         if self._users:
             for user in self._users:
                 user_id = str(user.get("Id", ""))
                 user_name = str(user.get("Name", "Unknown"))
-                user_options[user_id] = user_name
-
-        # Add option to skip user selection (admin context)
-        user_options[""] = "Use admin context (no user)"
+                if user_id:  # Only add if valid ID
+                    user_options[user_id] = user_name
 
         return self.async_show_form(
             step_id="user_select",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_USER_ID, default=""): vol.In(user_options),
+                    vol.Required(CONF_USER_ID, default="__none__"): vol.In(user_options),
                 }
             ),
             description_placeholders={
@@ -522,6 +642,12 @@ class EmbyOptionsFlowHandler(OptionsFlow):  # type: ignore[misc]
                         CONF_IGNORED_DEVICES,
                         default=self.config_entry.options.get(CONF_IGNORED_DEVICES, ""),
                     ): str,
+                    vol.Optional(
+                        CONF_IGNORE_WEB_PLAYERS,
+                        default=self.config_entry.options.get(
+                            CONF_IGNORE_WEB_PLAYERS, DEFAULT_IGNORE_WEB_PLAYERS
+                        ),
+                    ): bool,
                     vol.Optional(
                         CONF_DIRECT_PLAY,
                         default=self.config_entry.options.get(

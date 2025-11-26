@@ -32,6 +32,7 @@ CONF_MAX_AUDIO_BITRATE: Final = "max_audio_bitrate"
 # Feature toggle option keys
 CONF_ENABLE_WEBSOCKET: Final = "enable_websocket"
 CONF_IGNORED_DEVICES: Final = "ignored_devices"
+CONF_IGNORE_WEB_PLAYERS: Final = "ignore_web_players"
 
 # Default values
 DEFAULT_PORT: Final = 8096
@@ -43,6 +44,7 @@ DEFAULT_DIRECT_PLAY: Final = True
 DEFAULT_VIDEO_CONTAINER: Final = "mp4"
 DEFAULT_ENABLE_WEBSOCKET: Final = True
 DEFAULT_IGNORED_DEVICES: Final[list[str]] = []
+DEFAULT_IGNORE_WEB_PLAYERS: Final = False
 
 # Video container options
 VIDEO_CONTAINERS: Final[list[str]] = ["mp4", "mkv", "webm"]

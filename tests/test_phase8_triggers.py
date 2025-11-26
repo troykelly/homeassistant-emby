@@ -118,10 +118,13 @@ class TestEventFiring:
     async def test_coordinator_fires_playback_events(
         self,
         hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
     ) -> None:
         """Test coordinator fires playback events."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
         from custom_components.embymedia.models import EmbyMediaItem, EmbySession, MediaType
+
+        mock_config_entry.add_to_hass(hass)
 
         mock_client = MagicMock()
         mock_client.async_get_sessions = MagicMock(return_value=[])
@@ -131,6 +134,7 @@ class TestEventFiring:
             client=mock_client,
             server_id="server-123",
             server_name="Test Server",
+            config_entry=mock_config_entry,
         )
 
         # Create entity registry entry
