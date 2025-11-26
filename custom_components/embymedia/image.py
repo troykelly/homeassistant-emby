@@ -15,6 +15,8 @@ from .const import DOMAIN
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
+    from .coordinator import EmbyDataUpdateCoordinator
+
 _LOGGER = logging.getLogger(__name__)
 
 # Cache time in seconds when image tag is provided (1 year)
@@ -34,7 +36,7 @@ async def async_setup_image_proxy(hass: HomeAssistant) -> None:
     _LOGGER.debug("Emby image proxy view registered")
 
 
-class EmbyImageProxyView(HomeAssistantView):
+class EmbyImageProxyView(HomeAssistantView):  # type: ignore[misc]
     """Proxy view for Emby images.
 
     This view proxies image requests to the Emby server, handling
@@ -120,7 +122,7 @@ class EmbyImageProxyView(HomeAssistantView):
         self,
         hass: HomeAssistant,
         server_id: str,
-    ) -> object | None:
+    ) -> EmbyDataUpdateCoordinator | None:
         """Find the coordinator for a server ID.
 
         Args:
@@ -132,7 +134,7 @@ class EmbyImageProxyView(HomeAssistantView):
         """
         for entry in hass.config_entries.async_entries(DOMAIN):
             if hasattr(entry, "runtime_data") and entry.runtime_data is not None:
-                coordinator = entry.runtime_data
+                coordinator: EmbyDataUpdateCoordinator = entry.runtime_data
                 if hasattr(coordinator, "server_id") and coordinator.server_id == server_id:
                     return coordinator
                 # Also check by unique_id which should match server_id
