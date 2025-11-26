@@ -2453,7 +2453,7 @@ class TestRemoteControlAPI:
             )
 
     @pytest.mark.asyncio
-    async def test_send_general_command_with_arguments(self) -> None:
+    async def test_send_general_command_with_args(self) -> None:
         """Test sending general command with arguments."""
         client = EmbyClient(
             host="emby.local",
@@ -2467,7 +2467,7 @@ class TestRemoteControlAPI:
             await client.async_send_general_command(
                 session_id="session-123",
                 command="DisplayContent",
-                arguments={"ItemId": "item-456"},
+                args={"ItemId": "item-456"},
             )
 
             mock_post.assert_called_once_with(
