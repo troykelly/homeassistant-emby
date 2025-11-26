@@ -654,7 +654,9 @@ class TestWebSocketSetup:
 
         session_coordinator = create_mock_session_coordinator()
         # Make WebSocket setup fail
-        session_coordinator.async_setup_websocket = AsyncMock(side_effect=Exception("WebSocket failed"))
+        session_coordinator.async_setup_websocket = AsyncMock(
+            side_effect=Exception("WebSocket failed")
+        )
         server_coordinator = create_mock_server_coordinator()
         library_coordinator = create_mock_library_coordinator()
 

@@ -68,9 +68,7 @@ class TestEmbyServerConnectedBinarySensor:
         )
         from custom_components.embymedia.coordinator_sensors import EmbyServerCoordinator
 
-        with patch(
-            "custom_components.embymedia.coordinator_sensors.EmbyServerCoordinator"
-        ):
+        with patch("custom_components.embymedia.coordinator_sensors.EmbyServerCoordinator"):
             mock_coordinator = MagicMock(spec=EmbyServerCoordinator)
             mock_coordinator.data = mock_server_data
             mock_coordinator.last_update_success = True

@@ -916,7 +916,9 @@ class TestMovieLibraryBrowsingMediaSource:
         from custom_components.embymedia.media_source import EmbyMediaSource
 
         mock_config_entry.add_to_hass(hass)
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(
@@ -948,7 +950,9 @@ class TestMovieLibraryBrowsingMediaSource:
         from custom_components.embymedia.media_source import EmbyMediaSource
 
         mock_config_entry.add_to_hass(hass)
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/movieaz/lib-movies", None)
@@ -981,7 +985,9 @@ class TestMovieLibraryBrowsingMediaSource:
             ],
             "TotalRecordCount": 1,
         }
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(
@@ -1018,7 +1024,9 @@ class TestMovieLibraryBrowsingMediaSource:
             {"Id": "y1", "Name": "2024"},
             {"Id": "y2", "Name": "2023"},
         ]
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/movieyear/lib-movies", None)
@@ -1048,7 +1056,9 @@ class TestMovieLibraryBrowsingMediaSource:
             "Items": [{"Id": "m1", "Name": "Test Movie", "Type": "Movie"}],
             "TotalRecordCount": 1,
         }
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(
@@ -1080,7 +1090,9 @@ class TestMovieLibraryBrowsingMediaSource:
         from custom_components.embymedia.media_source import EmbyMediaSource
 
         mock_config_entry.add_to_hass(hass)
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(
@@ -1112,7 +1124,9 @@ class TestMovieLibraryBrowsingMediaSource:
             "Items": [{"Id": "m1", "Name": "90s Movie", "Type": "Movie"}],
             "TotalRecordCount": 1,
         }
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(
@@ -1148,7 +1162,9 @@ class TestMovieLibraryBrowsingMediaSource:
             {"Id": "g1", "Name": "Action"},
             {"Id": "g2", "Name": "Comedy"},
         ]
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(
@@ -1180,7 +1196,9 @@ class TestMovieLibraryBrowsingMediaSource:
             "Items": [{"Id": "m1", "Name": "Action Movie", "Type": "Movie"}],
             "TotalRecordCount": 1,
         }
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(
@@ -1216,7 +1234,9 @@ class TestMovieLibraryBrowsingMediaSource:
             "Items": [{"Id": "c1", "Name": "Marvel Collection", "Type": "BoxSet"}],
             "TotalRecordCount": 1,
         }
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(
@@ -1267,7 +1287,9 @@ class TestTVLibraryBrowsingMediaSource:
         from custom_components.embymedia.media_source import EmbyMediaSource
 
         mock_config_entry.add_to_hass(hass)
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/tvlibrary/lib-tv", None)
@@ -1296,7 +1318,9 @@ class TestTVLibraryBrowsingMediaSource:
         from custom_components.embymedia.media_source import EmbyMediaSource
 
         mock_config_entry.add_to_hass(hass)
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/tvaz/lib-tv", None)
@@ -1324,7 +1348,9 @@ class TestTVLibraryBrowsingMediaSource:
             "Items": [{"Id": "s1", "Name": "Breaking Bad", "Type": "Series"}],
             "TotalRecordCount": 1,
         }
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/tvazletter/lib-tv/B", None)
@@ -1357,7 +1383,9 @@ class TestTVLibraryBrowsingMediaSource:
         mock_coordinator_for_media_source.client.async_get_years.return_value = [
             {"Id": "y1", "Name": "2024"},
         ]
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/tvyear/lib-tv", None)
@@ -1386,7 +1414,9 @@ class TestTVLibraryBrowsingMediaSource:
             "Items": [{"Id": "s1", "Name": "Test Show", "Type": "Series"}],
             "TotalRecordCount": 1,
         }
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(
@@ -1418,7 +1448,9 @@ class TestTVLibraryBrowsingMediaSource:
         from custom_components.embymedia.media_source import EmbyMediaSource
 
         mock_config_entry.add_to_hass(hass)
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/tvdecade/lib-tv", None)
@@ -1447,7 +1479,9 @@ class TestTVLibraryBrowsingMediaSource:
             "Items": [{"Id": "s1", "Name": "90s Show", "Type": "Series"}],
             "TotalRecordCount": 1,
         }
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(
@@ -1477,7 +1511,9 @@ class TestTVLibraryBrowsingMediaSource:
         mock_coordinator_for_media_source.client.async_get_genres.return_value = [
             {"Id": "g1", "Name": "Drama"},
         ]
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/tvgenre/lib-tv", None)
@@ -1506,7 +1542,9 @@ class TestTVLibraryBrowsingMediaSource:
             "Items": [{"Id": "s1", "Name": "Drama Show", "Type": "Series"}],
             "TotalRecordCount": 1,
         }
-        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator_for_media_source)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
 
         media_source = EmbyMediaSource(hass)
         item = MediaSourceItem(

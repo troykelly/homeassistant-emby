@@ -373,9 +373,7 @@ class TestCoordinatorErrorHandling:
         from custom_components.embymedia.coordinator_sensors import EmbyServerCoordinator
         from custom_components.embymedia.exceptions import EmbyError
 
-        mock_emby_client.async_get_server_info = AsyncMock(
-            side_effect=EmbyError("API error")
-        )
+        mock_emby_client.async_get_server_info = AsyncMock(side_effect=EmbyError("API error"))
 
         coordinator = EmbyServerCoordinator(
             hass=hass,
@@ -426,9 +424,7 @@ class TestCoordinatorErrorHandling:
         from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
         from custom_components.embymedia.exceptions import EmbyError
 
-        mock_emby_client.async_get_item_counts = AsyncMock(
-            side_effect=EmbyError("API error")
-        )
+        mock_emby_client.async_get_item_counts = AsyncMock(side_effect=EmbyError("API error"))
 
         coordinator = EmbyLibraryCoordinator(
             hass=hass,
