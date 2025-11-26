@@ -92,6 +92,51 @@
       "unsupported_version": "This Emby server version is not supported"
     }
   },
+  "entity": {
+    "binary_sensor": {
+      "server_connected": {
+        "name": "Server Connected"
+      },
+      "pending_restart": {
+        "name": "Pending Restart"
+      },
+      "update_available": {
+        "name": "Update Available"
+      },
+      "library_scan_active": {
+        "name": "Library Scan Active"
+      }
+    },
+    "sensor": {
+      "server_version": {
+        "name": "Server Version"
+      },
+      "running_tasks": {
+        "name": "Running Tasks"
+      },
+      "active_sessions": {
+        "name": "Active Sessions"
+      },
+      "movie_count": {
+        "name": "Movies"
+      },
+      "series_count": {
+        "name": "TV Shows"
+      },
+      "episode_count": {
+        "name": "Episodes"
+      },
+      "song_count": {
+        "name": "Songs"
+      },
+      "album_count": {
+        "name": "Albums"
+      },
+      "artist_count": {
+        "name": "Artists"
+      }
+    }
+  },
   "options": {
     "step": {
       "init": {
