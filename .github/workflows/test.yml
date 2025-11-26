@@ -1,10 +1,12 @@
-name: Test
+name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: "0 0 * * *"
 
 jobs:
   test:
@@ -27,8 +29,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements_test.txt
 
-      - name: Run ruff
+      - name: Run ruff check
         run: ruff check custom_components/embymedia tests
+
+      - name: Run ruff format check
+        run: ruff format --check custom_components/embymedia tests
 
       - name: Run mypy
         run: mypy custom_components/embymedia
@@ -37,7 +42,7 @@ jobs:
         run: pytest tests/ --cov=custom_components.embymedia --cov-report=xml --cov-fail-under=100
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
