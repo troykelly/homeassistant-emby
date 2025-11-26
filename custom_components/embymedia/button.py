@@ -125,11 +125,7 @@ class EmbyRefreshLibraryButton(CoordinatorEntity["EmbyDataUpdateCoordinator"], B
             CONF_PREFIX_BUTTON, DEFAULT_PREFIX_BUTTON
         )
         server_name = self.coordinator.server_name
-
-        if use_prefix:
-            device_name = f"Emby {server_name}"
-        else:
-            device_name = server_name
+        device_name = f"Emby {server_name}" if use_prefix else server_name
 
         return DeviceInfo(
             identifiers={(DOMAIN, self.coordinator.server_id)},

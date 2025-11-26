@@ -125,9 +125,7 @@ class EmbyEntity(CoordinatorEntity["EmbyDataUpdateCoordinator"]):  # type: ignor
             Device name with or without 'Emby' prefix based on user setting.
         """
         # Get the prefix toggle from options (with fallback to default)
-        use_prefix: bool = self.coordinator.config_entry.options.get(
-            prefix_key, prefix_default
-        )
+        use_prefix: bool = self.coordinator.config_entry.options.get(prefix_key, prefix_default)
 
         session = self.session
         if session is not None:
