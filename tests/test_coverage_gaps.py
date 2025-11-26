@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
+from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
@@ -118,10 +120,8 @@ class TestCoordinatorWebSocketErrors:
                 await hass.async_block_till_done()
 
                 # Wait briefly for receive loop to be called
-                try:
+                with contextlib.suppress(TimeoutError):
                     await asyncio.wait_for(receive_called.wait(), timeout=1.0)
-                except asyncio.TimeoutError:
-                    pass  # May not be called if setup finishes first
 
     @pytest.mark.asyncio
     async def test_websocket_connection_failure(
@@ -191,7 +191,7 @@ class TestWebSocketJsonDecodeErrors:
 
         # Simulate processing many JSON decode errors
         ws._ws = MagicMock()  # Set _ws to simulate connected state
-        for i in range(9):
+        for _i in range(9):
             result = ws._process_message(mock_msg)
             assert result is True  # Should still return True, not disconnected yet
 
@@ -281,7 +281,6 @@ class TestApiInvalidJsonResponse:
     @pytest.mark.asyncio
     async def test_api_returns_invalid_json(self) -> None:
         """Test API client handles invalid JSON responses."""
-        from contextlib import asynccontextmanager
         from custom_components.embymedia.api import EmbyClient
 
         # Create a mock response
@@ -321,7 +320,6 @@ class TestApiInvalidJsonResponse:
     @pytest.mark.asyncio
     async def test_api_returns_content_type_error(self) -> None:
         """Test API client handles ContentTypeError responses."""
-        from contextlib import asynccontextmanager
         from custom_components.embymedia.api import EmbyClient
 
         # Create a mock response
