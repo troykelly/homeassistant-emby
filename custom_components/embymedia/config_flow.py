@@ -22,6 +22,7 @@ from .const import (
     CONF_DIRECT_PLAY,
     CONF_MAX_AUDIO_BITRATE,
     CONF_MAX_VIDEO_BITRATE,
+    CONF_USER_ID,
     CONF_VERIFY_SSL,
     CONF_VIDEO_CONTAINER,
     DEFAULT_DIRECT_PLAY,
@@ -37,6 +38,7 @@ from .const import (
     VIDEO_CONTAINERS,
     EmbyConfigFlowUserInput,
     EmbyServerInfo,
+    EmbyUser,
     normalize_host,
 )
 from .exceptions import (
@@ -96,6 +98,9 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
         """Initialize the config flow."""
         self._reauth_entry: ConfigEntry | None = None
         self._server_info: EmbyServerInfo | None = None
+        self._user_input: EmbyConfigFlowUserInput | None = None
+        self._users: list[EmbyUser] | None = None
+        self._client: EmbyClient | None = None
 
     async def async_step_user(
         self,
@@ -123,8 +128,9 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
                 errors = await self._async_validate_connection(user_input)
 
             if not errors:
-                # Create the config entry
-                return await self._async_create_entry(user_input)
+                # Store validated input and proceed to user selection
+                self._user_input = user_input
+                return await self.async_step_user_select()
 
             # Re-show form with errors (preserve input except API key)
             return self.async_show_form(
@@ -138,6 +144,88 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
             step_id="user",
             data_schema=_build_user_schema(),
             errors=errors,
+        )
+
+    async def async_step_user_select(
+        self,
+        user_input: dict[str, str] | None = None,
+    ) -> ConfigFlowResult:
+        """Handle user selection step.
+
+        Args:
+            user_input: User selection from form.
+
+        Returns:
+            Config flow result (form or entry creation).
+        """
+        if user_input is not None:
+            # Store selected user ID (empty string means admin context)
+            user_id = user_input.get(CONF_USER_ID, "")
+            return await self._async_create_entry_with_user(user_id)
+
+        # Build user selection options
+        user_options: dict[str, str] = {}
+        if self._users:
+            for user in self._users:
+                user_id = str(user.get("Id", ""))
+                user_name = str(user.get("Name", "Unknown"))
+                user_options[user_id] = user_name
+
+        # Add option to skip user selection (admin context)
+        user_options[""] = "Use admin context (no user)"
+
+        return self.async_show_form(
+            step_id="user_select",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_USER_ID, default=""): vol.In(user_options),
+                }
+            ),
+            description_placeholders={
+                "server_name": (
+                    self._server_info.get("ServerName", "Emby Server")
+                    if self._server_info
+                    else "Emby Server"
+                ),
+            },
+        )
+
+    async def _async_create_entry_with_user(
+        self,
+        user_id: str,
+    ) -> ConfigFlowResult:
+        """Create config entry with user selection.
+
+        Args:
+            user_id: Selected user ID (empty for admin context).
+
+        Returns:
+            Config entry creation result.
+        """
+        if self._user_input is None:
+            return self.async_abort(reason="unknown")
+
+        server_info = self._server_info
+        if server_info is not None:
+            server_name = server_info.get("ServerName") or f"Emby ({self._user_input['host']})"
+        else:
+            server_name = f"Emby ({self._user_input['host']})"
+
+        data = {
+            CONF_HOST: self._user_input["host"],
+            CONF_PORT: self._user_input["port"],
+            CONF_SSL: self._user_input.get("ssl", DEFAULT_SSL),
+            CONF_API_KEY: self._user_input["api_key"],
+            CONF_VERIFY_SSL: self._user_input.get("verify_ssl", DEFAULT_VERIFY_SSL),
+        }
+
+        # Only store user_id if a user was selected
+        if user_id:
+            data[CONF_USER_ID] = user_id
+
+        return self.async_create_entry(
+            title=server_name,
+            data=data,
         )
 
     def _validate_input(
@@ -215,6 +303,10 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
             # Store server info for entry creation
             self._server_info = server_info
 
+            # Fetch users for user selection step
+            self._users = await client.async_get_users()
+            self._client = client
+
         except EmbyTimeoutError:
             errors["base"] = "timeout"
         except EmbySSLError:
@@ -280,16 +372,21 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
             server_name = f"Emby ({user_input['host']})"
 
         if self._reauth_entry is not None:
-            # Update existing entry for reauth
+            # Update existing entry for reauth, preserving user_id
+            existing_user_id = self._reauth_entry.data.get(CONF_USER_ID)
+            data = {
+                CONF_HOST: user_input["host"],
+                CONF_PORT: user_input["port"],
+                CONF_SSL: user_input.get("ssl", DEFAULT_SSL),
+                CONF_API_KEY: user_input["api_key"],
+                CONF_VERIFY_SSL: user_input.get("verify_ssl", DEFAULT_VERIFY_SSL),
+            }
+            if existing_user_id:
+                data[CONF_USER_ID] = existing_user_id
+
             self.hass.config_entries.async_update_entry(
                 self._reauth_entry,
-                data={
-                    CONF_HOST: user_input["host"],
-                    CONF_PORT: user_input["port"],
-                    CONF_SSL: user_input.get("ssl", DEFAULT_SSL),
-                    CONF_API_KEY: user_input["api_key"],
-                    CONF_VERIFY_SSL: user_input.get("verify_ssl", DEFAULT_VERIFY_SSL),
-                },
+                data=data,
             )
             await self.hass.config_entries.async_reload(self._reauth_entry.entry_id)
             return self.async_abort(reason="reauth_successful")
@@ -390,7 +487,9 @@ class EmbyOptionsFlowHandler(OptionsFlow):  # type: ignore[misc]
         Args:
             config_entry: The config entry being configured.
         """
-        self.config_entry = config_entry
+        # Note: The base OptionsFlow class sets self.config_entry automatically
+        # in HA 2025.x. We accept the parameter but don't need to store it.
+        super().__init__()
 
     async def async_step_init(
         self,
