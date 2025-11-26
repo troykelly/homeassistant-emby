@@ -69,7 +69,7 @@
           "prefix_button": "Prefix button names with 'Emby'"
         },
         "data_description": {
-          "prefix_media_player": "When enabled, media player devices will be named 'Emby <device>' (e.g., 'Emby Living Room TV')",
+          "prefix_media_player": "When enabled, media player device names will start with 'Emby' (e.g., 'Emby Living Room TV')",
           "prefix_notify": "When enabled, notification devices will have 'Emby' prefix",
           "prefix_remote": "When enabled, remote control devices will have 'Emby' prefix",
           "prefix_button": "When enabled, server action buttons will have 'Emby' prefix"

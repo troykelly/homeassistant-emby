@@ -344,19 +344,11 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
                 CONF_PREFIX_MEDIA_PLAYER: user_input.get(
                     CONF_PREFIX_MEDIA_PLAYER, DEFAULT_PREFIX_MEDIA_PLAYER
                 ),
-                CONF_PREFIX_NOTIFY: user_input.get(
-                    CONF_PREFIX_NOTIFY, DEFAULT_PREFIX_NOTIFY
-                ),
-                CONF_PREFIX_REMOTE: user_input.get(
-                    CONF_PREFIX_REMOTE, DEFAULT_PREFIX_REMOTE
-                ),
-                CONF_PREFIX_BUTTON: user_input.get(
-                    CONF_PREFIX_BUTTON, DEFAULT_PREFIX_BUTTON
-                ),
+                CONF_PREFIX_NOTIFY: user_input.get(CONF_PREFIX_NOTIFY, DEFAULT_PREFIX_NOTIFY),
+                CONF_PREFIX_REMOTE: user_input.get(CONF_PREFIX_REMOTE, DEFAULT_PREFIX_REMOTE),
+                CONF_PREFIX_BUTTON: user_input.get(CONF_PREFIX_BUTTON, DEFAULT_PREFIX_BUTTON),
             }
-            return await self._async_create_entry_with_user(
-                self._selected_user_id, options
-            )
+            return await self._async_create_entry_with_user(self._selected_user_id, options)
 
         # Show entity options form with all prefixes enabled by default
         return self.async_show_form(
