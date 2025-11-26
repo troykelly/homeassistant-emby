@@ -76,7 +76,12 @@ ENDPOINT_USERS: Final = "/Users"
 ENDPOINT_SESSIONS: Final = "/Sessions"
 
 # Platforms
-PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER, Platform.NOTIFY, Platform.REMOTE]
+PLATFORMS: list[Platform] = [
+    Platform.BUTTON,
+    Platform.MEDIA_PLAYER,
+    Platform.NOTIFY,
+    Platform.REMOTE,
+]
 
 
 # =============================================================================
