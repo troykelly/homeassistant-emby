@@ -329,7 +329,7 @@ class TestConfigFlow:
                 return_value={
                     "Id": "server-123",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_users = AsyncMock(return_value=mock_users)
@@ -647,7 +647,7 @@ class TestReauthFlow:
                 return_value={
                     "Id": "test-server-id-12345",
                     "ServerName": "Test Emby Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_users = AsyncMock(return_value=mock_users)
@@ -827,7 +827,7 @@ class TestUserSelectionFlow:
                 return_value={
                     "Id": "server-123",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_users = AsyncMock(return_value=mock_users)
@@ -865,7 +865,7 @@ class TestUserSelectionFlow:
                 return_value={
                     "Id": "server-123",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_users = AsyncMock(return_value=mock_users)
@@ -931,7 +931,7 @@ class TestUserSelectionFlow:
                 return_value={
                     "Id": "server-123",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_users = AsyncMock(return_value=multiple_users)
@@ -978,7 +978,7 @@ class TestUserSelectionFlow:
                 return_value={
                     "Id": "server-123",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_users = AsyncMock(return_value=mock_users)
@@ -1122,7 +1122,7 @@ class TestConfigFlowEdgeCases:
                 return_value={
                     "Id": "test-server-id-12345",
                     "ServerName": "Test Emby Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_users = AsyncMock(return_value=[])
@@ -1143,7 +1143,7 @@ class TestConfigFlowEdgeCases:
                     return_value={
                         "Id": "test-server-id-12345",
                         "ServerName": "Test Server",
-                        "Version": "4.8.0.0",
+                        "Version": "4.9.2.0",
                     }
                 )
                 int_client.async_get_sessions = AsyncMock(return_value=[])

@@ -881,7 +881,7 @@ A systematic, deep code review to ensure production quality before release. This
 
 ### Code Review Summary
 
-**Overall Assessment: Ready to proceed with minor recommendations**
+**Overall Assessment: All feedback implemented and verified**
 
 Key findings across all stages:
 - Excellent architecture following HA 2025 patterns
@@ -891,18 +891,33 @@ Key findings across all stages:
 - Well-designed caching and performance optimization
 - Proper credential protection and diagnostics redaction
 
-**Critical issues identified (all addressed or documented):**
-1. JSON parsing error handling in API (Stage 2) - edge case
-2. Media browse ID encoding inconsistency (Stage 5) - by design for different contexts
-3. API session cleanup on unload (Stage 8) - tracked for future
-4. WebSocket reconnection locking (Stage 8) - tracked for future
-5. Session management in API (Stage 9) - minor cleanup
+**Issues identified and resolved (2025-11-26):**
 
-**Recommended improvements (tracked for v0.2.0):**
-- Add rate limiting for WebSocket refresh triggers
-- Add memory-based cache eviction
-- Add service call logging for debugging
-- Add batch API operations for large libraries
+| Stage | Issue | Resolution |
+|-------|-------|------------|
+| 1 | WebSocket calls private `_async_receive_loop` | Renamed to public `async_run_receive_loop` |
+| 1 | Broad exception catching in WebSocket | Replaced with specific types (`OSError`, `TimeoutError`, `aiohttp.ClientError`) |
+| 2 | JSON parsing error handling in API | Added explicit `json.JSONDecodeError` handling |
+| 3 | Notify entity availability inconsistency | Fixed to use base class `available` property pattern |
+| 3 | Broad exception handling in entities | Replaced with `EmbyError`, `EmbyConnectionError` |
+| 4 | Version placeholders missing in error | Added `{current_version}` and `{min_version}` to translation |
+| 6 | WebSocket task not cancelled on shutdown | Added task cancellation in disconnect |
+| 6 | No rate limiting for WebSocket refresh | Added debouncing with 1-second minimum interval |
+| 6 | No error handling for WebSocket subscribe | Added try/except around subscribe calls |
+| 7 | No device targeting in services.yaml | Added `target.device.integration: embymedia` |
+| 7 | No API error handling in service handlers | Added `EmbyConnectionError`, `EmbyError` handlers |
+| 7 | Offline sessions silently skipped | Now raises `HomeAssistantError` with clear message |
+| 8 | API client session not cleaned up on unload | Added session cleanup in coordinator close |
+| 8 | No locking for WebSocket reconnection | Added `asyncio.Lock` for reconnection |
+| 8 | Broad exception in image proxy | Replaced with `aiohttp.ClientError`, `TimeoutError`, `OSError` |
+| 9 | Session management in `_get_session` | Fixed to properly manage session lifecycle |
+| 10 | No validation for Emby IDs in services | Added `_validate_emby_id()` function |
+| 10 | No search term length validation | Added `MAX_SEARCH_TERM_LENGTH` (200 chars) validation |
+
+**Additional updates:**
+- Minimum Emby version updated to `4.9.1.90`
+- Version comparison updated to handle 4-part version numbers
+- Services filter to only target `media_player` entities (not `button`)
 
 ### Code Review Acceptance Criteria
 

@@ -13,7 +13,8 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
-from .const import DOMAIN
+from .const import DOMAIN, MAX_SEARCH_TERM_LENGTH
+from .exceptions import EmbyConnectionError, EmbyError
 
 if TYPE_CHECKING:
     from .coordinator import EmbyDataUpdateCoordinator
@@ -77,6 +78,34 @@ REFRESH_LIBRARY_SCHEMA = vol.Schema(
 )
 
 
+def _validate_emby_id(id_value: str, id_name: str) -> None:
+    """Validate an Emby ID.
+
+    Args:
+        id_value: The ID value to validate.
+        id_name: Name of the ID for error messages.
+
+    Raises:
+        ServiceValidationError: If ID is invalid.
+    """
+    if not id_value or not id_value.strip():
+        raise ServiceValidationError(f"Invalid {id_name}: cannot be empty")
+
+    # Emby IDs are typically alphanumeric with possible dashes
+    # They should not contain suspicious characters
+    if len(id_value) > MAX_SEARCH_TERM_LENGTH:
+        raise ServiceValidationError(
+            f"Invalid {id_name}: exceeds maximum length of {MAX_SEARCH_TERM_LENGTH}"
+        )
+
+    # Basic validation - Emby IDs are alphanumeric with possible dashes/underscores
+    invalid_chars = set(id_value) - set(
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_"
+    )
+    if invalid_chars:
+        raise ServiceValidationError(f"Invalid {id_name}: contains invalid characters")
+
+
 def _get_entity_ids_from_call(hass: HomeAssistant, call: ServiceCall) -> list[str]:
     """Get entity IDs from service call data (supports both entity_id and device_id).
 
@@ -115,9 +144,10 @@ def _get_entity_ids_from_call(hass: HomeAssistant, call: ServiceCall) -> list[st
             if device is None:
                 raise ServiceValidationError(f"Device {device_id} not found")
 
-            # Find all entities for this device that belong to our domain
+            # Find media_player entities for this device (only media_player has sessions)
+            # Button entities are server-level and don't have sessions
             for entry in er.async_entries_for_device(entity_registry, device_id):
-                if entry.platform == DOMAIN:
+                if entry.platform == DOMAIN and entry.domain == "media_player":
                     entity_ids.append(entry.entity_id)
 
     if not entity_ids:
@@ -147,13 +177,24 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
             session_id = _get_session_id_for_entity(hass, entity_id, coordinator)
 
-            if session_id:
+            if session_id is None:
+                raise HomeAssistantError(
+                    f"Session not found for {entity_id}. The device may be offline."
+                )
+
+            try:
                 await coordinator.client.async_send_message(
                     session_id=session_id,
                     text=message,
                     header=header,
                     timeout_ms=timeout_ms,
                 )
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to send message to {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(f"Failed to send message to {entity_id}: {err}") from err
 
     async def async_send_command(call: ServiceCall) -> None:
         """Send a command to Emby clients."""
@@ -164,11 +205,22 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
             session_id = _get_session_id_for_entity(hass, entity_id, coordinator)
 
-            if session_id:
+            if session_id is None:
+                raise HomeAssistantError(
+                    f"Session not found for {entity_id}. The device may be offline."
+                )
+
+            try:
                 await coordinator.client.async_send_general_command(
                     session_id=session_id,
                     command=command,
                 )
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to send command to {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(f"Failed to send command to {entity_id}: {err}") from err
 
     async def async_mark_played(call: ServiceCall) -> None:
         """Mark item as played."""
@@ -176,6 +228,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         item_id: str = call.data[ATTR_ITEM_ID]
         user_id: str | None = call.data.get(ATTR_USER_ID)
 
+        # Validate IDs
+        _validate_emby_id(item_id, "item_id")
+        if user_id:
+            _validate_emby_id(user_id, "user_id")
+
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
             effective_user_id = user_id or _get_user_id_for_entity(hass, entity_id, coordinator)
@@ -185,10 +242,19 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"No user_id available for {entity_id}. Please provide user_id parameter."
                 )
 
-            await coordinator.client.async_mark_played(
-                user_id=effective_user_id,
-                item_id=item_id,
-            )
+            try:
+                await coordinator.client.async_mark_played(
+                    user_id=effective_user_id,
+                    item_id=item_id,
+                )
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to mark item played for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(
+                    f"Failed to mark item played for {entity_id}: {err}"
+                ) from err
 
     async def async_mark_unplayed(call: ServiceCall) -> None:
         """Mark item as unplayed."""
@@ -196,6 +262,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         item_id: str = call.data[ATTR_ITEM_ID]
         user_id: str | None = call.data.get(ATTR_USER_ID)
 
+        # Validate IDs
+        _validate_emby_id(item_id, "item_id")
+        if user_id:
+            _validate_emby_id(user_id, "user_id")
+
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
             effective_user_id = user_id or _get_user_id_for_entity(hass, entity_id, coordinator)
@@ -205,10 +276,19 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"No user_id available for {entity_id}. Please provide user_id parameter."
                 )
 
-            await coordinator.client.async_mark_unplayed(
-                user_id=effective_user_id,
-                item_id=item_id,
-            )
+            try:
+                await coordinator.client.async_mark_unplayed(
+                    user_id=effective_user_id,
+                    item_id=item_id,
+                )
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to mark item unplayed for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(
+                    f"Failed to mark item unplayed for {entity_id}: {err}"
+                ) from err
 
     async def async_add_favorite(call: ServiceCall) -> None:
         """Add item to favorites."""
@@ -216,6 +296,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         item_id: str = call.data[ATTR_ITEM_ID]
         user_id: str | None = call.data.get(ATTR_USER_ID)
 
+        # Validate IDs
+        _validate_emby_id(item_id, "item_id")
+        if user_id:
+            _validate_emby_id(user_id, "user_id")
+
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
             effective_user_id = user_id or _get_user_id_for_entity(hass, entity_id, coordinator)
@@ -225,10 +310,17 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"No user_id available for {entity_id}. Please provide user_id parameter."
                 )
 
-            await coordinator.client.async_add_favorite(
-                user_id=effective_user_id,
-                item_id=item_id,
-            )
+            try:
+                await coordinator.client.async_add_favorite(
+                    user_id=effective_user_id,
+                    item_id=item_id,
+                )
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to add favorite for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(f"Failed to add favorite for {entity_id}: {err}") from err
 
     async def async_remove_favorite(call: ServiceCall) -> None:
         """Remove item from favorites."""
@@ -236,6 +328,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         item_id: str = call.data[ATTR_ITEM_ID]
         user_id: str | None = call.data.get(ATTR_USER_ID)
 
+        # Validate IDs
+        _validate_emby_id(item_id, "item_id")
+        if user_id:
+            _validate_emby_id(user_id, "user_id")
+
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
             effective_user_id = user_id or _get_user_id_for_entity(hass, entity_id, coordinator)
@@ -245,19 +342,41 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"No user_id available for {entity_id}. Please provide user_id parameter."
                 )
 
-            await coordinator.client.async_remove_favorite(
-                user_id=effective_user_id,
-                item_id=item_id,
-            )
+            try:
+                await coordinator.client.async_remove_favorite(
+                    user_id=effective_user_id,
+                    item_id=item_id,
+                )
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to remove favorite for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(
+                    f"Failed to remove favorite for {entity_id}: {err}"
+                ) from err
 
     async def async_refresh_library(call: ServiceCall) -> None:
         """Trigger library refresh."""
         entity_ids = _get_entity_ids_from_call(hass, call)
         library_id: str | None = call.data.get(ATTR_LIBRARY_ID)
 
+        # Validate library_id if provided
+        if library_id:
+            _validate_emby_id(library_id, "library_id")
+
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
-            await coordinator.client.async_refresh_library(library_id=library_id)
+            try:
+                await coordinator.client.async_refresh_library(library_id=library_id)
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to refresh library for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(
+                    f"Failed to refresh library for {entity_id}: {err}"
+                ) from err
 
     # Register services
     hass.services.async_register(

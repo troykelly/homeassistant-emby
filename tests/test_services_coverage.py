@@ -518,7 +518,7 @@ class TestServicesSetup:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=[])
@@ -556,7 +556,7 @@ class TestServicesSetup:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=[])
@@ -617,7 +617,7 @@ class TestServiceHandlers:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -689,7 +689,7 @@ class TestServiceHandlers:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -752,7 +752,7 @@ class TestServiceHandlers:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -819,7 +819,7 @@ class TestServiceHandlers:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -886,7 +886,7 @@ class TestServiceHandlers:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -952,7 +952,7 @@ class TestServiceHandlers:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -1018,7 +1018,7 @@ class TestServiceHandlers:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -1083,7 +1083,7 @@ class TestServiceHandlers:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -1145,7 +1145,7 @@ class TestServiceHandlers:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -1206,7 +1206,7 @@ class TestServiceEdgeCases:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=[])
@@ -1270,7 +1270,7 @@ class TestServiceEdgeCases:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -1308,12 +1308,12 @@ class TestServiceEdgeCases:
             assert "No user_id available" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_send_message_no_session_skips_entity(
+    async def test_send_message_no_session_raises_error(
         self,
         hass: HomeAssistant,
         mock_config_entry: MockConfigEntry,
     ) -> None:
-        """Test send_message skips entity when no session found."""
+        """Test send_message raises error when no session found."""
         mock_config_entry.add_to_hass(hass)
 
         with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
@@ -1323,7 +1323,7 @@ class TestServiceEdgeCases:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             # Session initially
@@ -1363,16 +1363,20 @@ class TestServiceEdgeCases:
 
             assert entity_id is not None
 
-            # Should not raise, but also not call the client method
-            await hass.services.async_call(
-                DOMAIN,
-                "send_message",
-                {
-                    ATTR_ENTITY_ID: entity_id,
-                    "message": "Hello",
-                },
-                blocking=True,
-            )
+            # Should raise HomeAssistantError when session not found
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "send_message",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "message": "Hello",
+                    },
+                    blocking=True,
+                )
+
+            assert "Session not found" in str(exc_info.value)
+            assert "offline" in str(exc_info.value)
 
             # Client method was NOT called since no session
             client.async_send_message.assert_not_called()
@@ -1446,7 +1450,7 @@ class TestServiceEdgeCases:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -1513,7 +1517,7 @@ class TestServiceEdgeCases:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -1580,7 +1584,7 @@ class TestServiceEdgeCases:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)

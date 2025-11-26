@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.embymedia.const import DOMAIN
+from custom_components.embymedia.exceptions import EmbyError
 from custom_components.embymedia.models import EmbySession
 
 if TYPE_CHECKING:
@@ -37,7 +38,7 @@ def mock_server_info() -> dict:
     return {
         "Id": "server-123",
         "ServerName": "Test Server",
-        "Version": "4.8.0",
+        "Version": "4.9.2.0",
     }
 
 
@@ -133,6 +134,7 @@ class TestEmbyNotifyEntity:
         mock_coordinator.data = {}  # No sessions
         mock_coordinator.last_update_success = True
         mock_coordinator.async_add_listener = MagicMock(return_value=MagicMock())
+        mock_coordinator.get_session = MagicMock(return_value=None)
 
         entity = EmbyNotifyEntity(mock_coordinator, "device-1")
 
@@ -151,6 +153,7 @@ class TestEmbyNotifyEntity:
         mock_coordinator.data = None
         mock_coordinator.last_update_success = True
         mock_coordinator.async_add_listener = MagicMock(return_value=MagicMock())
+        mock_coordinator.get_session = MagicMock(return_value=None)
 
         entity = EmbyNotifyEntity(mock_coordinator, "device-1")
 
@@ -312,7 +315,7 @@ class TestNotifySendMessage:
         )
 
         mock_client = MagicMock()
-        mock_client.async_send_message = AsyncMock(side_effect=Exception("API Error"))
+        mock_client.async_send_message = AsyncMock(side_effect=EmbyError("API Error"))
 
         mock_coordinator = MagicMock()
         mock_coordinator.server_id = "server-123"

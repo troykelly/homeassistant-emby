@@ -56,7 +56,7 @@ class TestConfigFlowUserSelection:
                 return_value={
                     "Id": "server-123",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0",
+                    "Version": "4.9.2.0",
                 }
             )
             mock_client.async_get_users = AsyncMock(
@@ -103,7 +103,7 @@ class TestConfigFlowUserSelection:
                 return_value={
                     "Id": "server-123",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0",
+                    "Version": "4.9.2.0",
                 }
             )
             mock_client.async_get_users = AsyncMock(
@@ -155,7 +155,7 @@ class TestConfigFlowUserSelection:
                 return_value={
                     "Id": "server-123",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0",
+                    "Version": "4.9.2.0",
                 }
             )
             mock_client.async_get_users = AsyncMock(

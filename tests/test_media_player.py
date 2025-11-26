@@ -23,7 +23,7 @@ def mock_session_playing() -> MagicMock:
     session.device_id = "device-abc-123"
     session.device_name = "Living Room TV"
     session.client_name = "Emby Theater"
-    session.app_version = "4.8.0.0"
+    session.app_version = "4.9.2.0"
     session.is_playing = True
     session.play_state = MagicMock()
     session.play_state.is_paused = False
@@ -37,7 +37,7 @@ def mock_session_paused() -> MagicMock:
     session.device_id = "device-abc-123"
     session.device_name = "Living Room TV"
     session.client_name = "Emby Theater"
-    session.app_version = "4.8.0.0"
+    session.app_version = "4.9.2.0"
     session.is_playing = True
     session.play_state = MagicMock()
     session.play_state.is_paused = True
@@ -51,7 +51,7 @@ def mock_session_idle() -> MagicMock:
     session.device_id = "device-abc-123"
     session.device_name = "Living Room TV"
     session.client_name = "Emby Theater"
-    session.app_version = "4.8.0.0"
+    session.app_version = "4.9.2.0"
     session.is_playing = False
     session.play_state = None
     return session
@@ -421,7 +421,7 @@ class TestEntityLifecycle:
         new_session.device_id = "device-abc-123"  # Same device
         new_session.device_name = "Living Room TV"
         new_session.client_name = "Emby Theater"
-        new_session.app_version = "4.8.0.0"
+        new_session.app_version = "4.9.2.0"
         new_session.is_playing = False
         new_session.play_state = None
 

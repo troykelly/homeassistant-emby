@@ -67,7 +67,7 @@
       "invalid_port": "Port must be between 1 and 65535",
       "timeout": "Connection timed out. The server may be unreachable or slow to respond.",
       "ssl_error": "SSL certificate verification failed. Enable 'Verify SSL Certificate' option or check your certificate.",
-      "unsupported_version": "Emby server version {version} is not supported. Minimum required: {min_version}",
+      "unsupported_version": "This Emby server version is not supported. Please upgrade to version 4.9.1.90 or later.",
       "unknown": "An unexpected error occurred. Please check the logs for details."
     },
     "abort": {

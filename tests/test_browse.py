@@ -221,7 +221,7 @@ def mock_session_with_user() -> MagicMock:
     session.device_id = "device-abc-123"
     session.device_name = "Living Room TV"
     session.client_name = "Emby Theater"
-    session.app_version = "4.8.0.0"
+    session.app_version = "4.9.2.0"
     session.is_playing = False
     session.play_state = None
     session.supports_remote_control = True

@@ -894,7 +894,7 @@ class TestCoordinatorWebSocket:
 
         # Create a mock websocket that raises an exception
         mock_ws = SyncMagicMock()
-        mock_ws._async_receive_loop = AsyncMock(side_effect=RuntimeError("Connection lost"))
+        mock_ws.async_run_receive_loop = AsyncMock(side_effect=OSError("Connection lost"))
 
         coordinator._websocket = mock_ws
         coordinator._websocket_enabled = True
@@ -902,7 +902,7 @@ class TestCoordinatorWebSocket:
         with caplog.at_level("WARNING"):
             await coordinator._async_websocket_receive_loop()
 
-        assert "WebSocket receive loop error" in caplog.text
+        assert "WebSocket OS error" in caplog.text
         assert "Connection lost" in caplog.text
 
 

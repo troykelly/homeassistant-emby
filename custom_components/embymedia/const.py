@@ -57,9 +57,15 @@ MAX_SCAN_INTERVAL: Final = 300
 WEBSOCKET_POLL_INTERVAL: Final = 60  # Reduced polling when WebSocket connected
 FALLBACK_POLL_INTERVAL: Final = 10  # Normal polling when WebSocket disconnected
 
+# Notification defaults
+DEFAULT_NOTIFICATION_TIMEOUT_MS: Final = 5000  # 5 seconds
+
+# Search validation
+MAX_SEARCH_TERM_LENGTH: Final = 200
+
 # API constants
 EMBY_TICKS_PER_SECOND: Final = 10_000_000
-EMBY_MIN_VERSION: Final = "4.7.0"
+EMBY_MIN_VERSION: Final = "4.9.1.90"
 
 # HTTP constants
 HEADER_AUTHORIZATION: Final = "X-Emby-Token"

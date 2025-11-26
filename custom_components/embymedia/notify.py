@@ -12,8 +12,9 @@ from homeassistant.components.notify import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import EmbyConfigEntry
+from .const import DEFAULT_NOTIFICATION_TIMEOUT_MS, EmbyConfigEntry
 from .entity import EmbyEntity
+from .exceptions import EmbyConnectionError, EmbyError
 
 if TYPE_CHECKING:
     from .coordinator import EmbyDataUpdateCoordinator
@@ -90,16 +91,6 @@ class EmbyNotifyEntity(EmbyEntity, NotifyEntity):  # type: ignore[misc]
         """
         return f"{self.coordinator.server_id}_{self._device_id}_notify"
 
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available.
-
-        The notify entity is available when the session exists.
-        """
-        if self.coordinator.data is None:
-            return False
-        return self._device_id in self.coordinator.data
-
     async def async_send_message(
         self,
         message: str,
@@ -121,21 +112,26 @@ class EmbyNotifyEntity(EmbyEntity, NotifyEntity):  # type: ignore[misc]
             return
 
         header = title or ""
-        timeout_ms = 5000  # Default 5 second display time
 
         try:
             await self.coordinator.client.async_send_message(
                 session_id=current_session.session_id,
                 text=message,
                 header=header,
-                timeout_ms=timeout_ms,
+                timeout_ms=DEFAULT_NOTIFICATION_TIMEOUT_MS,
             )
             _LOGGER.debug(
                 "Sent notification to %s: %s",
                 self._device_id,
                 message[:50] + "..." if len(message) > 50 else message,
             )
-        except Exception as err:  # pylint: disable=broad-except
+        except EmbyConnectionError as err:
+            _LOGGER.error(
+                "Failed to send notification to %s (connection error): %s",
+                self._device_id,
+                err,
+            )
+        except EmbyError as err:
             _LOGGER.error(
                 "Failed to send notification to %s: %s",
                 self._device_id,

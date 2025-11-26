@@ -141,7 +141,7 @@ class TestEmbySessionResponseTypedDict:
             "SupportsRemoteControl": True,
             "UserId": "user-123",
             "UserName": "TestUser",
-            "ApplicationVersion": "4.8.0",
+            "ApplicationVersion": "4.9.2.0",
             "IsActive": True,
             "NowPlayingItem": now_playing,
             "PlayState": play_state,

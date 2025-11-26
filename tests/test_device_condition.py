@@ -53,7 +53,7 @@ class TestGetConditions:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(
@@ -126,7 +126,7 @@ class TestGetConditions:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=[])
@@ -181,7 +181,7 @@ class TestConditionFromConfig:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(
@@ -265,7 +265,7 @@ class TestConditionFromConfig:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(
@@ -349,7 +349,7 @@ class TestConditionFromConfig:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             # No NowPlayingItem = idle
@@ -421,7 +421,7 @@ class TestConditionFromConfig:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(
@@ -500,7 +500,7 @@ class TestConditionFromConfig:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             # Idle state

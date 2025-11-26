@@ -52,7 +52,7 @@ def mock_server_info() -> dict[str, Any]:
     return {
         "Id": "test-server-id-12345",
         "ServerName": "Test Emby Server",
-        "Version": "4.8.0.0",
+        "Version": "4.9.2.0",
         "OperatingSystem": "Linux",
         "HasPendingRestart": False,
         "IsShuttingDown": False,
@@ -66,7 +66,7 @@ def mock_public_info() -> dict[str, Any]:
     return {
         "Id": "test-server-id-12345",
         "ServerName": "Test Emby Server",
-        "Version": "4.8.0.0",
+        "Version": "4.9.2.0",
         "LocalAddress": "http://192.168.1.100:8096",
     }
 

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
@@ -30,6 +32,9 @@ from .websocket import EmbyWebSocket
 
 if TYPE_CHECKING:
     from .const import EmbySessionResponse
+
+# Minimum time between WebSocket-triggered refreshes (debouncing)
+WEBSOCKET_REFRESH_DEBOUNCE = timedelta(seconds=2)
 
 # Client names that indicate web browser sessions
 WEB_PLAYER_CLIENTS: frozenset[str] = frozenset(
@@ -106,10 +111,13 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         self._previous_sessions: set[str] = set()
         self._websocket: EmbyWebSocket | None = None
         self._websocket_enabled: bool = False
+        self._websocket_receive_task: asyncio.Task[None] | None = None
         self._configured_scan_interval = scan_interval
         # Resilience tracking
         self._consecutive_failures: int = 0
         self._max_consecutive_failures: int = 5
+        # Debouncing for WebSocket-triggered refreshes
+        self._last_websocket_refresh: datetime | None = None
 
     @property
     def user_id(self) -> str | None:
@@ -287,14 +295,25 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         # Connect to WebSocket
         try:
             await self._websocket.async_connect()
-            # Subscribe to session updates
-            await self._websocket.async_subscribe_sessions()
+            # Subscribe to session updates (with error handling)
+            try:
+                await self._websocket.async_subscribe_sessions()
+            except RuntimeError as err:
+                _LOGGER.warning(
+                    "Failed to subscribe to WebSocket sessions for %s: %s",
+                    self.server_name,
+                    err,
+                )
+                self._websocket_enabled = False
+                return
             self._websocket_enabled = True
             # Reduce polling interval since we have real-time updates
             self.update_interval = timedelta(seconds=WEBSOCKET_POLL_INTERVAL)
             _LOGGER.info("WebSocket connected to Emby server %s", self.server_name)
-            # Start receive loop in background
-            self.hass.async_create_task(self._async_websocket_receive_loop())
+            # Start receive loop in background and store task for cleanup
+            self._websocket_receive_task = self.hass.async_create_task(
+                self._async_websocket_receive_loop()
+            )
         except aiohttp.ClientError as err:
             _LOGGER.warning(
                 "Failed to connect WebSocket to %s: %s",
@@ -308,9 +327,14 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         if self._websocket is None:
             return
         try:
-            await self._websocket._async_receive_loop()
-        except Exception as err:  # pylint: disable=broad-exception-caught
-            _LOGGER.warning("WebSocket receive loop error: %s", err)
+            await self._websocket.async_run_receive_loop()
+        except asyncio.CancelledError:
+            _LOGGER.debug("WebSocket receive loop cancelled")
+            raise
+        except aiohttp.ClientError as err:
+            _LOGGER.warning("WebSocket client error: %s", err)
+        except OSError as err:
+            _LOGGER.warning("WebSocket OS error: %s", err)
         finally:
             # Connection lost, trigger reconnect or fallback
             if self._websocket_enabled:
@@ -318,6 +342,13 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
 
     async def async_shutdown_websocket(self) -> None:
         """Shut down WebSocket connection."""
+        # Cancel the receive loop task first
+        if self._websocket_receive_task is not None:
+            self._websocket_receive_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._websocket_receive_task
+            self._websocket_receive_task = None
+
         if self._websocket is not None:
             await self._websocket.async_stop_reconnect_loop()
             self._websocket = None
@@ -344,14 +375,24 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
             "PlaybackProgress",
             "SessionEnded",
         ):
-            # Trigger a refresh to get latest session state
-            self.hass.async_create_task(self.async_refresh())
+            # Trigger a refresh to get latest session state (with debouncing)
+            self._trigger_debounced_refresh()
         elif message_type == "ServerRestarting":
             _LOGGER.info("Emby server %s is restarting", self.server_name)
         elif message_type == "ServerShuttingDown":
             _LOGGER.warning("Emby server %s is shutting down", self.server_name)
         else:
             _LOGGER.debug("Unhandled WebSocket message type: %s", message_type)
+
+    def _trigger_debounced_refresh(self) -> None:
+        """Trigger a refresh with debouncing to prevent excessive API calls."""
+        now = datetime.now()
+        if (
+            self._last_websocket_refresh is None
+            or now - self._last_websocket_refresh > WEBSOCKET_REFRESH_DEBOUNCE
+        ):
+            self._last_websocket_refresh = now
+            self.hass.async_create_task(self.async_refresh())
 
     def _handle_websocket_connection(self, connected: bool) -> None:
         """Handle WebSocket connection state changes.

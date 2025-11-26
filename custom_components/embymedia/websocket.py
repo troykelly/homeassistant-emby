@@ -16,6 +16,8 @@ _LOGGER = logging.getLogger(__name__)
 # Default reconnection settings
 DEFAULT_RECONNECT_INTERVAL = 5.0  # seconds
 DEFAULT_MAX_RECONNECT_INTERVAL = 300.0  # 5 minutes
+# Maximum consecutive JSON decode errors before disconnecting
+MAX_JSON_DECODE_ERRORS = 10
 
 
 class EmbyWebSocket:
@@ -68,6 +70,8 @@ class EmbyWebSocket:
         self._max_reconnect_interval = max_reconnect_interval
         self._reconnecting = False
         self._stop_reconnect = False
+        self._reconnect_lock = asyncio.Lock()
+        self._json_decode_errors = 0
 
     @property
     def connected(self) -> bool:
@@ -193,11 +197,14 @@ class EmbyWebSocket:
         """
         self._connection_callback = callback
 
-    def _process_message(self, msg: aiohttp.WSMessage) -> None:
+    def _process_message(self, msg: aiohttp.WSMessage) -> bool:
         """Process a received WebSocket message.
 
         Args:
             msg: The WebSocket message to process.
+
+        Returns:
+            True if processing should continue, False to disconnect.
         """
         if msg.type == aiohttp.WSMsgType.TEXT:
             try:
@@ -206,18 +213,33 @@ class EmbyWebSocket:
                 message_data = data.get("Data")
 
                 _LOGGER.debug("Received WebSocket message: %s", message_type)
+                # Reset error counter on successful parse
+                self._json_decode_errors = 0
 
                 if self._message_callback:
                     self._message_callback(message_type, message_data)
 
             except json.JSONDecodeError:
-                _LOGGER.warning("Received malformed JSON from WebSocket: %s", msg.data[:100])
+                self._json_decode_errors += 1
+                _LOGGER.warning(
+                    "Received malformed JSON from WebSocket (%d/%d): %s",
+                    self._json_decode_errors,
+                    MAX_JSON_DECODE_ERRORS,
+                    msg.data[:100],
+                )
+                if self._json_decode_errors >= MAX_JSON_DECODE_ERRORS:
+                    _LOGGER.error("Too many JSON decode errors, disconnecting WebSocket")
+                    return False
 
         elif msg.type == aiohttp.WSMsgType.CLOSED:
             _LOGGER.info("WebSocket connection closed by server")
+            return False
 
         elif msg.type == aiohttp.WSMsgType.ERROR:
             _LOGGER.error("WebSocket error received")
+            return False
+
+        return True
 
     async def _async_receive_loop(self) -> None:
         """Receive and process WebSocket messages.
@@ -228,42 +250,54 @@ class EmbyWebSocket:
             return
 
         async for msg in self._ws:
-            self._process_message(msg)
-
-            if msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
+            if not self._process_message(msg):
                 break
+
+    async def async_run_receive_loop(self) -> None:
+        """Public wrapper for the receive loop.
+
+        This method should be called to start receiving messages.
+        It wraps the internal receive loop with proper exception handling.
+        """
+        await self._async_receive_loop()
 
     async def async_start_reconnect_loop(self) -> None:
         """Start the reconnection loop.
 
         Connects to the WebSocket and automatically reconnects on failure
-        with exponential backoff.
+        with exponential backoff. Uses locking to prevent concurrent reconnection attempts.
         """
-        self._stop_reconnect = False
-        interval = self._reconnect_interval
+        # Use lock to prevent concurrent reconnection attempts
+        if self._reconnect_lock.locked():
+            _LOGGER.debug("Reconnection already in progress, skipping")
+            return
 
-        while not self._stop_reconnect:
-            try:
-                self._reconnecting = not self.connected
-                await self.async_connect()
-                self._reconnecting = False
-                interval = self._reconnect_interval  # Reset on success
-                break
+        async with self._reconnect_lock:
+            self._stop_reconnect = False
+            interval = self._reconnect_interval
 
-            except aiohttp.ClientError:
-                self._reconnecting = True
-                _LOGGER.warning(
-                    "WebSocket connection failed, retrying in %.1f seconds",
-                    interval,
-                )
-
-                if self._stop_reconnect:
+            while not self._stop_reconnect:
+                try:
+                    self._reconnecting = not self.connected
+                    await self.async_connect()
+                    self._reconnecting = False
+                    interval = self._reconnect_interval  # Reset on success
                     break
 
-                await asyncio.sleep(interval)
-                interval = min(interval * 2, self._max_reconnect_interval)
+                except aiohttp.ClientError:
+                    self._reconnecting = True
+                    _LOGGER.warning(
+                        "WebSocket connection failed, retrying in %.1f seconds",
+                        interval,
+                    )
 
-        self._reconnecting = False
+                    if self._stop_reconnect:
+                        break
+
+                    await asyncio.sleep(interval)
+                    interval = min(interval * 2, self._max_reconnect_interval)
+
+            self._reconnecting = False
 
     async def async_stop_reconnect_loop(self) -> None:
         """Stop the reconnection loop and disconnect."""
