@@ -25,6 +25,7 @@ from .const import (
 from .coordinator import EmbyDataUpdateCoordinator
 from .exceptions import EmbyAuthenticationError, EmbyConnectionError
 from .image import async_setup_image_proxy
+from .services import async_setup_services, async_unload_services
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -108,6 +109,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> bool
         await async_setup_image_proxy(hass)
         hass.data[DOMAIN]["image_proxy_registered"] = True
 
+    # Set up services (only once, for first config entry)
+    await async_setup_services(hass)
+
     # Forward setup to platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -147,6 +151,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> boo
     unload_ok: bool = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
+        # Unload services if this is the last config entry
+        loaded_entries = [
+            e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id
+        ]
+        if not loaded_entries:
+            await async_unload_services(hass)
         _LOGGER.info("Unloaded Emby integration for entry %s", entry.entry_id)
 
     return unload_ok
