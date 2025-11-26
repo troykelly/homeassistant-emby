@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.13"]  # HA 2025.x requires Python 3.13+
     steps:
       - uses: actions/checkout@v4
 
@@ -86,7 +86,7 @@ jobs:
 ```
 
 **Acceptance Criteria:**
-- [ ] Test both Python 3.12 and 3.13
+- [ ] Test Python 3.13 (HA 2025.x minimum)
 - [ ] Ruff format check added
 - [ ] Daily scheduled runs for validation
 - [ ] Updated to codecov-action@v5

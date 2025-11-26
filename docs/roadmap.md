@@ -403,7 +403,7 @@ The integration provides:
 ## Phase 10: Testing, CI/CD & HACS Compliance
 
 ### 10.1 GitHub Actions CI Pipeline
-- [x] Test workflow with Python 3.12/3.13
+- [x] Test workflow with Python 3.13 (HA 2025.x minimum)
 - [x] Ruff linting and format checking
 - [x] Mypy type checking
 - [x] Pytest with 100% coverage requirement
