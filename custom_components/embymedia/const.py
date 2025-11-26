@@ -34,6 +34,12 @@ CONF_ENABLE_WEBSOCKET: Final = "enable_websocket"
 CONF_IGNORED_DEVICES: Final = "ignored_devices"
 CONF_IGNORE_WEB_PLAYERS: Final = "ignore_web_players"
 
+# Entity name prefix option keys (Phase 11)
+CONF_PREFIX_MEDIA_PLAYER: Final = "prefix_media_player"
+CONF_PREFIX_NOTIFY: Final = "prefix_notify"
+CONF_PREFIX_REMOTE: Final = "prefix_remote"
+CONF_PREFIX_BUTTON: Final = "prefix_button"
+
 # Default values
 DEFAULT_PORT: Final = 8096
 DEFAULT_SSL: Final = False
@@ -45,6 +51,12 @@ DEFAULT_VIDEO_CONTAINER: Final = "mp4"
 DEFAULT_ENABLE_WEBSOCKET: Final = True
 DEFAULT_IGNORED_DEVICES: Final[list[str]] = []
 DEFAULT_IGNORE_WEB_PLAYERS: Final = False
+
+# Default prefix values (Phase 11) - all enabled by default
+DEFAULT_PREFIX_MEDIA_PLAYER: Final = True
+DEFAULT_PREFIX_NOTIFY: Final = True
+DEFAULT_PREFIX_REMOTE: Final = True
+DEFAULT_PREFIX_BUTTON: Final = True
 
 # Video container options
 VIDEO_CONTAINERS: Final[list[str]] = ["mp4", "mkv", "webm"]
