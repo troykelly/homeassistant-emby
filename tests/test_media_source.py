@@ -834,10 +834,7 @@ class TestLiveTVLibraryBrowsing:
         assert result.children is not None
         assert len(result.children) == 2
         # Movies library should use movielibrary identifier for category browsing
-        assert (
-            result.children[0].identifier
-            == f"{mock_server_info['Id']}/movielibrary/lib-movies"
-        )
+        assert result.children[0].identifier == f"{mock_server_info['Id']}/movielibrary/lib-movies"
         # Live TV library should use livetv identifier
         assert result.children[1].identifier == f"{mock_server_info['Id']}/livetv"
 
@@ -890,14 +887,10 @@ class TestMovieLibraryBrowsingMediaSource:
     """Test movie library category browsing in media source."""
 
     @pytest.fixture
-    def mock_coordinator_for_media_source(
-        self, mock_server_info: dict[str, Any]
-    ) -> MagicMock:
+    def mock_coordinator_for_media_source(self, mock_server_info: dict[str, Any]) -> MagicMock:
         """Create a mock coordinator for media source tests."""
         mock_client = MagicMock()
-        mock_client.async_get_items = AsyncMock(
-            return_value={"Items": [], "TotalRecordCount": 0}
-        )
+        mock_client.async_get_items = AsyncMock(return_value={"Items": [], "TotalRecordCount": 0})
         mock_client.async_get_genres = AsyncMock(return_value=[])
         mock_client.async_get_years = AsyncMock(return_value=[])
         mock_client.get_image_url = MagicMock(return_value="http://test/image.jpg")
@@ -958,9 +951,7 @@ class TestMovieLibraryBrowsingMediaSource:
         mock_config_entry.runtime_data = mock_coordinator_for_media_source
 
         media_source = EmbyMediaSource(hass)
-        item = MediaSourceItem(
-            hass, DOMAIN, f"{mock_server_info['Id']}/movieaz/lib-movies", None
-        )
+        item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/movieaz/lib-movies", None)
 
         result = await media_source.async_browse_media(item)
 
@@ -1030,9 +1021,7 @@ class TestMovieLibraryBrowsingMediaSource:
         mock_config_entry.runtime_data = mock_coordinator_for_media_source
 
         media_source = EmbyMediaSource(hass)
-        item = MediaSourceItem(
-            hass, DOMAIN, f"{mock_server_info['Id']}/movieyear/lib-movies", None
-        )
+        item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/movieyear/lib-movies", None)
 
         result = await media_source.async_browse_media(item)
 
@@ -1137,9 +1126,7 @@ class TestMovieLibraryBrowsingMediaSource:
 
         assert result.children is not None
         # Verify years 1990-1999 are queried
-        call_kwargs = (
-            mock_coordinator_for_media_source.client.async_get_items.call_args.kwargs
-        )
+        call_kwargs = mock_coordinator_for_media_source.client.async_get_items.call_args.kwargs
         assert "1990" in call_kwargs["years"]
         assert "1999" in call_kwargs["years"]
 
@@ -1251,14 +1238,10 @@ class TestTVLibraryBrowsingMediaSource:
     """Test TV library category browsing in media source."""
 
     @pytest.fixture
-    def mock_coordinator_for_media_source(
-        self, mock_server_info: dict[str, Any]
-    ) -> MagicMock:
+    def mock_coordinator_for_media_source(self, mock_server_info: dict[str, Any]) -> MagicMock:
         """Create a mock coordinator for media source tests."""
         mock_client = MagicMock()
-        mock_client.async_get_items = AsyncMock(
-            return_value={"Items": [], "TotalRecordCount": 0}
-        )
+        mock_client.async_get_items = AsyncMock(return_value={"Items": [], "TotalRecordCount": 0})
         mock_client.async_get_genres = AsyncMock(return_value=[])
         mock_client.async_get_years = AsyncMock(return_value=[])
         mock_client.get_image_url = MagicMock(return_value="http://test/image.jpg")
@@ -1287,9 +1270,7 @@ class TestTVLibraryBrowsingMediaSource:
         mock_config_entry.runtime_data = mock_coordinator_for_media_source
 
         media_source = EmbyMediaSource(hass)
-        item = MediaSourceItem(
-            hass, DOMAIN, f"{mock_server_info['Id']}/tvlibrary/lib-tv", None
-        )
+        item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/tvlibrary/lib-tv", None)
 
         result = await media_source.async_browse_media(item)
 
@@ -1318,9 +1299,7 @@ class TestTVLibraryBrowsingMediaSource:
         mock_config_entry.runtime_data = mock_coordinator_for_media_source
 
         media_source = EmbyMediaSource(hass)
-        item = MediaSourceItem(
-            hass, DOMAIN, f"{mock_server_info['Id']}/tvaz/lib-tv", None
-        )
+        item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/tvaz/lib-tv", None)
 
         result = await media_source.async_browse_media(item)
 
@@ -1348,9 +1327,7 @@ class TestTVLibraryBrowsingMediaSource:
         mock_config_entry.runtime_data = mock_coordinator_for_media_source
 
         media_source = EmbyMediaSource(hass)
-        item = MediaSourceItem(
-            hass, DOMAIN, f"{mock_server_info['Id']}/tvazletter/lib-tv/B", None
-        )
+        item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/tvazletter/lib-tv/B", None)
 
         result = await media_source.async_browse_media(item)
 
@@ -1383,9 +1360,7 @@ class TestTVLibraryBrowsingMediaSource:
         mock_config_entry.runtime_data = mock_coordinator_for_media_source
 
         media_source = EmbyMediaSource(hass)
-        item = MediaSourceItem(
-            hass, DOMAIN, f"{mock_server_info['Id']}/tvyear/lib-tv", None
-        )
+        item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/tvyear/lib-tv", None)
 
         result = await media_source.async_browse_media(item)
 
@@ -1446,9 +1421,7 @@ class TestTVLibraryBrowsingMediaSource:
         mock_config_entry.runtime_data = mock_coordinator_for_media_source
 
         media_source = EmbyMediaSource(hass)
-        item = MediaSourceItem(
-            hass, DOMAIN, f"{mock_server_info['Id']}/tvdecade/lib-tv", None
-        )
+        item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/tvdecade/lib-tv", None)
 
         result = await media_source.async_browse_media(item)
 
@@ -1484,9 +1457,7 @@ class TestTVLibraryBrowsingMediaSource:
         result = await media_source.async_browse_media(item)
 
         assert result.children is not None
-        call_kwargs = (
-            mock_coordinator_for_media_source.client.async_get_items.call_args.kwargs
-        )
+        call_kwargs = mock_coordinator_for_media_source.client.async_get_items.call_args.kwargs
         assert "1990" in call_kwargs["years"]
 
     @pytest.mark.asyncio
@@ -1509,9 +1480,7 @@ class TestTVLibraryBrowsingMediaSource:
         mock_config_entry.runtime_data = mock_coordinator_for_media_source
 
         media_source = EmbyMediaSource(hass)
-        item = MediaSourceItem(
-            hass, DOMAIN, f"{mock_server_info['Id']}/tvgenre/lib-tv", None
-        )
+        item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/tvgenre/lib-tv", None)
 
         result = await media_source.async_browse_media(item)
 
@@ -1599,22 +1568,10 @@ class TestMediaSourceLibraryTypeRouting:
         assert result.children is not None
         assert len(result.children) == 4
         # Movies -> movielibrary
-        assert (
-            result.children[0].identifier
-            == f"{mock_server_info['Id']}/movielibrary/lib-movies"
-        )
+        assert result.children[0].identifier == f"{mock_server_info['Id']}/movielibrary/lib-movies"
         # TV Shows -> tvlibrary
-        assert (
-            result.children[1].identifier
-            == f"{mock_server_info['Id']}/tvlibrary/lib-tv"
-        )
+        assert result.children[1].identifier == f"{mock_server_info['Id']}/tvlibrary/lib-tv"
         # Music -> library (existing behavior)
-        assert (
-            result.children[2].identifier
-            == f"{mock_server_info['Id']}/library/lib-music"
-        )
+        assert result.children[2].identifier == f"{mock_server_info['Id']}/library/lib-music"
         # Unknown -> library (fallback)
-        assert (
-            result.children[3].identifier
-            == f"{mock_server_info['Id']}/library/lib-other"
-        )
+        assert result.children[3].identifier == f"{mock_server_info['Id']}/library/lib-other"

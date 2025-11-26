@@ -212,15 +212,9 @@ class TestConfigFlowImport:
         }
 
         with (
-            patch.object(
-                flow, "async_set_unique_id", new_callable=AsyncMock
-            ) as mock_unique_id,
-            patch.object(
-                flow, "_abort_if_unique_id_configured"
-            ) as mock_abort,
-            patch(
-                "custom_components.embymedia.config_flow.EmbyClient"
-            ) as mock_client_class,
+            patch.object(flow, "async_set_unique_id", new_callable=AsyncMock) as mock_unique_id,
+            patch.object(flow, "_abort_if_unique_id_configured") as mock_abort,
+            patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class,
         ):
             mock_client = MagicMock()
             mock_client.async_validate_connection = AsyncMock()
@@ -268,9 +262,7 @@ class TestConfigFlowImport:
         with (
             patch.object(flow, "async_set_unique_id", new_callable=AsyncMock),
             patch.object(flow, "_abort_if_unique_id_configured"),
-            patch(
-                "custom_components.embymedia.config_flow.EmbyClient"
-            ) as mock_client_class,
+            patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class,
         ):
             mock_client = MagicMock()
             mock_client.async_validate_connection = AsyncMock()
@@ -310,9 +302,7 @@ class TestConfigFlowImport:
         }
 
         with (
-            patch(
-                "custom_components.embymedia.config_flow.EmbyClient"
-            ) as mock_client_class,
+            patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class,
             patch.object(flow, "async_set_unique_id", new_callable=AsyncMock),
             patch.object(
                 flow, "_abort_if_unique_id_configured", side_effect=AbortFlow("already_configured")
@@ -349,9 +339,7 @@ class TestConfigFlowImport:
         with (
             patch.object(flow, "async_set_unique_id", new_callable=AsyncMock),
             patch.object(flow, "_abort_if_unique_id_configured"),
-            patch(
-                "custom_components.embymedia.config_flow.EmbyClient"
-            ) as mock_client_class,
+            patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class,
         ):
             mock_client = MagicMock()
             mock_client.async_validate_connection = AsyncMock(
@@ -384,9 +372,7 @@ class TestConfigFlowImport:
         with (
             patch.object(flow, "async_set_unique_id", new_callable=AsyncMock),
             patch.object(flow, "_abort_if_unique_id_configured"),
-            patch(
-                "custom_components.embymedia.config_flow.EmbyClient"
-            ) as mock_client_class,
+            patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class,
         ):
             mock_client = MagicMock()
             mock_client.async_validate_connection = AsyncMock(
@@ -418,9 +404,7 @@ class TestConfigFlowImport:
         with (
             patch.object(flow, "async_set_unique_id", new_callable=AsyncMock),
             patch.object(flow, "_abort_if_unique_id_configured"),
-            patch(
-                "custom_components.embymedia.config_flow.EmbyClient"
-            ) as mock_client_class,
+            patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class,
         ):
             mock_client = MagicMock()
             mock_client.async_validate_connection = AsyncMock(

@@ -18,6 +18,7 @@ from .const import (
     ENDPOINT_USERS,
     HEADER_AUTHORIZATION,
     HTTP_GET,
+    MAX_SEARCH_TERM_LENGTH,
     USER_AGENT_TEMPLATE,
     sanitize_api_key,
 )
@@ -281,7 +282,16 @@ class EmbyClient:
 
                 response.raise_for_status()
 
-                return await response.json()  # type: ignore[no-any-return]
+                try:
+                    return await response.json()  # type: ignore[no-any-return]
+                except (aiohttp.ContentTypeError, ValueError) as err:
+                    _LOGGER.error(
+                        "Emby API returned invalid JSON for %s %s: %s",
+                        method,
+                        endpoint,
+                        err,
+                    )
+                    raise EmbyServerError(f"Server returned invalid JSON: {err}") from err
 
         except aiohttp.ClientSSLError as err:
             _LOGGER.error(
@@ -1010,8 +1020,17 @@ class EmbyClient:
         Raises:
             EmbyConnectionError: Connection failed.
             EmbyAuthenticationError: API key is invalid.
+            ValueError: Search term is too long or invalid.
         """
         from urllib.parse import quote
+
+        # Validate search term length
+        if len(search_term) > MAX_SEARCH_TERM_LENGTH:
+            raise ValueError(
+                f"Search term exceeds maximum length of {MAX_SEARCH_TERM_LENGTH} characters"
+            )
+        if not search_term.strip():
+            raise ValueError("Search term cannot be empty")
 
         params = [
             f"SearchTerm={quote(search_term)}",

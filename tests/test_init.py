@@ -545,9 +545,7 @@ class TestWebSocketSetup:
             coordinator = mock_coordinator_class.return_value
             coordinator.async_config_entry_first_refresh = AsyncMock()
             # WebSocket setup raises an exception
-            coordinator.async_setup_websocket = AsyncMock(
-                side_effect=Exception("WebSocket failed")
-            )
+            coordinator.async_setup_websocket = AsyncMock(side_effect=Exception("WebSocket failed"))
             coordinator.async_shutdown_websocket = AsyncMock()
             coordinator.data = {}
 

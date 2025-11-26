@@ -6,6 +6,7 @@ import logging
 from http import HTTPStatus
 from typing import TYPE_CHECKING
 
+import aiohttp
 from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -111,8 +112,20 @@ class EmbyImageProxyView(HomeAssistantView):  # type: ignore[misc]
                     body=body,
                     headers=headers,
                 )
-        except Exception as err:
-            _LOGGER.error("Error fetching image from Emby: %s", err)
+        except aiohttp.ClientError as err:
+            _LOGGER.warning("Network error fetching image from Emby: %s", err)
+            return web.Response(
+                status=HTTPStatus.BAD_GATEWAY,
+                text="Network error fetching image from Emby server",
+            )
+        except TimeoutError:
+            _LOGGER.warning("Timeout fetching image from Emby")
+            return web.Response(
+                status=HTTPStatus.GATEWAY_TIMEOUT,
+                text="Timeout fetching image from Emby server",
+            )
+        except OSError as err:
+            _LOGGER.warning("OS error fetching image from Emby: %s", err)
             return web.Response(
                 status=HTTPStatus.BAD_GATEWAY,
                 text="Error fetching image from Emby server",

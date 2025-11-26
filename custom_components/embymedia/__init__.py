@@ -78,23 +78,19 @@ CONFIG_SCHEMA: Final = vol.Schema(
                 vol.Optional(CONF_PORT, default=DEFAULT_PORT): cv.port,
                 vol.Optional(CONF_SSL, default=DEFAULT_SSL): cv.boolean,
                 vol.Optional(CONF_VERIFY_SSL, default=DEFAULT_VERIFY_SSL): cv.boolean,
-                vol.Optional(
-                    CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL
-                ): vol.All(
+                vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
                     cv.positive_int,
                     vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
                 ),
-                vol.Optional(
-                    CONF_ENABLE_WEBSOCKET, default=DEFAULT_ENABLE_WEBSOCKET
-                ): cv.boolean,
+                vol.Optional(CONF_ENABLE_WEBSOCKET, default=DEFAULT_ENABLE_WEBSOCKET): cv.boolean,
                 vol.Optional(CONF_IGNORED_DEVICES, default=""): cv.string,
                 vol.Optional(
                     CONF_IGNORE_WEB_PLAYERS, default=DEFAULT_IGNORE_WEB_PLAYERS
                 ): cv.boolean,
                 vol.Optional(CONF_DIRECT_PLAY, default=DEFAULT_DIRECT_PLAY): cv.boolean,
-                vol.Optional(
-                    CONF_VIDEO_CONTAINER, default=DEFAULT_VIDEO_CONTAINER
-                ): vol.In(VIDEO_CONTAINERS),
+                vol.Optional(CONF_VIDEO_CONTAINER, default=DEFAULT_VIDEO_CONTAINER): vol.In(
+                    VIDEO_CONTAINERS
+                ),
                 vol.Optional(CONF_MAX_VIDEO_BITRATE): cv.positive_int,
                 vol.Optional(CONF_MAX_AUDIO_BITRATE): cv.positive_int,
             }

@@ -6,6 +6,7 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import aiohttp
 import pytest
 from aiohttp import web
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -159,16 +160,18 @@ class TestImageProxyGet:
         mock_response.read = AsyncMock(return_value=b"image data")
 
         mock_session = MagicMock()
-        mock_session.get = MagicMock(return_value=AsyncMock())
-        mock_session.get.return_value.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_session.get.return_value.__aexit__ = AsyncMock(return_value=None)
 
         captured_url: str | None = None
+
+        # Create async context manager for the mock response
+        mock_context = MagicMock()
+        mock_context.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context.__aexit__ = AsyncMock(return_value=None)
 
         def capture_url(url: str, **kwargs: object) -> MagicMock:
             nonlocal captured_url
             captured_url = url
-            return mock_session.get.return_value
+            return mock_context
 
         mock_session.get = capture_url
 
@@ -341,7 +344,7 @@ class TestImageProxyGet:
         mock_config_entry.add_to_hass(hass)
 
         mock_session = MagicMock()
-        mock_session.get = MagicMock(side_effect=Exception("Network error"))
+        mock_session.get = MagicMock(side_effect=aiohttp.ClientError("Network error"))
 
         with patch(
             "custom_components.embymedia.image.async_get_clientsession",
@@ -361,7 +364,7 @@ class TestImageProxyGet:
             )
 
             assert response.status == HTTPStatus.BAD_GATEWAY
-            assert "Error fetching image" in response.text
+            assert "Network error" in response.text
 
     async def test_get_image_finds_coordinator_by_server_id_attribute(
         self,
@@ -492,3 +495,95 @@ class TestImageProxyResize:
             assert "maxWidth=500" in captured_url
             assert "maxHeight=500" in captured_url
             assert "quality=90" in captured_url
+
+
+class TestImageProxyErrors:
+    """Tests for image proxy error handling."""
+
+    @pytest.fixture
+    def mock_coordinator(self) -> MagicMock:
+        """Create a mock coordinator."""
+        coordinator = MagicMock()
+        coordinator.client = MagicMock()
+        coordinator.client.base_url = "http://emby.local:8096"
+        coordinator.client._api_key = "test-api-key"
+        return coordinator
+
+    @pytest.fixture
+    def mock_config_entry(self, mock_coordinator: MagicMock) -> MockConfigEntry:
+        """Create a mock config entry with runtime data."""
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                "host": "emby.local",
+                "port": 8096,
+                "api_key": "test-api-key",
+            },
+            unique_id="server-123",
+        )
+        entry.runtime_data = mock_coordinator
+        return entry
+
+    async def test_get_image_timeout_error(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test that timeout errors return 504 Gateway Timeout."""
+        mock_config_entry.add_to_hass(hass)
+
+        mock_session = MagicMock()
+        mock_session.get = MagicMock(side_effect=TimeoutError("Request timed out"))
+
+        with patch(
+            "custom_components.embymedia.image.async_get_clientsession",
+            return_value=mock_session,
+        ):
+            view = EmbyImageProxyView()
+            view.hass = hass
+
+            request = MagicMock(spec=web.Request)
+            request.query = {}
+
+            response = await view.get(
+                request,
+                server_id="server-123",
+                item_id="item-456",
+                image_type="Primary",
+            )
+
+            assert response.status == HTTPStatus.GATEWAY_TIMEOUT
+            assert "Timeout" in response.text
+
+    async def test_get_image_os_error(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test that OS errors return 502 Bad Gateway."""
+        mock_config_entry.add_to_hass(hass)
+
+        mock_session = MagicMock()
+        mock_session.get = MagicMock(side_effect=OSError("Connection reset"))
+
+        with patch(
+            "custom_components.embymedia.image.async_get_clientsession",
+            return_value=mock_session,
+        ):
+            view = EmbyImageProxyView()
+            view.hass = hass
+
+            request = MagicMock(spec=web.Request)
+            request.query = {}
+
+            response = await view.get(
+                request,
+                server_id="server-123",
+                item_id="item-456",
+                image_type="Primary",
+            )
+
+            assert response.status == HTTPStatus.BAD_GATEWAY
+            assert "Error fetching image" in response.text

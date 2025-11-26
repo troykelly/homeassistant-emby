@@ -202,9 +202,7 @@ class TestEmbyWebSocketConnect:
     async def test_connect_failure_raises_exception(self) -> None:
         """Test that connection failure raises exception."""
         mock_session = MagicMock()
-        mock_session.ws_connect = AsyncMock(
-            side_effect=aiohttp.ClientError("Connection refused")
-        )
+        mock_session.ws_connect = AsyncMock(side_effect=aiohttp.ClientError("Connection refused"))
 
         ws = EmbyWebSocket(
             host="emby.local",
@@ -422,10 +420,12 @@ class TestEmbyWebSocketMessageCallback:
         # Create a mock message
         mock_msg = MagicMock()
         mock_msg.type = aiohttp.WSMsgType.TEXT
-        mock_msg.data = json.dumps({
-            "MessageType": "Sessions",
-            "Data": [{"Id": "session-1"}],
-        })
+        mock_msg.data = json.dumps(
+            {
+                "MessageType": "Sessions",
+                "Data": [{"Id": "session-1"}],
+            }
+        )
 
         # Make ws_connect return our mock
         mock_session.ws_connect = AsyncMock(return_value=mock_ws)
@@ -502,10 +502,12 @@ class TestEmbyWebSocketMessageProcessing:
 
         mock_msg = MagicMock()
         mock_msg.type = aiohttp.WSMsgType.TEXT
-        mock_msg.data = json.dumps({
-            "MessageType": "Sessions",
-            "Data": sessions_data,
-        })
+        mock_msg.data = json.dumps(
+            {
+                "MessageType": "Sessions",
+                "Data": sessions_data,
+            }
+        )
 
         ws._process_message(mock_msg)
 
@@ -534,10 +536,12 @@ class TestEmbyWebSocketMessageProcessing:
 
         mock_msg = MagicMock()
         mock_msg.type = aiohttp.WSMsgType.TEXT
-        mock_msg.data = json.dumps({
-            "MessageType": "PlaybackStarted",
-            "Data": event_data,
-        })
+        mock_msg.data = json.dumps(
+            {
+                "MessageType": "PlaybackStarted",
+                "Data": event_data,
+            }
+        )
 
         ws._process_message(mock_msg)
 
@@ -563,10 +567,12 @@ class TestEmbyWebSocketMessageProcessing:
 
         mock_msg = MagicMock()
         mock_msg.type = aiohttp.WSMsgType.TEXT
-        mock_msg.data = json.dumps({
-            "MessageType": "PlaybackStopped",
-            "Data": event_data,
-        })
+        mock_msg.data = json.dumps(
+            {
+                "MessageType": "PlaybackStopped",
+                "Data": event_data,
+            }
+        )
 
         ws._process_message(mock_msg)
 
@@ -870,9 +876,7 @@ class TestEmbyWebSocketReconnection:
         mock_session = MagicMock()
 
         # Always fail to connect
-        mock_session.ws_connect = AsyncMock(
-            side_effect=aiohttp.ClientError("Connection refused")
-        )
+        mock_session.ws_connect = AsyncMock(side_effect=aiohttp.ClientError("Connection refused"))
 
         ws = EmbyWebSocket(
             host="emby.local",
@@ -941,6 +945,7 @@ class TestEmbyWebSocketReconnection:
         # Should have only attempted once
         assert call_count == 1
         assert ws._stop_reconnect is True
+
 
 class TestEmbyWebSocketConnectionCallback:
     """Tests for connection state callback."""
@@ -1054,6 +1059,7 @@ class TestWebSocketFullLifecycle:
         mock_ws.send_str.assert_called()
         # Verify the message format
         import json
+
         call_arg = mock_ws.send_str.call_args[0][0]
         msg = json.loads(call_arg)
         assert msg["MessageType"] == "SessionsStart"
@@ -1062,10 +1068,12 @@ class TestWebSocketFullLifecycle:
         # 4. Simulate receiving a message
         mock_msg = MagicMock()
         mock_msg.type = aiohttp.WSMsgType.TEXT
-        mock_msg.data = json.dumps({
-            "MessageType": "Sessions",
-            "Data": [{"Id": "session-1", "DeviceId": "device-1"}],
-        })
+        mock_msg.data = json.dumps(
+            {
+                "MessageType": "Sessions",
+                "Data": [{"Id": "session-1", "DeviceId": "device-1"}],
+            }
+        )
         ws._process_message(mock_msg)
         message_callback.assert_called_with(
             "Sessions",
@@ -1167,6 +1175,7 @@ class TestWebSocketFullLifecycle:
         ]
 
         import json
+
         for msg_type, data in message_types:
             mock_msg = MagicMock()
             mock_msg.type = aiohttp.WSMsgType.TEXT
@@ -1176,9 +1185,7 @@ class TestWebSocketFullLifecycle:
         # Verify all messages were handled
         assert len(handled_messages) == 4
         assert handled_messages[0] == ("Sessions", [{"Id": "s1"}])
-        assert handled_messages[1] == (
-            "PlaybackStarted", {"SessionId": "s1", "ItemId": "i1"}
-        )
+        assert handled_messages[1] == ("PlaybackStarted", {"SessionId": "s1", "ItemId": "i1"})
         assert handled_messages[2] == ("PlaybackStopped", {"SessionId": "s1"})
         assert handled_messages[3] == ("ServerRestarting", None)
 

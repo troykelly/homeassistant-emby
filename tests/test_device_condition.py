@@ -46,16 +46,14 @@ class TestGetConditions:
         )
         mock_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(
@@ -83,9 +81,7 @@ class TestGetConditions:
 
             # Get device ID
             device_registry = dr.async_get(hass)
-            device = device_registry.async_get_device(
-                identifiers={(DOMAIN, "device-123")}
-            )
+            device = device_registry.async_get_device(identifiers={(DOMAIN, "device-123")})
             assert device is not None
 
             # Import and call async_get_conditions
@@ -123,16 +119,14 @@ class TestGetConditions:
         )
         mock_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=[])
@@ -147,9 +141,7 @@ class TestGetConditions:
 
             # Get the server device (not a media player device)
             device_registry = dr.async_get(hass)
-            device = device_registry.async_get_device(
-                identifiers={(DOMAIN, "test-server-id")}
-            )
+            device = device_registry.async_get_device(identifiers={(DOMAIN, "test-server-id")})
             assert device is not None
 
             from custom_components.embymedia.device_condition import async_get_conditions
@@ -182,16 +174,14 @@ class TestConditionFromConfig:
         )
         mock_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(
@@ -268,16 +258,14 @@ class TestConditionFromConfig:
         )
         mock_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(
@@ -354,16 +342,14 @@ class TestConditionFromConfig:
         )
         mock_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             # No NowPlayingItem = idle
@@ -428,16 +414,14 @@ class TestConditionFromConfig:
         )
         mock_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(
@@ -509,16 +493,14 @@ class TestConditionFromConfig:
         )
         mock_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             # Idle state

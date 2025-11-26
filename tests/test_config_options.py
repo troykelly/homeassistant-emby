@@ -50,9 +50,7 @@ class TestOptionsFlowWebSocketToggle:
         """Test WebSocket is enabled by default."""
         mock_config_entry_options.add_to_hass(hass)
 
-        result = await hass.config_entries.options.async_init(
-            mock_config_entry_options.entry_id
-        )
+        result = await hass.config_entries.options.async_init(mock_config_entry_options.entry_id)
 
         assert result["type"] is FlowResultType.FORM
         # WebSocket should be enabled by default in schema
@@ -68,9 +66,7 @@ class TestOptionsFlowWebSocketToggle:
         """Test WebSocket can be disabled via options."""
         mock_config_entry_options.add_to_hass(hass)
 
-        result = await hass.config_entries.options.async_init(
-            mock_config_entry_options.entry_id
-        )
+        result = await hass.config_entries.options.async_init(mock_config_entry_options.entry_id)
 
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
@@ -119,9 +115,7 @@ class TestOptionsFlowDeviceFiltering:
         """Test ignored devices is empty by default."""
         mock_config_entry_options.add_to_hass(hass)
 
-        result = await hass.config_entries.options.async_init(
-            mock_config_entry_options.entry_id
-        )
+        result = await hass.config_entries.options.async_init(mock_config_entry_options.entry_id)
 
         assert result["type"] is FlowResultType.FORM
 
@@ -134,9 +128,7 @@ class TestOptionsFlowDeviceFiltering:
         """Test ignored devices can be configured."""
         mock_config_entry_options.add_to_hass(hass)
 
-        result = await hass.config_entries.options.async_init(
-            mock_config_entry_options.entry_id
-        )
+        result = await hass.config_entries.options.async_init(mock_config_entry_options.entry_id)
 
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
@@ -162,9 +154,7 @@ class TestOptionsFlowScanInterval:
         """Test scan interval is validated."""
         mock_config_entry_options.add_to_hass(hass)
 
-        result = await hass.config_entries.options.async_init(
-            mock_config_entry_options.entry_id
-        )
+        result = await hass.config_entries.options.async_init(mock_config_entry_options.entry_id)
 
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
@@ -197,9 +187,7 @@ class TestOptionsFlowTranscoding:
         """Test direct play can be toggled."""
         mock_config_entry_options.add_to_hass(hass)
 
-        result = await hass.config_entries.options.async_init(
-            mock_config_entry_options.entry_id
-        )
+        result = await hass.config_entries.options.async_init(mock_config_entry_options.entry_id)
 
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
@@ -221,9 +209,7 @@ class TestOptionsFlowTranscoding:
         """Test video container can be selected."""
         mock_config_entry_options.add_to_hass(hass)
 
-        result = await hass.config_entries.options.async_init(
-            mock_config_entry_options.entry_id
-        )
+        result = await hass.config_entries.options.async_init(mock_config_entry_options.entry_id)
 
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],
@@ -245,9 +231,7 @@ class TestOptionsFlowTranscoding:
         """Test bitrate options can be set."""
         mock_config_entry_options.add_to_hass(hass)
 
-        result = await hass.config_entries.options.async_init(
-            mock_config_entry_options.entry_id
-        )
+        result = await hass.config_entries.options.async_init(mock_config_entry_options.entry_id)
 
         result = await hass.config_entries.options.async_configure(
             result["flow_id"],

@@ -141,7 +141,6 @@ class TestCoordinatorEfficiency:
     ) -> None:
         """Test coordinator only stores necessary session data."""
 
-
         # This test verifies the coordinator design doesn't
         # duplicate session data unnecessarily
 

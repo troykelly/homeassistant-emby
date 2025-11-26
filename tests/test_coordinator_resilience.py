@@ -68,7 +68,7 @@ class TestGracefulDegradation:
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
         mock_config_entry: EmbyConfigEntry,
-        mock_session_data: list[dict[str, object]]
+        mock_session_data: list[dict[str, object]],
     ) -> None:
         """Test coordinator returns cached data on connection failure."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -102,10 +102,7 @@ class TestGracefulDegradation:
 
     @pytest.mark.asyncio
     async def test_coordinator_raises_on_first_failure(
-        self,
-        hass: HomeAssistant,
-        mock_emby_client: MagicMock,
-        mock_config_entry: EmbyConfigEntry
+        self, hass: HomeAssistant, mock_emby_client: MagicMock, mock_config_entry: EmbyConfigEntry
     ) -> None:
         """Test coordinator raises UpdateFailed on first connection failure (no cached data)."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -129,10 +126,7 @@ class TestGracefulDegradation:
 
     @pytest.mark.asyncio
     async def test_coordinator_handles_partial_session_data(
-        self,
-        hass: HomeAssistant,
-        mock_emby_client: MagicMock,
-        mock_config_entry: EmbyConfigEntry
+        self, hass: HomeAssistant, mock_emby_client: MagicMock, mock_config_entry: EmbyConfigEntry
     ) -> None:
         """Test coordinator continues processing when some sessions fail to parse."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -185,7 +179,7 @@ class TestGracefulDegradation:
         mock_emby_client: MagicMock,
         mock_config_entry: EmbyConfigEntry,
         mock_session_data: list[dict[str, object]],
-        caplog: pytest.LogCaptureFixture
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test warning is logged when using cached data."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -223,7 +217,7 @@ class TestAutomaticRecovery:
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
         mock_config_entry: EmbyConfigEntry,
-        mock_session_data: list[dict[str, object]]
+        mock_session_data: list[dict[str, object]],
     ) -> None:
         """Test consecutive failures are tracked."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -261,7 +255,7 @@ class TestAutomaticRecovery:
         mock_emby_client: MagicMock,
         mock_config_entry: EmbyConfigEntry,
         mock_session_data: list[dict[str, object]],
-        caplog: pytest.LogCaptureFixture
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test automatic recovery is triggered after threshold failures."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -300,7 +294,7 @@ class TestAutomaticRecovery:
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
         mock_config_entry: EmbyConfigEntry,
-        mock_session_data: list[dict[str, object]]
+        mock_session_data: list[dict[str, object]],
     ) -> None:
         """Test successful fetch resets failure count."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -337,7 +331,7 @@ class TestAutomaticRecovery:
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
         mock_config_entry: EmbyConfigEntry,
-        mock_session_data: list[dict[str, object]]
+        mock_session_data: list[dict[str, object]],
     ) -> None:
         """Test recovery attempts to reconnect WebSocket."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -377,7 +371,7 @@ class TestAutomaticRecovery:
         mock_emby_client: MagicMock,
         mock_config_entry: EmbyConfigEntry,
         mock_session_data: list[dict[str, object]],
-        caplog: pytest.LogCaptureFixture
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test successful recovery is logged."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -412,7 +406,7 @@ class TestAutomaticRecovery:
         mock_emby_client: MagicMock,
         mock_config_entry: EmbyConfigEntry,
         mock_session_data: list[dict[str, object]],
-        caplog: pytest.LogCaptureFixture
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test failed recovery is logged."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator

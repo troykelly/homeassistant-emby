@@ -22,6 +22,7 @@ from custom_components.embymedia.services import (
     _get_entity_ids_from_call,
     _get_session_id_for_entity,
     _get_user_id_for_entity,
+    _validate_emby_id,
 )
 
 
@@ -226,9 +227,10 @@ class TestGetCoordinatorForEntity:
         )
 
         # Mock async_get_entry to return None (simulating stale config entry reference)
-        with patch.object(
-            hass.config_entries, "async_get_entry", return_value=None
-        ), pytest.raises(HomeAssistantError) as exc_info:
+        with (
+            patch.object(hass.config_entries, "async_get_entry", return_value=None),
+            pytest.raises(HomeAssistantError) as exc_info,
+        ):
             _get_coordinator_for_entity(hass, entry.entity_id)
 
         assert "Config entry" in str(exc_info.value) and "not found" in str(exc_info.value)
@@ -242,9 +244,7 @@ class TestGetSessionIdForEntity:
         """Test returns None when entity not found."""
         mock_coordinator = MagicMock()
 
-        result = _get_session_id_for_entity(
-            hass, "media_player.nonexistent", mock_coordinator
-        )
+        result = _get_session_id_for_entity(hass, "media_player.nonexistent", mock_coordinator)
         assert result is None
 
     @pytest.mark.asyncio
@@ -270,9 +270,7 @@ class TestGetSessionIdForEntity:
         mock_coordinator = MagicMock()
         mock_coordinator.data = {}
 
-        result = _get_session_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_session_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result is None
 
     @pytest.mark.asyncio
@@ -296,9 +294,7 @@ class TestGetSessionIdForEntity:
         mock_coordinator = MagicMock()
         mock_coordinator.data = None
 
-        result = _get_session_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_session_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result is None
 
     @pytest.mark.asyncio
@@ -321,9 +317,7 @@ class TestGetSessionIdForEntity:
         mock_coordinator = MagicMock()
         mock_coordinator.data = {}  # Empty, no session for this entity
 
-        result = _get_session_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_session_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result is None
 
     @pytest.mark.asyncio
@@ -351,9 +345,7 @@ class TestGetSessionIdForEntity:
         # Coordinator data is keyed by device_id (extracted from unique_id)
         mock_coordinator.data = {"device-123": mock_session}
 
-        result = _get_session_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_session_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result == "session-123"
 
 
@@ -365,9 +357,7 @@ class TestGetUserIdForEntity:
         """Test returns None when entity not found."""
         mock_coordinator = MagicMock()
 
-        result = _get_user_id_for_entity(
-            hass, "media_player.nonexistent", mock_coordinator
-        )
+        result = _get_user_id_for_entity(hass, "media_player.nonexistent", mock_coordinator)
         assert result is None
 
     @pytest.mark.asyncio
@@ -391,9 +381,7 @@ class TestGetUserIdForEntity:
         mock_coordinator = MagicMock()
         mock_coordinator.data = {}
 
-        result = _get_user_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_user_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result is None
 
     @pytest.mark.asyncio
@@ -417,9 +405,7 @@ class TestGetUserIdForEntity:
         mock_coordinator = MagicMock()
         mock_coordinator.data = {}
 
-        result = _get_user_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_user_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result is None
 
     @pytest.mark.asyncio
@@ -443,9 +429,7 @@ class TestGetUserIdForEntity:
         mock_coordinator = MagicMock()
         mock_coordinator.data = None
 
-        result = _get_user_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_user_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result is None
 
     @pytest.mark.asyncio
@@ -473,9 +457,7 @@ class TestGetUserIdForEntity:
         # Coordinator data is keyed by device_id (extracted from unique_id)
         mock_coordinator.data = {"device-123": mock_session}
 
-        result = _get_user_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_user_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result == "user-from-session"
 
     @pytest.mark.asyncio
@@ -514,9 +496,7 @@ class TestGetUserIdForEntity:
         # Coordinator data is keyed by device_id (extracted from unique_id)
         mock_coordinator.data = {"device-123": mock_session}
 
-        result = _get_user_id_for_entity(
-            hass, entry.entity_id, mock_coordinator
-        )
+        result = _get_user_id_for_entity(hass, entry.entity_id, mock_coordinator)
         assert result == "user-from-config"
 
 
@@ -532,16 +512,14 @@ class TestServicesSetup:
         """Test all services are registered on setup."""
         mock_config_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=[])
@@ -572,16 +550,14 @@ class TestServicesSetup:
         """Test services are unregistered on unload."""
         mock_config_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=[])
@@ -630,9 +606,7 @@ class TestServiceHandlers:
         ]
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
                 new_callable=AsyncMock,
@@ -644,7 +618,7 @@ class TestServiceHandlers:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -656,9 +630,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -706,9 +678,7 @@ class TestServiceHandlers:
         ]
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
                 new_callable=AsyncMock,
@@ -720,7 +690,7 @@ class TestServiceHandlers:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -732,9 +702,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -778,16 +746,14 @@ class TestServiceHandlers:
             }
         ]
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -803,9 +769,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -849,16 +813,14 @@ class TestServiceHandlers:
             }
         ]
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -874,9 +836,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -920,16 +880,14 @@ class TestServiceHandlers:
             }
         ]
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -945,9 +903,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -990,16 +946,14 @@ class TestServiceHandlers:
             }
         ]
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -1015,9 +969,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1060,16 +1012,14 @@ class TestServiceHandlers:
             }
         ]
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -1085,9 +1035,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1129,16 +1077,14 @@ class TestServiceHandlers:
             }
         ]
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -1154,9 +1100,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1195,16 +1139,14 @@ class TestServiceHandlers:
             }
         ]
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -1220,9 +1162,7 @@ class TestServiceHandlers:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1260,16 +1200,14 @@ class TestServiceEdgeCases:
 
         mock_config_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=[])
@@ -1326,16 +1264,14 @@ class TestServiceEdgeCases:
             }
         ]
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -1350,9 +1286,7 @@ class TestServiceEdgeCases:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1375,24 +1309,22 @@ class TestServiceEdgeCases:
             assert "No user_id available" in str(exc_info.value)
 
     @pytest.mark.asyncio
-    async def test_send_message_no_session_skips_entity(
+    async def test_send_message_no_session_raises_error(
         self,
         hass: HomeAssistant,
         mock_config_entry: MockConfigEntry,
     ) -> None:
-        """Test send_message skips entity when no session found."""
+        """Test send_message raises error when no session found."""
         mock_config_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             # Session initially
@@ -1423,9 +1355,7 @@ class TestServiceEdgeCases:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1434,16 +1364,20 @@ class TestServiceEdgeCases:
 
             assert entity_id is not None
 
-            # Should not raise, but also not call the client method
-            await hass.services.async_call(
-                DOMAIN,
-                "send_message",
-                {
-                    ATTR_ENTITY_ID: entity_id,
-                    "message": "Hello",
-                },
-                blocking=True,
-            )
+            # Should raise HomeAssistantError when session not found
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "send_message",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "message": "Hello",
+                    },
+                    blocking=True,
+                )
+
+            assert "Session not found" in str(exc_info.value)
+            assert "offline" in str(exc_info.value)
 
             # Client method was NOT called since no session
             client.async_send_message.assert_not_called()
@@ -1505,9 +1439,7 @@ class TestServiceEdgeCases:
         ]
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
                 new_callable=AsyncMock,
@@ -1519,7 +1451,7 @@ class TestServiceEdgeCases:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -1530,9 +1462,7 @@ class TestServiceEdgeCases:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1576,9 +1506,7 @@ class TestServiceEdgeCases:
         ]
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
                 new_callable=AsyncMock,
@@ -1590,7 +1518,7 @@ class TestServiceEdgeCases:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -1601,9 +1529,7 @@ class TestServiceEdgeCases:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1647,9 +1573,7 @@ class TestServiceEdgeCases:
         ]
 
         with (
-            patch(
-                "custom_components.embymedia.EmbyClient", autospec=True
-            ) as mock_client_class,
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
             patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
                 new_callable=AsyncMock,
@@ -1661,7 +1585,7 @@ class TestServiceEdgeCases:
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
@@ -1672,9 +1596,7 @@ class TestServiceEdgeCases:
 
             # Find the entity ID
             entity_reg = er.async_get(hass)
-            entities = er.async_entries_for_config_entry(
-                entity_reg, mock_config_entry.entry_id
-            )
+            entities = er.async_entries_for_config_entry(entity_reg, mock_config_entry.entry_id)
             entity_id = None
             for ent in entities:
                 if ent.domain == "media_player":
@@ -1695,3 +1617,1423 @@ class TestServiceEdgeCases:
                 )
 
             assert "No user_id available" in str(exc_info.value)
+
+
+class TestValidateEmbyId:
+    """Tests for _validate_emby_id helper."""
+
+    def test_valid_id(self) -> None:
+        """Test valid Emby IDs pass validation."""
+        # Should not raise
+        _validate_emby_id("abc123", "item_id")
+        _validate_emby_id("ABC-123_xyz", "item_id")
+        _validate_emby_id("a", "item_id")
+
+    def test_empty_id(self) -> None:
+        """Test empty ID raises error."""
+        with pytest.raises(ServiceValidationError) as exc_info:
+            _validate_emby_id("", "item_id")
+        assert "cannot be empty" in str(exc_info.value)
+
+    def test_whitespace_only_id(self) -> None:
+        """Test whitespace-only ID raises error."""
+        with pytest.raises(ServiceValidationError) as exc_info:
+            _validate_emby_id("   ", "item_id")
+        assert "cannot be empty" in str(exc_info.value)
+
+    def test_too_long_id(self) -> None:
+        """Test ID exceeding max length raises error."""
+        long_id = "a" * 201  # MAX_SEARCH_TERM_LENGTH is 200
+        with pytest.raises(ServiceValidationError) as exc_info:
+            _validate_emby_id(long_id, "item_id")
+        assert "exceeds maximum length" in str(exc_info.value)
+
+    def test_invalid_characters(self) -> None:
+        """Test ID with invalid characters raises error."""
+        with pytest.raises(ServiceValidationError) as exc_info:
+            _validate_emby_id("abc<script>", "item_id")
+        assert "invalid characters" in str(exc_info.value)
+
+    def test_special_characters_rejected(self) -> None:
+        """Test various special characters are rejected."""
+        invalid_ids = ["abc/def", "abc\\def", "abc;def", "abc'def", 'abc"def']
+        for invalid_id in invalid_ids:
+            with pytest.raises(ServiceValidationError) as exc_info:
+                _validate_emby_id(invalid_id, "item_id")
+            assert "invalid characters" in str(exc_info.value)
+
+
+class TestServiceApiErrorHandling:
+    """Tests for API error handling in service handlers."""
+
+    @pytest.mark.asyncio
+    async def test_send_message_connection_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test send_message handles connection errors."""
+        from custom_components.embymedia.exceptions import EmbyConnectionError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                    }
+                ]
+            )
+            client.async_send_message = AsyncMock(
+                side_effect=EmbyConnectionError("Connection refused")
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "send_message",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "message": "Test",
+                    },
+                    blocking=True,
+                )
+
+            assert "Connection error" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_send_command_no_session(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test send_command raises error when session not found."""
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            # Return session initially, but make coordinator.data empty later
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                    }
+                ]
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            # Clear coordinator data to simulate offline session
+            coordinator = mock_entry.runtime_data
+            coordinator.data = {}
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "send_command",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "command": "GoHome",
+                    },
+                    blocking=True,
+                )
+
+            assert "Session not found" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_mark_played_connection_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test mark_played handles connection errors."""
+        from custom_components.embymedia.exceptions import EmbyConnectionError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-123",
+                    }
+                ]
+            )
+            client.async_mark_played = AsyncMock(side_effect=EmbyConnectionError("Connection lost"))
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "mark_played",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "item_id": "item-123",
+                    },
+                    blocking=True,
+                )
+
+            assert "Connection error" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_send_message_emby_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test send_message handles generic Emby errors."""
+        from custom_components.embymedia.exceptions import EmbyError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                    }
+                ]
+            )
+            client.async_send_message = AsyncMock(side_effect=EmbyError("Session not controllable"))
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "send_message",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "message": "Test",
+                    },
+                    blocking=True,
+                )
+
+            assert "Session not controllable" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_send_command_connection_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test send_command handles connection errors."""
+        from custom_components.embymedia.exceptions import EmbyConnectionError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                    }
+                ]
+            )
+            client.async_send_general_command = AsyncMock(
+                side_effect=EmbyConnectionError("Connection reset")
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "send_command",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "command": "GoHome",
+                    },
+                    blocking=True,
+                )
+
+            assert "Connection error" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_send_command_emby_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test send_command handles generic Emby errors."""
+        from custom_components.embymedia.exceptions import EmbyError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                    }
+                ]
+            )
+            client.async_send_general_command = AsyncMock(
+                side_effect=EmbyError("Command not supported")
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "send_command",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "command": "GoHome",
+                    },
+                    blocking=True,
+                )
+
+            assert "Command not supported" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_mark_played_emby_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test mark_played handles generic Emby errors."""
+        from custom_components.embymedia.exceptions import EmbyError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-123",
+                    }
+                ]
+            )
+            client.async_mark_played = AsyncMock(side_effect=EmbyError("Item not found"))
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "mark_played",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "item_id": "nonexistent-item",
+                    },
+                    blocking=True,
+                )
+
+            assert "Item not found" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_mark_unplayed_connection_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test mark_unplayed handles connection errors."""
+        from custom_components.embymedia.exceptions import EmbyConnectionError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-123",
+                    }
+                ]
+            )
+            client.async_mark_unplayed = AsyncMock(side_effect=EmbyConnectionError("Timeout"))
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "mark_unplayed",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "item_id": "item-123",
+                    },
+                    blocking=True,
+                )
+
+            assert "Connection error" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_mark_unplayed_emby_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test mark_unplayed handles generic Emby errors."""
+        from custom_components.embymedia.exceptions import EmbyError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-123",
+                    }
+                ]
+            )
+            client.async_mark_unplayed = AsyncMock(side_effect=EmbyError("Permission denied"))
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "mark_unplayed",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "item_id": "item-123",
+                    },
+                    blocking=True,
+                )
+
+            assert "Permission denied" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_mark_unplayed_with_user_id_validates(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test mark_unplayed validates user_id when provided."""
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-123",
+                    }
+                ]
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            # Invalid user_id should raise
+            with pytest.raises(ServiceValidationError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "mark_unplayed",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "item_id": "item-123",
+                        "user_id": "invalid<chars>",
+                    },
+                    blocking=True,
+                )
+
+            assert "invalid characters" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_add_favorite_connection_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test add_favorite handles connection errors."""
+        from custom_components.embymedia.exceptions import EmbyConnectionError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-123",
+                    }
+                ]
+            )
+            client.async_add_favorite = AsyncMock(
+                side_effect=EmbyConnectionError("Server unreachable")
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "add_favorite",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "item_id": "item-123",
+                    },
+                    blocking=True,
+                )
+
+            assert "Connection error" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_add_favorite_emby_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test add_favorite handles generic Emby errors."""
+        from custom_components.embymedia.exceptions import EmbyError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-123",
+                    }
+                ]
+            )
+            client.async_add_favorite = AsyncMock(side_effect=EmbyError("Already a favorite"))
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "add_favorite",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "item_id": "item-123",
+                    },
+                    blocking=True,
+                )
+
+            assert "Already a favorite" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_add_favorite_with_user_id_validates(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test add_favorite validates user_id when provided."""
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-123",
+                    }
+                ]
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            # Invalid user_id should raise
+            with pytest.raises(ServiceValidationError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "add_favorite",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "item_id": "item-123",
+                        "user_id": "bad/user",
+                    },
+                    blocking=True,
+                )
+
+            assert "invalid characters" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_remove_favorite_connection_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test remove_favorite handles connection errors."""
+        from custom_components.embymedia.exceptions import EmbyConnectionError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-123",
+                    }
+                ]
+            )
+            client.async_remove_favorite = AsyncMock(
+                side_effect=EmbyConnectionError("Network timeout")
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "remove_favorite",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "item_id": "item-123",
+                    },
+                    blocking=True,
+                )
+
+            assert "Connection error" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_remove_favorite_emby_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test remove_favorite handles generic Emby errors."""
+        from custom_components.embymedia.exceptions import EmbyError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-123",
+                    }
+                ]
+            )
+            client.async_remove_favorite = AsyncMock(side_effect=EmbyError("Not a favorite"))
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "remove_favorite",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "item_id": "item-123",
+                    },
+                    blocking=True,
+                )
+
+            assert "Not a favorite" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_remove_favorite_with_user_id_validates(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test remove_favorite validates user_id when provided."""
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-123",
+                    }
+                ]
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            # Invalid user_id should raise
+            with pytest.raises(ServiceValidationError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "remove_favorite",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                        "item_id": "item-123",
+                        "user_id": "user;injection",
+                    },
+                    blocking=True,
+                )
+
+            assert "invalid characters" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_refresh_library_connection_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test refresh_library handles connection errors."""
+        from custom_components.embymedia.exceptions import EmbyConnectionError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                    }
+                ]
+            )
+            client.async_refresh_library = AsyncMock(
+                side_effect=EmbyConnectionError("Connection closed")
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "refresh_library",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                    },
+                    blocking=True,
+                )
+
+            assert "Connection error" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_refresh_library_emby_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test refresh_library handles generic Emby errors."""
+        from custom_components.embymedia.exceptions import EmbyError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                    }
+                ]
+            )
+            client.async_refresh_library = AsyncMock(
+                side_effect=EmbyError("Library scan in progress")
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            entity_id = None
+            for ent in entities:
+                if ent.domain == "media_player":
+                    entity_id = ent.entity_id
+                    break
+
+            assert entity_id is not None
+
+            with pytest.raises(HomeAssistantError) as exc_info:
+                await hass.services.async_call(
+                    DOMAIN,
+                    "refresh_library",
+                    {
+                        ATTR_ENTITY_ID: entity_id,
+                    },
+                    blocking=True,
+                )
+
+            assert "Library scan in progress" in str(exc_info.value)

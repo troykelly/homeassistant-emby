@@ -214,7 +214,7 @@ class TestDeviceDiagnostics:
         mock_session.device_id = "device-123"
         mock_session.device_name = "Living Room TV"
         mock_session.client_name = "Emby Theater"
-        mock_session.app_version = "4.7.0"
+        mock_session.app_version = "4.9.2.0"
         mock_session.supports_remote_control = True
         mock_session.supported_commands = ["Play", "Pause", "Stop"]
         mock_session.now_playing = None
@@ -230,9 +230,7 @@ class TestDeviceDiagnostics:
         mock_device = MagicMock()
         mock_device.identifiers = {(DOMAIN, "device-123")}
 
-        result = await async_get_device_diagnostics(
-            hass, mock_config_entry, mock_device
-        )
+        result = await async_get_device_diagnostics(hass, mock_config_entry, mock_device)
 
         assert result["status"] == "online"
         assert result["device_name"] == "Living Room TV"
@@ -258,9 +256,7 @@ class TestDeviceDiagnostics:
         mock_device = MagicMock()
         mock_device.identifiers = {(DOMAIN, "device-123")}
 
-        result = await async_get_device_diagnostics(
-            hass, mock_config_entry, mock_device
-        )
+        result = await async_get_device_diagnostics(hass, mock_config_entry, mock_device)
 
         assert result["device_id"] == "device-123"
         assert result["status"] == "offline"
@@ -284,9 +280,7 @@ class TestDeviceDiagnostics:
         mock_device = MagicMock()
         mock_device.identifiers = {("other_domain", "unknown")}
 
-        result = await async_get_device_diagnostics(
-            hass, mock_config_entry, mock_device
-        )
+        result = await async_get_device_diagnostics(hass, mock_config_entry, mock_device)
 
         assert result["error"] == "Device not found"
 
@@ -314,7 +308,7 @@ class TestDeviceDiagnostics:
         mock_session.device_id = "device-123"
         mock_session.device_name = "Living Room TV"
         mock_session.client_name = "Emby Theater"
-        mock_session.app_version = "4.7.0"
+        mock_session.app_version = "4.9.2.0"
         mock_session.supports_remote_control = True
         mock_session.supported_commands = ["Play", "Pause"]
         mock_session.now_playing = mock_now_playing
@@ -330,9 +324,7 @@ class TestDeviceDiagnostics:
         mock_device = MagicMock()
         mock_device.identifiers = {(DOMAIN, "device-123")}
 
-        result = await async_get_device_diagnostics(
-            hass, mock_config_entry, mock_device
-        )
+        result = await async_get_device_diagnostics(hass, mock_config_entry, mock_device)
 
         assert result["now_playing"] is not None
         assert result["now_playing"]["item_id"] == "item-456"

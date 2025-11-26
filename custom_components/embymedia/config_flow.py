@@ -413,6 +413,11 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
             # Check server version compatibility
             version = str(server_info.get("Version", "0.0.0"))
             if not self._is_version_supported(version):
+                _LOGGER.warning(
+                    "Emby server version %s is not supported (minimum: %s)",
+                    version,
+                    EMBY_MIN_VERSION,
+                )
                 errors["base"] = "unsupported_version"
                 return errors
 
@@ -451,26 +456,27 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
         """Check if the Emby server version is supported.
 
         Args:
-            version: Server version string (e.g., "4.8.0.0").
+            version: Server version string (e.g., "4.9.1.90").
 
         Returns:
             True if version is supported.
         """
         try:
-            # Parse version (handle formats like "4.8.0.0")
-            parts = version.split(".")
-            major = int(parts[0]) if len(parts) > 0 else 0
-            minor = int(parts[1]) if len(parts) > 1 else 0
+            # Parse version (handle formats like "4.9.1.90")
+            def parse_version(ver: str) -> tuple[int, int, int, int]:
+                parts = ver.split(".")
+                return (
+                    int(parts[0]) if len(parts) > 0 else 0,
+                    int(parts[1]) if len(parts) > 1 else 0,
+                    int(parts[2]) if len(parts) > 2 else 0,
+                    int(parts[3]) if len(parts) > 3 else 0,
+                )
 
-            min_parts = EMBY_MIN_VERSION.split(".")
-            min_major = int(min_parts[0]) if len(min_parts) > 0 else 0
-            min_minor = int(min_parts[1]) if len(min_parts) > 1 else 0
+            current = parse_version(version)
+            minimum = parse_version(EMBY_MIN_VERSION)
 
-            if major > min_major:
-                return True
-            if major == min_major and minor >= min_minor:
-                return True
-            return False
+            # Compare version tuples (lexicographic comparison)
+            return current >= minimum
 
         except (ValueError, IndexError):
             _LOGGER.warning("Could not parse Emby version: %s", version)

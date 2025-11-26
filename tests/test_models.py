@@ -188,7 +188,7 @@ class TestEmbySession:
             now_playing=now_playing,
             play_state=play_state,
             last_activity=last_activity,
-            app_version="4.8.0",
+            app_version="4.9.2.0",
             playable_media_types=("Video", "Audio"),
             supported_commands=("PlayPause", "Stop"),
         )
@@ -196,7 +196,7 @@ class TestEmbySession:
         assert session.supports_remote_control is True
         assert session.now_playing is not None
         assert session.now_playing.name == "Test Movie"
-        assert session.app_version == "4.8.0"
+        assert session.app_version == "4.9.2.0"
 
     def test_is_playing_true(self) -> None:
         """Test is_playing returns True when media is playing."""
@@ -574,13 +574,13 @@ class TestParseSession:
             "SupportsRemoteControl": True,
             "UserId": "user-123",
             "UserName": "TestUser",
-            "ApplicationVersion": "4.8.0",
+            "ApplicationVersion": "4.9.2.0",
             "PlayableMediaTypes": ["Video", "Audio"],
             "SupportedCommands": ["PlayPause", "Stop", "Seek"],
         }
         session = parse_session(data)
         assert session.user_id == "user-123"
         assert session.user_name == "TestUser"
-        assert session.app_version == "4.8.0"
+        assert session.app_version == "4.9.2.0"
         assert session.playable_media_types == ("Video", "Audio")
         assert session.supported_commands == ("PlayPause", "Stop", "Seek")

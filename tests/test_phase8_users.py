@@ -47,9 +47,7 @@ class TestConfigFlowUserSelection:
     ) -> None:
         """Test config flow shows user selection step after connection."""
         with (
-            patch(
-                "custom_components.embymedia.config_flow.EmbyClient"
-            ) as mock_client_class,
+            patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class,
         ):
             mock_client = AsyncMock()
             mock_client_class.return_value = mock_client
@@ -58,7 +56,7 @@ class TestConfigFlowUserSelection:
                 return_value={
                     "Id": "server-123",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0",
+                    "Version": "4.9.2.0",
                 }
             )
             mock_client.async_get_users = AsyncMock(
@@ -68,9 +66,7 @@ class TestConfigFlowUserSelection:
                 ]
             )
 
-            result = await hass.config_entries.flow.async_init(
-                DOMAIN, context={"source": "user"}
-            )
+            result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
 
             assert result["type"] is FlowResultType.FORM
             assert result["step_id"] == "user"
@@ -98,9 +94,7 @@ class TestConfigFlowUserSelection:
     ) -> None:
         """Test selecting a user creates config entry with user_id."""
         with (
-            patch(
-                "custom_components.embymedia.config_flow.EmbyClient"
-            ) as mock_client_class,
+            patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class,
         ):
             mock_client = AsyncMock()
             mock_client_class.return_value = mock_client
@@ -109,7 +103,7 @@ class TestConfigFlowUserSelection:
                 return_value={
                     "Id": "server-123",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0",
+                    "Version": "4.9.2.0",
                 }
             )
             mock_client.async_get_users = AsyncMock(
@@ -119,9 +113,7 @@ class TestConfigFlowUserSelection:
                 ]
             )
 
-            result = await hass.config_entries.flow.async_init(
-                DOMAIN, context={"source": "user"}
-            )
+            result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
 
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
@@ -150,9 +142,7 @@ class TestConfigFlowUserSelection:
     ) -> None:
         """Test skipping user selection uses no user context."""
         with (
-            patch(
-                "custom_components.embymedia.config_flow.EmbyClient"
-            ) as mock_client_class,
+            patch("custom_components.embymedia.config_flow.EmbyClient") as mock_client_class,
             patch(
                 "custom_components.embymedia.async_setup_entry",
                 return_value=True,
@@ -165,7 +155,7 @@ class TestConfigFlowUserSelection:
                 return_value={
                     "Id": "server-123",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0",
+                    "Version": "4.9.2.0",
                 }
             )
             mock_client.async_get_users = AsyncMock(
@@ -174,9 +164,7 @@ class TestConfigFlowUserSelection:
                 ]
             )
 
-            result = await hass.config_entries.flow.async_init(
-                DOMAIN, context={"source": "user"}
-            )
+            result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
 
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],

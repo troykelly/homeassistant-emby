@@ -21,7 +21,7 @@ def mock_session() -> MagicMock:
     session.device_id = "device-abc-123"
     session.device_name = "Living Room TV"
     session.client_name = "Emby Theater"
-    session.app_version = "4.8.0.0"
+    session.app_version = "4.9.2.0"
     return session
 
 
@@ -178,7 +178,7 @@ class TestEmbyEntityDeviceInfo:
         assert device_info["name"] == "Living Room TV"
         assert device_info["manufacturer"] == "Emby"
         assert device_info["model"] == "Emby Theater"
-        assert device_info["sw_version"] == "4.8.0.0"
+        assert device_info["sw_version"] == "4.9.2.0"
         assert device_info["via_device"] == (DOMAIN, "server-123")
 
     def test_device_info_without_session(

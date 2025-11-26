@@ -1,8 +1,8 @@
 {
-  "name": "Emby",
+  "name": "Emby Media",
   "content_in_root": false,
-  "filename": "emby",
   "render_readme": true,
-  "homeassistant": "2024.1.0",
-  "zip_release": true
+  "homeassistant": "2025.11.3",
+  "zip_release": true,
+  "filename": "embymedia.zip"
 }

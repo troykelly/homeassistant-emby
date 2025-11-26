@@ -41,16 +41,14 @@ class TestSendMessageService:
         mock_entry.add_to_hass(hass)
 
         # Verify service exists after setup
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=[])
@@ -89,16 +87,14 @@ class TestLibraryServices:
         )
         mock_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             client.async_get_sessions = AsyncMock(return_value=[])
@@ -145,16 +141,14 @@ class TestDeviceIdTargeting:
         )
         mock_entry.add_to_hass(hass)
 
-        with patch(
-            "custom_components.embymedia.EmbyClient", autospec=True
-        ) as mock_client_class:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
             client = mock_client_class.return_value
             client.async_validate_connection = AsyncMock(return_value=True)
             client.async_get_server_info = AsyncMock(
                 return_value={
                     "Id": "test-server-id",
                     "ServerName": "Test Server",
-                    "Version": "4.8.0.0",
+                    "Version": "4.9.2.0",
                 }
             )
             # Return a session so we have an entity
@@ -184,20 +178,18 @@ class TestDeviceIdTargeting:
             entity_reg = er.async_get(hass)
 
             # Find the device that has a media_player entity (session device)
-            devices = dr.async_entries_for_config_entry(
-                device_reg, mock_entry.entry_id
-            )
+            devices = dr.async_entries_for_config_entry(device_reg, mock_entry.entry_id)
             assert len(devices) >= 1, "Expected at least one device"
 
-            # Find device with an entity attached
+            # Find device with a media_player entity (session devices, not server)
             target_device = None
             for device in devices:
                 entries = er.async_entries_for_device(entity_reg, device.id)
-                if any(e.platform == DOMAIN for e in entries):
+                if any(e.platform == DOMAIN and e.domain == "media_player" for e in entries):
                     target_device = device
                     break
 
-            assert target_device is not None, "No device with Emby entity found"
+            assert target_device is not None, "No device with Emby media_player entity found"
 
             # Call service with device_id
             await hass.services.async_call(
