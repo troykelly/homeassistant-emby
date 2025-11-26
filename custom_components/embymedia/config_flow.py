@@ -465,7 +465,7 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
     @staticmethod
     @callback  # type: ignore[misc]
     def async_get_options_flow(
-        config_entry: ConfigEntry,
+        config_entry: ConfigEntry,  # noqa: ARG004
     ) -> EmbyOptionsFlowHandler:
         """Create the options flow.
 
@@ -475,21 +475,11 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
         Returns:
             Options flow handler instance.
         """
-        return EmbyOptionsFlowHandler(config_entry)
+        return EmbyOptionsFlowHandler()
 
 
 class EmbyOptionsFlowHandler(OptionsFlow):  # type: ignore[misc]
     """Handle Emby options."""
-
-    def __init__(self, config_entry: ConfigEntry) -> None:
-        """Initialize options flow.
-
-        Args:
-            config_entry: The config entry being configured.
-        """
-        # Note: The base OptionsFlow class sets self.config_entry automatically
-        # in HA 2025.x. We accept the parameter but don't need to store it.
-        super().__init__()
 
     async def async_step_init(
         self,

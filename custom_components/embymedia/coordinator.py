@@ -53,6 +53,7 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         server_id: str,
         server_name: str,
         scan_interval: int = DEFAULT_SCAN_INTERVAL,
+        user_id: str | None = None,
     ) -> None:
         """Initialize the coordinator.
 
@@ -62,6 +63,7 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
             server_id: Unique server identifier.
             server_name: Human-readable server name.
             scan_interval: Polling interval in seconds.
+            user_id: Optional user ID for user-specific context.
         """
         super().__init__(
             hass,
@@ -72,10 +74,20 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
         self.client = client
         self.server_id = server_id
         self.server_name = server_name
+        self._user_id = user_id
         self._previous_sessions: set[str] = set()
         self._websocket: EmbyWebSocket | None = None
         self._websocket_enabled: bool = False
         self._configured_scan_interval = scan_interval
+
+    @property
+    def user_id(self) -> str | None:
+        """Return the configured user ID.
+
+        Returns:
+            User ID if configured, None otherwise.
+        """
+        return self._user_id
 
     @property
     def websocket(self) -> EmbyWebSocket | None:
