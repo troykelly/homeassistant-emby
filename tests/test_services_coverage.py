@@ -1619,7 +1619,6 @@ class TestServiceEdgeCases:
             assert "No user_id available" in str(exc_info.value)
 
 
-
 class TestValidateEmbyId:
     """Tests for _validate_emby_id helper."""
 
@@ -1662,7 +1661,6 @@ class TestValidateEmbyId:
             with pytest.raises(ServiceValidationError) as exc_info:
                 _validate_emby_id(invalid_id, "item_id")
             assert "invalid characters" in str(exc_info.value)
-
 
 
 class TestServiceApiErrorHandling:
@@ -1865,9 +1863,7 @@ class TestServiceApiErrorHandling:
                     }
                 ]
             )
-            client.async_mark_played = AsyncMock(
-                side_effect=EmbyConnectionError("Connection lost")
-            )
+            client.async_mark_played = AsyncMock(side_effect=EmbyConnectionError("Connection lost"))
             client.close = AsyncMock()
 
             with patch(
@@ -1942,9 +1938,7 @@ class TestServiceApiErrorHandling:
                     }
                 ]
             )
-            client.async_send_message = AsyncMock(
-                side_effect=EmbyError("Session not controllable")
-            )
+            client.async_send_message = AsyncMock(side_effect=EmbyError("Session not controllable"))
             client.close = AsyncMock()
 
             with patch(
@@ -2174,9 +2168,7 @@ class TestServiceApiErrorHandling:
                     }
                 ]
             )
-            client.async_mark_played = AsyncMock(
-                side_effect=EmbyError("Item not found")
-            )
+            client.async_mark_played = AsyncMock(side_effect=EmbyError("Item not found"))
             client.close = AsyncMock()
 
             with patch(
@@ -2252,9 +2244,7 @@ class TestServiceApiErrorHandling:
                     }
                 ]
             )
-            client.async_mark_unplayed = AsyncMock(
-                side_effect=EmbyConnectionError("Timeout")
-            )
+            client.async_mark_unplayed = AsyncMock(side_effect=EmbyConnectionError("Timeout"))
             client.close = AsyncMock()
 
             with patch(
@@ -2330,9 +2320,7 @@ class TestServiceApiErrorHandling:
                     }
                 ]
             )
-            client.async_mark_unplayed = AsyncMock(
-                side_effect=EmbyError("Permission denied")
-            )
+            client.async_mark_unplayed = AsyncMock(side_effect=EmbyError("Permission denied"))
             client.close = AsyncMock()
 
             with patch(
@@ -2561,9 +2549,7 @@ class TestServiceApiErrorHandling:
                     }
                 ]
             )
-            client.async_add_favorite = AsyncMock(
-                side_effect=EmbyError("Already a favorite")
-            )
+            client.async_add_favorite = AsyncMock(side_effect=EmbyError("Already a favorite"))
             client.close = AsyncMock()
 
             with patch(
@@ -2792,9 +2778,7 @@ class TestServiceApiErrorHandling:
                     }
                 ]
             )
-            client.async_remove_favorite = AsyncMock(
-                side_effect=EmbyError("Not a favorite")
-            )
+            client.async_remove_favorite = AsyncMock(side_effect=EmbyError("Not a favorite"))
             client.close = AsyncMock()
 
             with patch(

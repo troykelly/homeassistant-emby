@@ -57,9 +57,7 @@ class TestCoordinatorWebSocketErrors:
             client.async_get_sessions = AsyncMock(return_value=[])
             client.close = AsyncMock()
 
-            with patch(
-                "custom_components.embymedia.coordinator.EmbyWebSocket"
-            ) as mock_ws_class:
+            with patch("custom_components.embymedia.coordinator.EmbyWebSocket") as mock_ws_class:
                 mock_ws = MagicMock()
                 mock_ws.async_connect = AsyncMock()
                 # Simulate subscription failure
@@ -100,9 +98,7 @@ class TestCoordinatorWebSocketErrors:
             # Track calls to the receive loop
             receive_called = asyncio.Event()
 
-            with patch(
-                "custom_components.embymedia.coordinator.EmbyWebSocket"
-            ) as mock_ws_class:
+            with patch("custom_components.embymedia.coordinator.EmbyWebSocket") as mock_ws_class:
                 mock_ws = MagicMock()
                 mock_ws.async_connect = AsyncMock()
                 mock_ws.async_subscribe_sessions = AsyncMock()
@@ -145,9 +141,7 @@ class TestCoordinatorWebSocketErrors:
             client.async_get_sessions = AsyncMock(return_value=[])
             client.close = AsyncMock()
 
-            with patch(
-                "custom_components.embymedia.coordinator.EmbyWebSocket"
-            ) as mock_ws_class:
+            with patch("custom_components.embymedia.coordinator.EmbyWebSocket") as mock_ws_class:
                 mock_ws = MagicMock()
                 # Simulate connection failure
                 mock_ws.async_connect = AsyncMock(
