@@ -68,7 +68,7 @@ class EmbyNotifyEntity(EmbyEntity, NotifyEntity):  # type: ignore[misc]
     """
 
     _attr_supported_features = NotifyEntityFeature.TITLE
-    _attr_name = "Notification"
+    _attr_name: str | None = None  # Phase 11: Use device name only (no suffix)
 
     def __init__(
         self,
