@@ -5,8 +5,6 @@ send_message:
     entity:
       integration: embymedia
       domain: media_player
-    device:
-      integration: embymedia
   fields:
     message:
       name: Message
@@ -40,8 +38,6 @@ send_command:
     entity:
       integration: embymedia
       domain: media_player
-    device:
-      integration: embymedia
   fields:
     command:
       name: Command
@@ -58,8 +54,6 @@ mark_played:
     entity:
       integration: embymedia
       domain: media_player
-    device:
-      integration: embymedia
   fields:
     item_id:
       name: Item ID
@@ -81,8 +75,6 @@ mark_unplayed:
     entity:
       integration: embymedia
       domain: media_player
-    device:
-      integration: embymedia
   fields:
     item_id:
       name: Item ID
@@ -104,8 +96,6 @@ add_favorite:
     entity:
       integration: embymedia
       domain: media_player
-    device:
-      integration: embymedia
   fields:
     item_id:
       name: Item ID
@@ -127,8 +117,6 @@ remove_favorite:
     entity:
       integration: embymedia
       domain: media_player
-    device:
-      integration: embymedia
   fields:
     item_id:
       name: Item ID
@@ -150,8 +138,6 @@ refresh_library:
     entity:
       integration: embymedia
       domain: media_player
-    device:
-      integration: embymedia
   fields:
     library_id:
       name: Library ID

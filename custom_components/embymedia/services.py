@@ -151,7 +151,7 @@ def _get_entity_ids_from_call(hass: HomeAssistant, call: ServiceCall) -> list[st
                     entity_ids.append(entry.entity_id)
 
     if not entity_ids:
-        raise ServiceValidationError("No valid targets provided. Specify entity_id or device_id.")
+        raise ServiceValidationError("No valid targets provided. Specify entity_id.")
 
     return entity_ids
 
