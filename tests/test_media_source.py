@@ -1100,9 +1100,7 @@ class TestMovieLibraryBrowsingMediaSource:
         )
 
         media_source = EmbyMediaSource(hass)
-        item = MediaSourceItem(
-            hass, DOMAIN, f"{mock_server_info['Id']}/movieyear/lib-movies", None
-        )
+        item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/movieyear/lib-movies", None)
 
         result = await media_source.async_browse_media(item)
 
@@ -1526,9 +1524,7 @@ class TestTVLibraryBrowsingMediaSource:
         )
 
         media_source = EmbyMediaSource(hass)
-        item = MediaSourceItem(
-            hass, DOMAIN, f"{mock_server_info['Id']}/tvyear/lib-tv", None
-        )
+        item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/tvyear/lib-tv", None)
 
         result = await media_source.async_browse_media(item)
 
