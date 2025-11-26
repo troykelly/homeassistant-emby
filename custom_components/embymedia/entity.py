@@ -7,7 +7,11 @@ from typing import TYPE_CHECKING
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import (
+    CONF_PREFIX_MEDIA_PLAYER,
+    DEFAULT_PREFIX_MEDIA_PLAYER,
+    DOMAIN,
+)
 
 if TYPE_CHECKING:
     from .coordinator import EmbyDataUpdateCoordinator
@@ -25,9 +29,15 @@ class EmbyEntity(CoordinatorEntity["EmbyDataUpdateCoordinator"]):  # type: ignor
 
     Attributes:
         _device_id: The stable device identifier.
+        _prefix_key: Config key for entity's prefix toggle.
+        _prefix_default: Default value for prefix toggle.
     """
 
     _attr_has_entity_name = True
+
+    # Subclasses should override these for their specific prefix settings
+    _prefix_key: str = CONF_PREFIX_MEDIA_PLAYER
+    _prefix_default: bool = DEFAULT_PREFIX_MEDIA_PLAYER
 
     def __init__(
         self,
@@ -67,22 +77,26 @@ class EmbyEntity(CoordinatorEntity["EmbyDataUpdateCoordinator"]):  # type: ignor
     def device_info(self) -> DeviceInfo:
         """Return device information.
 
+        Phase 11: Uses _get_device_name to support optional 'Emby' prefix.
+
         Returns:
             DeviceInfo for device registry.
         """
         session = self.session
+        device_name = self._get_device_name(self._prefix_key, self._prefix_default)
+
         if session is None:
             # Fallback device info when session not available
             return DeviceInfo(
                 identifiers={(DOMAIN, self._device_id)},
-                name=f"Emby Client {self._device_id[:8]}",
+                name=device_name,
                 manufacturer="Emby",
                 via_device=(DOMAIN, self.coordinator.server_id),
             )
 
         return DeviceInfo(
             identifiers={(DOMAIN, self._device_id)},
-            name=session.device_name,
+            name=device_name,
             manufacturer="Emby",
             model=session.client_name,
             sw_version=session.app_version,

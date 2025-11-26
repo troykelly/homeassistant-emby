@@ -37,7 +37,12 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, EmbyConfigEntry
+from .const import (
+    CONF_PREFIX_BUTTON,
+    DEFAULT_PREFIX_BUTTON,
+    DOMAIN,
+    EmbyConfigEntry,
+)
 
 if TYPE_CHECKING:
     from .coordinator import EmbyDataUpdateCoordinator
@@ -110,13 +115,25 @@ class EmbyRefreshLibraryButton(CoordinatorEntity["EmbyDataUpdateCoordinator"], B
         """Return device information for the Emby server.
 
         Links this button to the main Emby server device.
+        Phase 11: Supports optional 'Emby' prefix based on user settings.
 
         Returns:
             DeviceInfo for device registry.
         """
+        # Phase 11: Get prefix toggle from options
+        use_prefix: bool = self.coordinator.config_entry.options.get(
+            CONF_PREFIX_BUTTON, DEFAULT_PREFIX_BUTTON
+        )
+        server_name = self.coordinator.server_name
+
+        if use_prefix:
+            device_name = f"Emby {server_name}"
+        else:
+            device_name = server_name
+
         return DeviceInfo(
             identifiers={(DOMAIN, self.coordinator.server_id)},
-            name=self.coordinator.server_name,
+            name=device_name,
             manufacturer="Emby",
         )
 
