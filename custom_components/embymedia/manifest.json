@@ -3,7 +3,7 @@
   "name": "Emby Media",
   "codeowners": ["@troykelly"],
   "config_flow": true,
-  "dependencies": ["media_source"],
+  "dependencies": ["device_automation", "diagnostics", "media_source"],
   "documentation": "https://github.com/troykelly/homeassistant-emby",
   "integration_type": "hub",
   "iot_class": "local_polling",
