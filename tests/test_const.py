@@ -207,3 +207,36 @@ class TestMediaSourceTypedDicts:
         assert "track" in MIME_TYPES
         assert MIME_TYPES["movie"] == "video/mp4"
         assert MIME_TYPES["track"] == "audio/mpeg"
+
+
+class TestPrefixConstants:
+    """Test entity name prefix constants for Phase 11."""
+
+    def test_prefix_constants_exist(self) -> None:
+        """Test all prefix configuration constants exist."""
+        from custom_components.embymedia.const import (
+            CONF_PREFIX_BUTTON,
+            CONF_PREFIX_MEDIA_PLAYER,
+            CONF_PREFIX_NOTIFY,
+            CONF_PREFIX_REMOTE,
+        )
+
+        assert CONF_PREFIX_MEDIA_PLAYER == "prefix_media_player"
+        assert CONF_PREFIX_NOTIFY == "prefix_notify"
+        assert CONF_PREFIX_REMOTE == "prefix_remote"
+        assert CONF_PREFIX_BUTTON == "prefix_button"
+
+    def test_default_prefix_constants_exist(self) -> None:
+        """Test all default prefix values exist and are True."""
+        from custom_components.embymedia.const import (
+            DEFAULT_PREFIX_BUTTON,
+            DEFAULT_PREFIX_MEDIA_PLAYER,
+            DEFAULT_PREFIX_NOTIFY,
+            DEFAULT_PREFIX_REMOTE,
+        )
+
+        # All defaults should be True (prefix enabled by default)
+        assert DEFAULT_PREFIX_MEDIA_PLAYER is True
+        assert DEFAULT_PREFIX_NOTIFY is True
+        assert DEFAULT_PREFIX_REMOTE is True
+        assert DEFAULT_PREFIX_BUTTON is True

@@ -62,7 +62,7 @@ from homeassistant.components.remote import RemoteEntity, RemoteEntityFeature
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import EmbyConfigEntry
+from .const import CONF_PREFIX_REMOTE, DEFAULT_PREFIX_REMOTE, EmbyConfigEntry
 from .entity import EmbyEntity
 
 if TYPE_CHECKING:
@@ -128,8 +128,12 @@ class EmbyRemoteEntity(EmbyEntity, RemoteEntity):  # type: ignore[misc]
         _attr_supported_features: No special features (basic command sending).
     """
 
-    _attr_name = "Remote"
+    _attr_name: str | None = None  # Phase 11: Use device name only (no suffix)
     _attr_supported_features = RemoteEntityFeature(0)
+
+    # Phase 11: Entity-specific prefix settings
+    _prefix_key: str = CONF_PREFIX_REMOTE
+    _prefix_default: bool = DEFAULT_PREFIX_REMOTE
 
     def __init__(
         self,

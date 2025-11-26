@@ -37,7 +37,12 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, EmbyConfigEntry
+from .const import (
+    CONF_PREFIX_BUTTON,
+    DEFAULT_PREFIX_BUTTON,
+    DOMAIN,
+    EmbyConfigEntry,
+)
 
 if TYPE_CHECKING:
     from .coordinator import EmbyDataUpdateCoordinator
@@ -106,17 +111,43 @@ class EmbyRefreshLibraryButton(CoordinatorEntity["EmbyDataUpdateCoordinator"], B
         return f"{self.coordinator.server_id}_refresh_library"
 
     @property
+    def suggested_object_id(self) -> str | None:
+        """Return suggested object ID for entity ID generation.
+
+        This ensures the entity ID includes the 'Emby' prefix when the option
+        is enabled, matching the device name.
+
+        Returns:
+            Suggested object ID string (e.g., "emby_server_refresh_library").
+        """
+        use_prefix: bool = self.coordinator.config_entry.options.get(
+            CONF_PREFIX_BUTTON, DEFAULT_PREFIX_BUTTON
+        )
+        server_name = self.coordinator.server_name
+        device_name = f"Emby {server_name}" if use_prefix else server_name
+        # Include the entity name suffix for the full object ID
+        return f"{device_name} Refresh Library"
+
+    @property
     def device_info(self) -> DeviceInfo:
         """Return device information for the Emby server.
 
         Links this button to the main Emby server device.
+        Phase 11: Supports optional 'Emby' prefix based on user settings.
 
         Returns:
             DeviceInfo for device registry.
         """
+        # Phase 11: Get prefix toggle from options
+        use_prefix: bool = self.coordinator.config_entry.options.get(
+            CONF_PREFIX_BUTTON, DEFAULT_PREFIX_BUTTON
+        )
+        server_name = self.coordinator.server_name
+        device_name = f"Emby {server_name}" if use_prefix else server_name
+
         return DeviceInfo(
             identifiers={(DOMAIN, self.coordinator.server_id)},
-            name=self.coordinator.server_name,
+            name=device_name,
             manufacturer="Emby",
         )
 

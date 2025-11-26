@@ -338,11 +338,15 @@ class TestNotifySendMessage:
 class TestNotifyEntityName:
     """Test notify entity naming."""
 
-    def test_notify_entity_name_is_notification(
+    def test_notify_entity_name_is_none(
         self,
         hass: HomeAssistant,
     ) -> None:
-        """Test notify entity name is 'Notification'."""
+        """Test notify entity name is None (uses device name only).
+
+        Phase 11: Removed redundant 'Notification' suffix.
+        Entity ID becomes notify.{device_name} instead of notify.{device_name}_notification.
+        """
         from custom_components.embymedia.notify import EmbyNotifyEntity
 
         mock_coordinator = MagicMock()
@@ -354,7 +358,8 @@ class TestNotifyEntityName:
 
         entity = EmbyNotifyEntity(mock_coordinator, "device-1")
 
-        assert entity.name == "Notification"
+        # _attr_name = None means entity uses device name only (no suffix)
+        assert entity.name is None
 
 
 class TestAsyncSetupEntry:

@@ -33,11 +33,15 @@ class TestEmbyRemoteEntity:
 
         assert entity.unique_id == "server-123_device-1_remote"
 
-    def test_remote_entity_name(
+    def test_remote_entity_name_is_none(
         self,
         hass: HomeAssistant,
     ) -> None:
-        """Test remote entity name is 'Remote'."""
+        """Test remote entity name is None (uses device name only).
+
+        Phase 11: Removed redundant 'Remote' suffix.
+        Entity ID becomes remote.{device_name} instead of remote.{device_name}_remote.
+        """
         from custom_components.embymedia.remote import EmbyRemoteEntity
 
         mock_coordinator = MagicMock()
@@ -50,7 +54,8 @@ class TestEmbyRemoteEntity:
 
         entity = EmbyRemoteEntity(mock_coordinator, "device-1")
 
-        assert entity.name == "Remote"
+        # _attr_name = None means entity uses device name only (no suffix)
+        assert entity.name is None
 
     def test_remote_entity_is_on_when_session_exists(
         self,
