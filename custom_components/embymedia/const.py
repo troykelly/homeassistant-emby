@@ -40,6 +40,11 @@ CONF_PREFIX_NOTIFY: Final = "prefix_notify"
 CONF_PREFIX_REMOTE: Final = "prefix_remote"
 CONF_PREFIX_BUTTON: Final = "prefix_button"
 
+# Sensor platform option keys (Phase 12)
+CONF_ENABLE_LIBRARY_SENSORS: Final = "enable_library_sensors"
+CONF_ENABLE_USER_SENSORS: Final = "enable_user_sensors"
+CONF_LIBRARY_SCAN_INTERVAL: Final = "library_scan_interval"
+
 # Default values
 DEFAULT_PORT: Final = 8096
 DEFAULT_SSL: Final = False
@@ -57,6 +62,12 @@ DEFAULT_PREFIX_MEDIA_PLAYER: Final = True
 DEFAULT_PREFIX_NOTIFY: Final = True
 DEFAULT_PREFIX_REMOTE: Final = True
 DEFAULT_PREFIX_BUTTON: Final = True
+
+# Default sensor values (Phase 12)
+DEFAULT_ENABLE_LIBRARY_SENSORS: Final = True
+DEFAULT_ENABLE_USER_SENSORS: Final = True
+DEFAULT_LIBRARY_SCAN_INTERVAL: Final = 3600  # 1 hour in seconds
+DEFAULT_SERVER_SCAN_INTERVAL: Final = 300  # 5 minutes in seconds
 
 # Video container options
 VIDEO_CONTAINERS: Final[list[str]] = ["mp4", "mkv", "webm"]
@@ -97,10 +108,12 @@ ENDPOINT_SESSIONS: Final = "/Sessions"
 
 # Platforms
 PLATFORMS: list[Platform] = [
+    Platform.BINARY_SENSOR,
     Platform.BUTTON,
     Platform.MEDIA_PLAYER,
     Platform.NOTIFY,
     Platform.REMOTE,
+    Platform.SENSOR,
 ]
 
 
