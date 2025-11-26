@@ -97,5 +97,34 @@ class EmbyEntity(CoordinatorEntity["EmbyDataUpdateCoordinator"]):  # type: ignor
         """
         return f"{self.coordinator.server_id}_{self._device_id}"
 
+    def _get_device_name(self, prefix_key: str, prefix_default: bool) -> str:
+        """Get device name with optional 'Emby' prefix.
+
+        Phase 11: Allows users to toggle 'Emby' prefix in device names via options.
+
+        Args:
+            prefix_key: The options key for this entity's prefix toggle
+                       (e.g., CONF_PREFIX_MEDIA_PLAYER)
+            prefix_default: The default value for the prefix toggle
+
+        Returns:
+            Device name with or without 'Emby' prefix based on user setting.
+        """
+        # Get the prefix toggle from options (with fallback to default)
+        use_prefix: bool = self.coordinator.config_entry.options.get(
+            prefix_key, prefix_default
+        )
+
+        session = self.session
+        if session is not None:
+            device_name = session.device_name
+        else:
+            # Fallback to short device ID
+            device_name = f"Client {self._device_id[:8]}"
+
+        if use_prefix:
+            return f"Emby {device_name}"
+        return device_name
+
 
 __all__ = ["EmbyEntity"]
