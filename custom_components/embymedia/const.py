@@ -155,6 +155,7 @@ ENDPOINT_SESSIONS: Final = "/Sessions"
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
+    Platform.IMAGE,
     Platform.MEDIA_PLAYER,
     Platform.NOTIFY,
     Platform.REMOTE,

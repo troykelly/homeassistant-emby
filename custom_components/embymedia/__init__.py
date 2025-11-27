@@ -69,7 +69,7 @@ from .coordinator import EmbyDataUpdateCoordinator
 from .coordinator_discovery import EmbyDiscoveryCoordinator
 from .coordinator_sensors import EmbyLibraryCoordinator, EmbyServerCoordinator
 from .exceptions import EmbyAuthenticationError, EmbyConnectionError
-from .image import async_setup_image_proxy
+from .image_proxy import async_setup_image_proxy
 from .services import async_setup_services, async_unload_services
 
 if TYPE_CHECKING:
