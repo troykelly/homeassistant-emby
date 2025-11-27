@@ -37,6 +37,7 @@ class EmbyDiscoverySensorBase(
     - Device info linking to server device
     - Availability based on coordinator state
     - Common entity attributes
+    - Image URL generation for cover art
     """
 
     _attr_has_entity_name = True
@@ -70,6 +71,72 @@ class EmbyDiscoverySensorBase(
     def available(self) -> bool:
         """Return True if entity is available."""
         return self.coordinator.last_update_success and self.coordinator.data is not None
+
+    def _get_image_url(
+        self,
+        item_id: str,
+        image_tags: dict[str, str] | None = None,
+        image_type: str = "Primary",
+        max_width: int = 300,
+        max_height: int = 450,
+    ) -> str | None:
+        """Generate image URL for an item.
+
+        Args:
+            item_id: The item ID.
+            image_tags: Dict of image type to tag (for cache busting).
+            image_type: Type of image (Primary, Backdrop, Thumb).
+            max_width: Maximum image width.
+            max_height: Maximum image height.
+
+        Returns:
+            Image URL string or None if no image available.
+        """
+        if not item_id:
+            return None
+
+        tag = None
+        if image_tags and image_type in image_tags:
+            tag = image_tags[image_type]
+
+        url: str | None = self.coordinator.client.get_image_url(
+            item_id=item_id,
+            image_type=image_type,
+            max_width=max_width,
+            max_height=max_height,
+            tag=tag,
+        )
+        return url
+
+    def _get_series_image_url(
+        self,
+        series_id: str | None,
+        series_primary_tag: str | None = None,
+        max_width: int = 300,
+        max_height: int = 450,
+    ) -> str | None:
+        """Generate image URL for a series (for episodes).
+
+        Args:
+            series_id: The series ID.
+            series_primary_tag: Series primary image tag.
+            max_width: Maximum image width.
+            max_height: Maximum image height.
+
+        Returns:
+            Image URL string or None if no series ID.
+        """
+        if not series_id:
+            return None
+
+        url: str | None = self.coordinator.client.get_image_url(
+            item_id=series_id,
+            image_type="Primary",
+            max_width=max_width,
+            max_height=max_height,
+            tag=series_primary_tag,
+        )
+        return url
 
 
 # =============================================================================
@@ -114,19 +181,32 @@ class EmbyNextUpSensor(EmbyDiscoverySensorBase):
 
         items = []
         for item in self.coordinator.data.get("next_up", []):
+            item_id = item.get("Id", "")
+            series_id = item.get("SeriesId")
+            image_tags = item.get("ImageTags", {})
+            series_primary_tag = item.get("SeriesPrimaryImageTag")
+
+            # For episodes, prefer series image; fall back to episode image
+            image_url = self._get_series_image_url(series_id, series_primary_tag)
+            if not image_url:
+                image_url = self._get_image_url(item_id, image_tags)
+
             items.append(
                 {
-                    "id": item.get("Id"),
+                    "id": item_id,
                     "name": item.get("Name"),
                     "type": item.get("Type"),
                     "series_name": item.get("SeriesName"),
+                    "series_id": series_id,
                     "season_name": item.get("SeasonName"),
                     "episode_number": item.get("IndexNumber"),
                     "season_number": item.get("ParentIndexNumber"),
+                    "image_url": image_url,
+                    "backdrop_url": self._get_image_url(item_id, image_tags, "Backdrop", 1280, 720),
                 }
             )
 
-        return {"items": items}
+        return {"items": items, "user_id": self.coordinator.user_id}
 
 
 # =============================================================================
@@ -171,18 +251,33 @@ class EmbyContinueWatchingSensor(EmbyDiscoverySensorBase):
 
         items = []
         for item in self.coordinator.data.get("continue_watching", []):
+            item_id = item.get("Id", "")
+            series_id = item.get("SeriesId")
+            image_tags = item.get("ImageTags", {})
+            series_primary_tag = item.get("SeriesPrimaryImageTag")
             user_data = item.get("UserData", {})
+            item_type = item.get("Type", "")
+
+            # For episodes, prefer series image; for movies, use item image
+            if item_type == "Episode" and series_id:
+                image_url = self._get_series_image_url(series_id, series_primary_tag)
+            else:
+                image_url = self._get_image_url(item_id, image_tags)
+
             items.append(
                 {
-                    "id": item.get("Id"),
+                    "id": item_id,
                     "name": item.get("Name"),
-                    "type": item.get("Type"),
+                    "type": item_type,
                     "series_name": item.get("SeriesName"),
+                    "series_id": series_id,
                     "progress_percent": user_data.get("PlayedPercentage", 0),
+                    "image_url": image_url,
+                    "backdrop_url": self._get_image_url(item_id, image_tags, "Backdrop", 1280, 720),
                 }
             )
 
-        return {"items": items}
+        return {"items": items, "user_id": self.coordinator.user_id}
 
 
 # =============================================================================
@@ -227,17 +322,32 @@ class EmbyRecentlyAddedSensor(EmbyDiscoverySensorBase):
 
         items = []
         for item in self.coordinator.data.get("recently_added", []):
+            item_id = item.get("Id", "")
+            series_id = item.get("SeriesId")
+            image_tags = item.get("ImageTags", {})
+            series_primary_tag = item.get("SeriesPrimaryImageTag")
+            item_type = item.get("Type", "")
+
+            # For episodes, prefer series image; for movies/music, use item image
+            if item_type == "Episode" and series_id:
+                image_url = self._get_series_image_url(series_id, series_primary_tag)
+            else:
+                image_url = self._get_image_url(item_id, image_tags)
+
             items.append(
                 {
-                    "id": item.get("Id"),
+                    "id": item_id,
                     "name": item.get("Name"),
-                    "type": item.get("Type"),
+                    "type": item_type,
                     "series_name": item.get("SeriesName"),
+                    "series_id": series_id,
                     "year": item.get("ProductionYear"),
+                    "image_url": image_url,
+                    "backdrop_url": self._get_image_url(item_id, image_tags, "Backdrop", 1280, 720),
                 }
             )
 
-        return {"items": items}
+        return {"items": items, "user_id": self.coordinator.user_id}
 
 
 # =============================================================================
@@ -282,17 +392,35 @@ class EmbySuggestionsSensor(EmbyDiscoverySensorBase):
 
         items = []
         for item in self.coordinator.data.get("suggestions", []):
+            item_id = item.get("Id", "")
+            series_id = item.get("SeriesId")
+            image_tags = item.get("ImageTags", {})
+            series_primary_tag = item.get("SeriesPrimaryImageTag")
+            item_type = item.get("Type", "")
+
+            # For episodes/series content, prefer series image
+            if item_type in ("Episode", "Series") and series_id:
+                image_url = self._get_series_image_url(series_id, series_primary_tag)
+            elif item_type == "Series":
+                image_url = self._get_image_url(item_id, image_tags)
+            else:
+                image_url = self._get_image_url(item_id, image_tags)
+
             items.append(
                 {
-                    "id": item.get("Id"),
+                    "id": item_id,
                     "name": item.get("Name"),
-                    "type": item.get("Type"),
+                    "type": item_type,
+                    "series_name": item.get("SeriesName"),
+                    "series_id": series_id,
                     "rating": item.get("CommunityRating"),
                     "year": item.get("ProductionYear"),
+                    "image_url": image_url,
+                    "backdrop_url": self._get_image_url(item_id, image_tags, "Backdrop", 1280, 720),
                 }
             )
 
-        return {"items": items}
+        return {"items": items, "user_id": self.coordinator.user_id}
 
 
 __all__ = [
