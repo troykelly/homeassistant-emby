@@ -1195,9 +1195,7 @@ class EmbyClient:
             pass
 
         # Fallback: Extract years from items with ProductionYear field
-        items = await self._extract_years_from_items(
-            user_id, parent_id, include_item_types
-        )
+        items = await self._extract_years_from_items(user_id, parent_id, include_item_types)
 
         # Cache the result
         self._browse_cache.set(cache_key, items)
@@ -1250,11 +1248,13 @@ class EmbyClient:
         # Convert to EmbyBrowseItem format, sorted newest first
         items: list[EmbyBrowseItem] = []
         for year in sorted(years_set, reverse=True):
-            items.append({
-                "Id": str(year),
-                "Name": str(year),
-                "Type": "Year",
-            })
+            items.append(
+                {
+                    "Id": str(year),
+                    "Name": str(year),
+                    "Type": "Year",
+                }
+            )
 
         return items
 

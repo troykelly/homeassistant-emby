@@ -258,17 +258,13 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
         if content_type == "musicartistletter" and item_id:
             parts = item_id.split("/")
             if len(parts) >= 2:
-                return await self._async_browse_artists_by_letter(
-                    coordinator, parts[0], parts[1]
-                )
+                return await self._async_browse_artists_by_letter(coordinator, parts[0], parts[1])
         if content_type == "musicalbums" and item_id:
             return await self._async_browse_music_albums(coordinator, item_id)
         if content_type == "musicalbumletter" and item_id:
             parts = item_id.split("/")
             if len(parts) >= 2:
-                return await self._async_browse_albums_by_letter(
-                    coordinator, parts[0], parts[1]
-                )
+                return await self._async_browse_albums_by_letter(coordinator, parts[0], parts[1])
         if content_type == "musicgenres" and item_id:
             return await self._async_browse_music_genres(coordinator, item_id)
         if content_type == "musicgenreitems" and item_id:

@@ -1704,9 +1704,7 @@ class TestMediaSourceMusicBrowsing:
     def mock_coordinator_for_media_source(self, mock_server_info: dict[str, Any]) -> MagicMock:
         """Create a mock coordinator for media source tests."""
         mock_client = MagicMock()
-        mock_client.async_get_items = AsyncMock(
-            return_value={"Items": [], "TotalRecordCount": 0}
-        )
+        mock_client.async_get_items = AsyncMock(return_value={"Items": [], "TotalRecordCount": 0})
         mock_client.async_get_genres = AsyncMock(return_value=[])
         mock_client.async_get_music_genres = AsyncMock(return_value=[])
         mock_client.async_get_artists = AsyncMock(return_value=[])

@@ -2060,7 +2060,9 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children.append(
                 BrowseMedia(
                     media_class=MediaClass.DIRECTORY,
-                    media_content_id=encode_content_id("moviestudioitems", library_id, studio["Id"]),
+                    media_content_id=encode_content_id(
+                        "moviestudioitems", library_id, studio["Id"]
+                    ),
                     media_content_type=MediaType.VIDEO,
                     title=studio["Name"],
                     can_play=False,
