@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
 
     from .coordinator import EmbyDataUpdateCoordinator
+    from .coordinator_discovery import EmbyDiscoveryCoordinator
     from .coordinator_sensors import EmbyLibraryCoordinator, EmbyServerCoordinator
 
 # Integration domain
@@ -28,6 +29,7 @@ class EmbyRuntimeData:
         session_coordinator: EmbyDataUpdateCoordinator,
         server_coordinator: EmbyServerCoordinator,
         library_coordinator: EmbyLibraryCoordinator,
+        discovery_coordinator: EmbyDiscoveryCoordinator | None = None,
     ) -> None:
         """Initialize runtime data.
 
@@ -35,10 +37,12 @@ class EmbyRuntimeData:
             session_coordinator: Coordinator for session/media player data.
             server_coordinator: Coordinator for server status data.
             library_coordinator: Coordinator for library counts data.
+            discovery_coordinator: Optional coordinator for discovery data.
         """
         self.session_coordinator = session_coordinator
         self.server_coordinator = server_coordinator
         self.library_coordinator = library_coordinator
+        self.discovery_coordinator = discovery_coordinator
 
     # Provide backward compatibility as the old coordinator
     @property

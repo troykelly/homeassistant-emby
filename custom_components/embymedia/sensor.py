@@ -19,12 +19,19 @@ from .coordinator_sensors import (
     EmbyLibraryCoordinator,
     EmbyServerCoordinator,
 )
+from .sensor_discovery import (
+    EmbyContinueWatchingSensor,
+    EmbyNextUpSensor,
+    EmbyRecentlyAddedSensor,
+    EmbySuggestionsSensor,
+)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
     from .const import EmbyConfigEntry
+    from .coordinator_discovery import EmbyDiscoveryCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,6 +52,7 @@ async def async_setup_entry(
     server_coordinator: EmbyServerCoordinator = runtime_data.server_coordinator
     library_coordinator: EmbyLibraryCoordinator = runtime_data.library_coordinator
     session_coordinator: EmbyDataUpdateCoordinator = runtime_data.session_coordinator
+    discovery_coordinator: EmbyDiscoveryCoordinator | None = runtime_data.discovery_coordinator
     server_name = server_coordinator.server_name
 
     entities: list[SensorEntity] = [
@@ -61,6 +69,17 @@ async def async_setup_entry(
         EmbyAlbumCountSensor(library_coordinator, server_name),
         EmbyArtistCountSensor(library_coordinator, server_name),
     ]
+
+    # Add discovery sensors if coordinator is available (requires user_id)
+    if discovery_coordinator is not None:
+        entities.extend(
+            [
+                EmbyNextUpSensor(discovery_coordinator, server_name),
+                EmbyContinueWatchingSensor(discovery_coordinator, server_name),
+                EmbyRecentlyAddedSensor(discovery_coordinator, server_name),
+                EmbySuggestionsSensor(discovery_coordinator, server_name),
+            ]
+        )
 
     async_add_entities(entities)
 

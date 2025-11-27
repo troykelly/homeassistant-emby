@@ -354,6 +354,7 @@ class TestAsyncSetupEntry:
             server_coordinator = mock_server_coordinator
             library_coordinator = mock_library_coordinator
             session_coordinator = mock_session_coordinator
+            discovery_coordinator = None
 
         mock_config_entry.runtime_data = RuntimeData()
 
