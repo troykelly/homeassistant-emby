@@ -2766,3 +2766,139 @@ class TestTVShowLibraryBrowsing:
         # Only "24" should be included (starts with number)
         assert len(result.children) == 1
         assert result.children[0].title == "24"
+
+    @pytest.mark.asyncio
+    async def test_browse_movie_studios_shows_studios(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test browsing movie studios shows studio list."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.client.async_get_studios = AsyncMock(
+            return_value=[
+                {"Id": "studio-1", "Name": "Warner Bros"},
+                {"Id": "studio-2", "Name": "Disney"},
+                {"Id": "studio-3", "Name": "Netflix"},
+            ]
+        )
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.VIDEO,
+            media_content_id="moviestudio:lib-movies",
+        )
+
+        assert isinstance(result, BrowseMedia)
+        assert result.children is not None
+        assert len(result.children) == 3
+        assert result.children[0].title == "Warner Bros"
+        assert result.children[1].title == "Disney"
+        assert result.children[2].title == "Netflix"
+
+    @pytest.mark.asyncio
+    async def test_browse_movies_by_studio(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test browsing movies from a specific studio."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.client.async_get_items = AsyncMock(
+            return_value={
+                "Items": [
+                    {"Id": "movie-1", "Name": "Batman", "Type": "Movie", "ImageTags": {}},
+                    {"Id": "movie-2", "Name": "Superman", "Type": "Movie", "ImageTags": {}},
+                ],
+                "TotalRecordCount": 2,
+            }
+        )
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.VIDEO,
+            media_content_id="moviestudioitems:lib-movies:studio-warner",
+        )
+
+        assert isinstance(result, BrowseMedia)
+        assert result.children is not None
+        assert len(result.children) == 2
+        # Verify API was called with studio filter
+        mock_coordinator_for_browse.client.async_get_items.assert_called_once()
+        call_kwargs = mock_coordinator_for_browse.client.async_get_items.call_args.kwargs
+        assert call_kwargs.get("studio_ids") == "studio-warner"
+
+    @pytest.mark.asyncio
+    async def test_browse_tv_studios_shows_networks(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test browsing TV studios shows network list."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.client.async_get_studios = AsyncMock(
+            return_value=[
+                {"Id": "network-1", "Name": "HBO"},
+                {"Id": "network-2", "Name": "NBC"},
+            ]
+        )
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.TVSHOW,
+            media_content_id="tvstudio:lib-tv",
+        )
+
+        assert isinstance(result, BrowseMedia)
+        assert result.children is not None
+        assert len(result.children) == 2
+        assert result.children[0].title == "HBO"
+        assert result.children[1].title == "NBC"
+
+    @pytest.mark.asyncio
+    async def test_browse_tv_by_studio(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test browsing TV shows from a specific network."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.client.async_get_items = AsyncMock(
+            return_value={
+                "Items": [
+                    {
+                        "Id": "tv-1",
+                        "Name": "Game of Thrones",
+                        "Type": "Series",
+                        "ImageTags": {},
+                    },
+                ],
+                "TotalRecordCount": 1,
+            }
+        )
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.TVSHOW,
+            media_content_id="tvstudioitems:lib-tv:network-hbo",
+        )
+
+        assert isinstance(result, BrowseMedia)
+        assert result.children is not None
+        assert len(result.children) == 1
+        # Verify API was called with studio filter
+        mock_coordinator_for_browse.client.async_get_items.assert_called_once()
+        call_kwargs = mock_coordinator_for_browse.client.async_get_items.call_args.kwargs
+        assert call_kwargs.get("studio_ids") == "network-hbo"
