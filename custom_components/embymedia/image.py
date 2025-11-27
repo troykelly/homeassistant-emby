@@ -37,7 +37,7 @@ async def async_setup_image_proxy(hass: HomeAssistant) -> None:
     _LOGGER.debug("Emby image proxy view registered")
 
 
-class EmbyImageProxyView(HomeAssistantView):  # type: ignore[misc]
+class EmbyImageProxyView(HomeAssistantView):
     """Proxy view for Emby images.
 
     This view proxies image requests to the Emby server, handling

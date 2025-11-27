@@ -38,14 +38,10 @@ async def main() -> None:
         views = await client.async_get_user_views(user_id)
 
         # Find movies library
-        movies_library = next(
-            (v for v in views if v.get("CollectionType") == "movies"), None
-        )
+        movies_library = next((v for v in views if v.get("CollectionType") == "movies"), None)
         if movies_library:
             print(f"\n=== Movies Library: {movies_library.get('Name')} ===")
-            result = await client.async_get_items(
-                user_id, parent_id=movies_library["Id"], limit=5
-            )
+            result = await client.async_get_items(user_id, parent_id=movies_library["Id"], limit=5)
             for item in result.get("Items", []):
                 img_tags = item.get("ImageTags", {})
                 print(
@@ -55,14 +51,10 @@ async def main() -> None:
                 )
 
         # Find TV shows library
-        tv_library = next(
-            (v for v in views if v.get("CollectionType") == "tvshows"), None
-        )
+        tv_library = next((v for v in views if v.get("CollectionType") == "tvshows"), None)
         if tv_library:
             print(f"\n=== TV Shows Library: {tv_library.get('Name')} ===")
-            result = await client.async_get_items(
-                user_id, parent_id=tv_library["Id"], limit=5
-            )
+            result = await client.async_get_items(user_id, parent_id=tv_library["Id"], limit=5)
             for item in result.get("Items", []):
                 print(f"  - {item.get('Name')} ({item.get('Type')}) [ID: {item.get('Id')}]")
 
@@ -83,9 +75,7 @@ async def main() -> None:
                 )
 
         # Find music library
-        music_library = next(
-            (v for v in views if v.get("CollectionType") == "music"), None
-        )
+        music_library = next((v for v in views if v.get("CollectionType") == "music"), None)
         if music_library:
             print(f"\n=== Music Library: {music_library.get('Name')} ===")
             # Get artists

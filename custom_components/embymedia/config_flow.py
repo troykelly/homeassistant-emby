@@ -30,6 +30,7 @@ from .const import (
     CONF_PREFIX_NOTIFY,
     CONF_PREFIX_REMOTE,
     CONF_SCAN_INTERVAL,
+    CONF_TRANSCODING_PROFILE,
     CONF_USER_ID,
     CONF_VERIFY_SSL,
     CONF_VIDEO_CONTAINER,
@@ -43,12 +44,14 @@ from .const import (
     DEFAULT_PREFIX_REMOTE,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SSL,
+    DEFAULT_TRANSCODING_PROFILE,
     DEFAULT_VERIFY_SSL,
     DEFAULT_VIDEO_CONTAINER,
     DOMAIN,
     EMBY_MIN_VERSION,
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
+    TRANSCODING_PROFILES,
     VIDEO_CONTAINERS,
     EmbyConfigFlowUserInput,
     EmbyServerInfo,
@@ -103,14 +106,14 @@ def _build_user_schema(
     )
 
 
-class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
+class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Emby."""
 
     VERSION = 1
 
     def __init__(self) -> None:
         """Initialize the config flow."""
-        self._reauth_entry: ConfigEntry | None = None
+        self._reauth_entry: ConfigEntry[object] | None = None
         self._server_info: EmbyServerInfo | None = None
         self._user_input: EmbyConfigFlowUserInput | None = None
         self._users: list[EmbyUser] | None = None
@@ -119,7 +122,7 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
 
     async def async_step_user(
         self,
-        user_input: EmbyConfigFlowUserInput | None = None,
+        user_input: dict[str, object] | None = None,
     ) -> ConfigFlowResult:
         """Handle the initial step.
 
@@ -132,25 +135,35 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            # Cast to typed input for validation
+            port_val = user_input.get("port", DEFAULT_PORT)
+            typed_input: EmbyConfigFlowUserInput = {
+                "host": str(user_input.get("host", "")),
+                "port": int(port_val) if isinstance(port_val, int | str) else DEFAULT_PORT,
+                "ssl": bool(user_input.get("ssl", DEFAULT_SSL)),
+                "api_key": str(user_input.get("api_key", "")),
+                "verify_ssl": bool(user_input.get("verify_ssl", DEFAULT_VERIFY_SSL)),
+            }
+
             # Validate and normalize input
-            errors = self._validate_input(user_input)
+            errors = self._validate_input(typed_input)
 
             if not errors:
                 # Normalize the host
-                user_input["host"] = normalize_host(user_input["host"])
+                typed_input["host"] = normalize_host(typed_input["host"])
 
                 # Attempt connection
-                errors = await self._async_validate_connection(user_input)
+                errors = await self._async_validate_connection(typed_input)
 
             if not errors:
                 # Store validated input and proceed to user selection
-                self._user_input = user_input
+                self._user_input = typed_input
                 return await self.async_step_user_select()
 
             # Re-show form with errors (preserve input except API key)
             return self.async_show_form(
                 step_id="user",
-                data_schema=_build_user_schema(user_input),
+                data_schema=_build_user_schema(typed_input),
                 errors=errors,
             )
 
@@ -179,7 +192,7 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
         # Extract and normalize connection data
         host = normalize_host(str(import_data.get(CONF_HOST, "")))
         port_value = import_data.get(CONF_PORT, DEFAULT_PORT)
-        port = int(port_value) if isinstance(port_value, (int, str)) else DEFAULT_PORT
+        port = int(port_value) if isinstance(port_value, int | str) else DEFAULT_PORT
         ssl = bool(import_data.get(CONF_SSL, DEFAULT_SSL))
         api_key = str(import_data.get(CONF_API_KEY, ""))
         verify_ssl = bool(import_data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL))
@@ -234,7 +247,7 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
         # Scan interval
         if CONF_SCAN_INTERVAL in import_data:
             scan_val = import_data[CONF_SCAN_INTERVAL]
-            if isinstance(scan_val, (int, str)):
+            if isinstance(scan_val, int | str):
                 options[CONF_SCAN_INTERVAL] = int(scan_val)
 
         # WebSocket toggle
@@ -258,12 +271,12 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
 
         if CONF_MAX_VIDEO_BITRATE in import_data:
             video_bitrate_val = import_data[CONF_MAX_VIDEO_BITRATE]
-            if isinstance(video_bitrate_val, (int, str)):
+            if isinstance(video_bitrate_val, int | str):
                 options[CONF_MAX_VIDEO_BITRATE] = int(video_bitrate_val)
 
         if CONF_MAX_AUDIO_BITRATE in import_data:
             audio_bitrate_val = import_data[CONF_MAX_AUDIO_BITRATE]
-            if isinstance(audio_bitrate_val, (int, str)):
+            if isinstance(audio_bitrate_val, int | str):
                 options[CONF_MAX_AUDIO_BITRATE] = int(audio_bitrate_val)
 
         _LOGGER.info(
@@ -664,9 +677,9 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
         )
 
     @staticmethod
-    @callback  # type: ignore[misc]
+    @callback
     def async_get_options_flow(
-        config_entry: ConfigEntry,
+        config_entry: ConfigEntry[object],
     ) -> EmbyOptionsFlowHandler:
         """Create the options flow.
 
@@ -679,7 +692,7 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg,misc]
         return EmbyOptionsFlowHandler()
 
 
-class EmbyOptionsFlowHandler(OptionsFlow):  # type: ignore[misc]
+class EmbyOptionsFlowHandler(OptionsFlow):
     """Handle Emby options."""
 
     async def async_step_init(
@@ -738,6 +751,12 @@ class EmbyOptionsFlowHandler(OptionsFlow):  # type: ignore[misc]
                             CONF_VIDEO_CONTAINER, DEFAULT_VIDEO_CONTAINER
                         ),
                     ): vol.In(VIDEO_CONTAINERS),
+                    vol.Optional(
+                        CONF_TRANSCODING_PROFILE,
+                        default=self.config_entry.options.get(
+                            CONF_TRANSCODING_PROFILE, DEFAULT_TRANSCODING_PROFILE
+                        ),
+                    ): vol.In(TRANSCODING_PROFILES),
                     vol.Optional(
                         CONF_MAX_VIDEO_BITRATE,
                         default=self.config_entry.options.get(CONF_MAX_VIDEO_BITRATE),

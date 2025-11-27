@@ -90,7 +90,7 @@ async def async_setup_entry(
     coordinator: EmbyDataUpdateCoordinator = entry.runtime_data.session_coordinator
     known_devices: set[str] = set()
 
-    @callback  # type: ignore[misc]
+    @callback
     def async_add_remote_entities() -> None:
         """Add remote entities for active sessions."""
         if coordinator.data is None:
@@ -113,7 +113,7 @@ async def async_setup_entry(
     entry.async_on_unload(coordinator.async_add_listener(async_add_remote_entities))
 
 
-class EmbyRemoteEntity(EmbyEntity, RemoteEntity):  # type: ignore[misc]
+class EmbyRemoteEntity(EmbyEntity, RemoteEntity):
     """Remote entity for controlling Emby media clients.
 
     This entity allows sending navigation and control commands to Emby
@@ -244,10 +244,10 @@ class EmbyRemoteEntity(EmbyEntity, RemoteEntity):  # type: ignore[misc]
         delay_secs_val = kwargs.get("delay_secs", 0)
         # Type-safe conversions for values from HA service schema
         num_repeats: int = (
-            int(num_repeats_val) if isinstance(num_repeats_val, (int, float, str)) else 1
+            int(num_repeats_val) if isinstance(num_repeats_val, int | float | str) else 1
         )
         delay_secs: float = (
-            float(delay_secs_val) if isinstance(delay_secs_val, (int, float, str)) else 0.0
+            float(delay_secs_val) if isinstance(delay_secs_val, int | float | str) else 0.0
         )
 
         commands = list(command)

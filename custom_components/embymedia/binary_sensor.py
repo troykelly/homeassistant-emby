@@ -50,8 +50,8 @@ async def async_setup_entry(
 
 
 class EmbyServerBinarySensorBase(
-    CoordinatorEntity[EmbyServerCoordinator],  # type: ignore[misc]
-    BinarySensorEntity,  # type: ignore[misc]
+    CoordinatorEntity[EmbyServerCoordinator],
+    BinarySensorEntity,
 ):
     """Base class for Emby server binary sensors.
 

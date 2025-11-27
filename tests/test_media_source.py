@@ -188,7 +188,7 @@ class TestResolveMedia:
         mock_config_entry: MockConfigEntry,
         mock_server_info: dict[str, Any],
     ) -> None:
-        """Test resolving an audio item to stream URL."""
+        """Test resolving an audio item to universal audio URL."""
         from homeassistant.components.media_source import MediaSourceItem
 
         from custom_components.embymedia.media_source import EmbyMediaSource
@@ -196,13 +196,14 @@ class TestResolveMedia:
         mock_config_entry.add_to_hass(hass)
 
         mock_client = MagicMock()
-        mock_client.get_audio_stream_url = MagicMock(
-            return_value="http://emby.local:8096/Audio/track-456/stream?api_key=test"
+        mock_client.get_universal_audio_url = MagicMock(
+            return_value="http://emby.local:8096/Audio/track-456/universal?api_key=test"
         )
 
         mock_coordinator = MagicMock()
         mock_coordinator.server_id = mock_server_info["Id"]
         mock_coordinator.client = mock_client
+        mock_coordinator.config_entry.options = {}
 
         mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
 
@@ -212,8 +213,9 @@ class TestResolveMedia:
         result = await media_source.async_resolve_media(item)
 
         assert result is not None
-        assert "stream" in result.url
+        assert "universal" in result.url
         assert result.mime_type == "audio/mpeg"
+        mock_client.get_universal_audio_url.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_resolve_invalid_identifier(self, hass: HomeAssistant) -> None:
@@ -681,9 +683,7 @@ class TestItemToBrowseMediaSource:
         self,
         hass: HomeAssistant,
     ) -> None:
-        """Test audio item gets music media type."""
-        from homeassistant.components.media_player import MediaType
-
+        """Test audio item gets audio MIME type prefix for device compatibility."""
         from custom_components.embymedia.media_source import EmbyMediaSource
 
         mock_coordinator = MagicMock()
@@ -700,7 +700,9 @@ class TestItemToBrowseMediaSource:
 
         result = media_source._item_to_browse_media_source(mock_coordinator, item)
 
-        assert result.media_content_type == MediaType.MUSIC
+        # Uses MIME type prefix for audio-only device filtering compatibility
+        # Cast and similar players filter with item.media_content_type.startswith("audio/")
+        assert result.media_content_type == "audio/"
 
     def test_playable_items(
         self,

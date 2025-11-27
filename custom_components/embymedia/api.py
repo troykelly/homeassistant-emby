@@ -20,6 +20,8 @@ from .const import (
     HTTP_GET,
     MAX_SEARCH_TERM_LENGTH,
     USER_AGENT_TEMPLATE,
+    DeviceProfile,
+    PlaybackInfoResponse,
     sanitize_api_key,
 )
 from .exceptions import (
@@ -472,6 +474,81 @@ class EmbyClient:
                     return
 
                 response.raise_for_status()
+
+        except aiohttp.ClientSSLError as err:
+            raise EmbySSLError(f"SSL certificate error: {err}") from err
+
+        except TimeoutError as err:
+            raise EmbyTimeoutError(f"Request timed out after {self._timeout.total}s") from err
+
+        except aiohttp.ClientConnectorError as err:
+            raise EmbyConnectionError(
+                f"Failed to connect to {self._host}:{self._port}: {err}"
+            ) from err
+
+        except aiohttp.ClientError as err:
+            raise EmbyConnectionError(f"Client error: {err}") from err
+
+    async def _request_post_json(
+        self,
+        endpoint: str,
+        data: dict[str, object] | None = None,
+    ) -> dict[str, object]:
+        """Make a POST request to the Emby API and return JSON response.
+
+        Args:
+            endpoint: API endpoint path.
+            data: Optional JSON body.
+
+        Returns:
+            Parsed JSON response as dictionary.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: Authentication failed.
+            EmbyNotFoundError: Resource not found.
+            EmbyServerError: Server error.
+        """
+        url = f"{self.base_url}{endpoint}"
+        headers = self._get_headers()
+        headers["Content-Type"] = "application/json"
+        ssl_context = self._get_ssl_context()
+
+        _LOGGER.debug(
+            "Emby API POST JSON request: %s (data=%s)",
+            endpoint,
+            data,
+        )
+
+        session = await self._get_session()
+
+        try:
+            async with session.post(
+                url,
+                headers=headers,
+                json=data,
+                ssl=ssl_context,
+            ) as response:
+                _LOGGER.debug(
+                    "Emby API response: %s %s for POST %s",
+                    response.status,
+                    response.reason,
+                    endpoint,
+                )
+
+                if response.status in (401, 403):
+                    raise EmbyAuthenticationError(
+                        f"Authentication failed: {response.status} {response.reason}"
+                    )
+
+                if response.status == 404:
+                    raise EmbyNotFoundError(f"Resource not found: {endpoint}")
+
+                if response.status >= 500:
+                    raise EmbyServerError(f"Server error: {response.status} {response.reason}")
+
+                response.raise_for_status()
+                return await response.json()  # type: ignore[no-any-return]
 
         except aiohttp.ClientSSLError as err:
             raise EmbySSLError(f"SSL certificate error: {err}") from err
@@ -1418,7 +1495,7 @@ class EmbyClient:
         endpoint = f"/Users/{user_id}/Items?{query_string}"
         response = await self._request(HTTP_GET, endpoint)
         total_count = response.get("TotalRecordCount", 0)
-        return int(total_count) if isinstance(total_count, (int, float, str)) else 0
+        return int(total_count) if isinstance(total_count, int | float | str) else 0
 
     async def async_play_items(
         self,
@@ -1570,6 +1647,152 @@ class EmbyClient:
             params.append(f"maxWidth={max_width}")
         if max_height is not None:
             params.append(f"maxHeight={max_height}")
+
+        return f"{url}?{'&'.join(params)}"
+
+    # =========================================================================
+    # PlaybackInfo API Methods (Phase 13)
+    # =========================================================================
+
+    async def async_get_playback_info(
+        self,
+        item_id: str,
+        user_id: str,
+        device_profile: DeviceProfile | None = None,
+        max_streaming_bitrate: int | None = None,
+        start_position_ticks: int | None = None,
+        audio_stream_index: int | None = None,
+        subtitle_stream_index: int | None = None,
+        enable_direct_play: bool | None = None,
+        enable_direct_stream: bool | None = None,
+        enable_transcoding: bool | None = None,
+    ) -> PlaybackInfoResponse:
+        """Get playback info for a media item.
+
+        This method queries the Emby server for the optimal playback method
+        based on the device profile and streaming capabilities.
+
+        Args:
+            item_id: The media item ID.
+            user_id: The user ID.
+            device_profile: Device capabilities profile. Defaults to UNIVERSAL_PROFILE.
+            max_streaming_bitrate: Maximum bitrate for streaming in bps.
+            start_position_ticks: Starting position in ticks.
+            audio_stream_index: Preferred audio track index.
+            subtitle_stream_index: Preferred subtitle track index.
+            enable_direct_play: Allow direct play if supported.
+            enable_direct_stream: Allow direct stream if supported.
+            enable_transcoding: Allow transcoding if needed.
+
+        Returns:
+            PlaybackInfoResponse with MediaSources and PlaySessionId.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+            EmbyNotFoundError: Item not found.
+        """
+        from .profiles import UNIVERSAL_PROFILE
+
+        # Build request body
+        body: dict[str, object] = {
+            "UserId": user_id,
+            "DeviceProfile": device_profile if device_profile else UNIVERSAL_PROFILE,
+        }
+
+        if max_streaming_bitrate is not None:
+            body["MaxStreamingBitrate"] = max_streaming_bitrate
+        if start_position_ticks is not None:
+            body["StartTimeTicks"] = start_position_ticks
+        if audio_stream_index is not None:
+            body["AudioStreamIndex"] = audio_stream_index
+        if subtitle_stream_index is not None:
+            body["SubtitleStreamIndex"] = subtitle_stream_index
+        if enable_direct_play is not None:
+            body["EnableDirectPlay"] = enable_direct_play
+        if enable_direct_stream is not None:
+            body["EnableDirectStream"] = enable_direct_stream
+        if enable_transcoding is not None:
+            body["EnableTranscoding"] = enable_transcoding
+
+        endpoint = f"/Items/{item_id}/PlaybackInfo"
+        response = await self._request_post_json(endpoint, body)
+        return response  # type: ignore[return-value]
+
+    async def async_stop_transcoding(
+        self,
+        device_id: str,
+        play_session_id: str | None = None,
+    ) -> None:
+        """Stop active transcoding for a device.
+
+        Args:
+            device_id: The device ID.
+            play_session_id: Optional specific play session to stop.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = f"/Videos/ActiveEncodings?DeviceId={device_id}"
+        if play_session_id:
+            endpoint += f"&PlaySessionId={play_session_id}"
+        await self._request_delete(endpoint)
+
+    def get_universal_audio_url(
+        self,
+        item_id: str,
+        user_id: str,
+        device_id: str,
+        max_streaming_bitrate: int | None = None,
+        container: str | None = None,
+        transcoding_container: str | None = None,
+        transcoding_protocol: str | None = None,
+        audio_codec: str | None = None,
+        max_sample_rate: int | None = None,
+        play_session_id: str | None = None,
+    ) -> str:
+        """Generate URL for universal audio streaming.
+
+        The universal audio endpoint automatically determines the best
+        playback method based on the provided parameters.
+
+        Args:
+            item_id: Audio item ID.
+            user_id: User ID.
+            device_id: Device ID for session tracking.
+            max_streaming_bitrate: Maximum bitrate in bps.
+            container: Preferred containers (comma-separated, e.g., "mp3,aac,flac").
+            transcoding_container: Container for transcoding.
+            transcoding_protocol: Transcoding protocol (hls, http).
+            audio_codec: Audio codec preference.
+            max_sample_rate: Maximum sample rate in Hz.
+            play_session_id: Play session ID for tracking.
+
+        Returns:
+            Full streaming URL with authentication.
+        """
+        url = f"{self.base_url}/Audio/{item_id}/universal"
+        params: list[str] = [
+            f"api_key={self._api_key}",
+            f"UserId={user_id}",
+            f"DeviceId={device_id}",
+        ]
+
+        if max_streaming_bitrate is not None:
+            params.append(f"MaxStreamingBitrate={max_streaming_bitrate}")
+        if container:
+            params.append(f"Container={container}")
+        if transcoding_container:
+            params.append(f"TranscodingContainer={transcoding_container}")
+        if transcoding_protocol:
+            params.append(f"TranscodingProtocol={transcoding_protocol}")
+        if audio_codec:
+            params.append(f"AudioCodec={audio_codec}")
+        if max_sample_rate is not None:
+            params.append(f"MaxSampleRate={max_sample_rate}")
+        if play_session_id:
+            params.append(f"PlaySessionId={play_session_id}")
 
         return f"{url}?{'&'.join(params)}"
 

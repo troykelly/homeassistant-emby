@@ -71,8 +71,8 @@ async def async_setup_entry(
 
 
 class EmbyServerSensorBase(
-    CoordinatorEntity[EmbyServerCoordinator],  # type: ignore[misc]
-    SensorEntity,  # type: ignore[misc]
+    CoordinatorEntity[EmbyServerCoordinator],
+    SensorEntity,
 ):
     """Base class for Emby server sensors."""
 
@@ -154,8 +154,8 @@ class EmbyRunningTasksSensor(EmbyServerSensorBase):
 
 
 class EmbySessionSensorBase(
-    CoordinatorEntity[EmbyDataUpdateCoordinator],  # type: ignore[misc]
-    SensorEntity,  # type: ignore[misc]
+    CoordinatorEntity[EmbyDataUpdateCoordinator],
+    SensorEntity,
 ):
     """Base class for Emby session sensors."""
 
@@ -214,8 +214,8 @@ class EmbyActiveSessionsSensor(EmbySessionSensorBase):
 
 
 class EmbyLibrarySensorBase(
-    CoordinatorEntity[EmbyLibraryCoordinator],  # type: ignore[misc]
-    SensorEntity,  # type: ignore[misc]
+    CoordinatorEntity[EmbyLibraryCoordinator],
+    SensorEntity,
 ):
     """Base class for Emby library sensors."""
 

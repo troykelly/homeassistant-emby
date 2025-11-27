@@ -42,7 +42,7 @@ async def async_setup_entry(
     coordinator: EmbyDataUpdateCoordinator = entry.runtime_data.session_coordinator
     known_devices: set[str] = set()
 
-    @callback  # type: ignore[misc]
+    @callback
     def async_add_notify_entities() -> None:
         """Add notify entities for active sessions."""
         if coordinator.data is None:
@@ -65,7 +65,7 @@ async def async_setup_entry(
     entry.async_on_unload(coordinator.async_add_listener(async_add_notify_entities))
 
 
-class EmbyNotifyEntity(EmbyEntity, NotifyEntity):  # type: ignore[misc]
+class EmbyNotifyEntity(EmbyEntity, NotifyEntity):
     """Emby notification entity.
 
     Allows sending notifications to Emby clients via the standard

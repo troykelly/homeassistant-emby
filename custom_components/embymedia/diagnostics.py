@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.device_registry import DeviceEntry
 
+    from .const import EmbyRuntimeData
     from .coordinator import EmbyDataUpdateCoordinator
 
 # Keys to redact from diagnostics output
@@ -22,7 +23,7 @@ TO_REDACT = {CONF_API_KEY, "api_key", "token", "password"}
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: ConfigEntry[EmbyRuntimeData],
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry.
 
@@ -63,7 +64,7 @@ async def async_get_config_entry_diagnostics(
         },
         "connection_status": {
             "websocket_enabled": coordinator._websocket_enabled,
-            "last_update": coordinator.last_update_success_time,
+            "last_update_success": coordinator.last_update_success,
             "update_interval": str(coordinator.update_interval),
         },
         "sessions": {
@@ -76,7 +77,7 @@ async def async_get_config_entry_diagnostics(
 
 async def async_get_device_diagnostics(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: ConfigEntry[EmbyRuntimeData],
     device: DeviceEntry,
 ) -> dict[str, Any]:
     """Return diagnostics for a device.
@@ -108,7 +109,7 @@ async def async_get_device_diagnostics(
         return {"device_id": device_id, "status": "offline"}
 
     # Get play state info
-    play_state_info: dict[str, bool | int | None] = {}
+    play_state_info: dict[str, bool | float | None] = {}
     if session.play_state:
         play_state_info = {
             "is_paused": session.play_state.is_paused,

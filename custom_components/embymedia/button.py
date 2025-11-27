@@ -73,7 +73,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class EmbyRefreshLibraryButton(CoordinatorEntity["EmbyDataUpdateCoordinator"], ButtonEntity):  # type: ignore[misc]
+class EmbyRefreshLibraryButton(CoordinatorEntity["EmbyDataUpdateCoordinator"], ButtonEntity):
     """Button to trigger library refresh on Emby server.
 
     When pressed, this button triggers a full library scan on the Emby
