@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-11-27
+
+### Added
+- **Dynamic Transcoding for Universal Media Playback** (Phase 13)
+  - Universal audio endpoint for maximum device compatibility
+  - Predefined device profiles for different playback scenarios
+  - Transcoding session management with proper lifecycle handling
+  - PlaybackInfo API methods for querying playback capabilities and stream URLs
+  - Device ID generation functions for transcoding sessions
+
+### Fixed
+- **Audio-only Device Compatibility**: Media browsing now uses MIME type prefixes (`audio/`, `video/`) instead of MediaType constants, allowing audio-only Cast devices (Sonos, etc.) to see and play music content
+- **Audio Playback**: Fixed empty UserId in universal audio endpoint causing playback failures
+
+### Technical
+- Added `homeassistant-stubs` to test dependencies for consistent mypy behavior between local development and CI
+- 1102 tests with 100% code coverage
+
+## [0.2.2] - 2025-11-27
+
+### Fixed
+- **Artist Browsing**: Clicking on an artist in the media browser now correctly shows their albums instead of attempting playback
+  - Added `musicartist` and `musicalbum` to expandable types
+  - Added artist content type handler to fetch albums via `async_get_artist_albums` API
+
 ## [0.2.1] - 2025-11-27
 
 ### Added
@@ -106,7 +131,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Browse cache with LRU + TTL for performance
 - Graceful degradation on partial failures
 
-[Unreleased]: https://github.com/troykelly/homeassistant-emby/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/troykelly/homeassistant-emby/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/troykelly/homeassistant-emby/compare/v0.2.2...v0.3.0
+[0.2.2]: https://github.com/troykelly/homeassistant-emby/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/troykelly/homeassistant-emby/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/troykelly/homeassistant-emby/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/troykelly/homeassistant-emby/releases/tag/v0.1.0
