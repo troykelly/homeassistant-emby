@@ -1815,6 +1815,14 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
                 for episode in result.get("Items", []):
                     ep_browse = self._item_to_browse_media_source(coordinator, episode)
                     children.append(ep_browse)
+            elif content_type == "artist":
+                # Get albums for this artist
+                albums = await coordinator.client.async_get_artist_albums(user_id, item_id)
+                for album in albums:
+                    album_browse = self._item_to_browse_media_source(
+                        coordinator, album, content_type="album"
+                    )
+                    children.append(album_browse)
             else:
                 # Generic fallback for folders and other expandable types
                 result = await coordinator.client.async_get_items(
@@ -1860,7 +1868,14 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             content_type = item_type
 
         can_play = item_type in ("movie", "episode", "audio", "musicvideo", "tvchannel")
-        can_expand = item_type in ("series", "season", "album", "folder")
+        can_expand = item_type in (
+            "series",
+            "season",
+            "album",
+            "musicalbum",
+            "folder",
+            "musicartist",
+        )
 
         media_class = self._get_media_class_for_type(item_type)
         media_content_type = MediaType.MUSIC if item_type in ("audio", "album") else MediaType.VIDEO
