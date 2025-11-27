@@ -18,8 +18,9 @@ from homeassistant.components.media_source import (
     Unresolvable,
 )
 
-from .const import DOMAIN, MIME_TYPES, EmbyBrowseItem
+from .const import DOMAIN, MIME_TYPES, DeviceProfile, EmbyBrowseItem, MediaSourceInfo
 from .exceptions import EmbyError
+from .profiles import get_device_profile
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -87,7 +88,7 @@ def build_identifier(
     return f"{server_id}/{content_type}/{item_id}"
 
 
-class EmbyMediaSource(MediaSource):  # type: ignore[misc]
+class EmbyMediaSource(MediaSource):
     """Emby media source for Home Assistant.
 
     Allows browsing and playing Emby content on any HA media player.
@@ -1933,6 +1934,171 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             "musicvideo": MediaClass.VIDEO,
         }
         return mapping.get(item_type, MediaClass.VIDEO)
+
+    # =========================================================================
+    # Transcoding Support Methods (Phase 13.5)
+    # =========================================================================
+
+    def _select_media_source(
+        self,
+        media_sources: list[MediaSourceInfo],
+    ) -> MediaSourceInfo:
+        """Select the best media source from available options.
+
+        Priority order:
+        1. Direct Play (most efficient, no server processing)
+        2. Direct Stream (efficient, minimal processing)
+        3. Transcoding (least efficient, requires server resources)
+
+        Args:
+            media_sources: List of available media sources.
+
+        Returns:
+            The selected media source.
+
+        Raises:
+            ValueError: If no media sources are available.
+        """
+        if not media_sources:
+            raise ValueError("No media sources available")
+
+        # Priority 1: Prefer direct play
+        for source in media_sources:
+            if source.get("SupportsDirectPlay"):
+                return source
+
+        # Priority 2: Prefer direct stream
+        for source in media_sources:
+            if source.get("SupportsDirectStream"):
+                return source
+
+        # Priority 3: Fall back to transcoding
+        for source in media_sources:
+            if source.get("SupportsTranscoding"):
+                return source
+
+        # Return first source if nothing matches (shouldn't happen)
+        return media_sources[0]
+
+    def _get_mime_type_for_container(self, container: str) -> str:
+        """Get MIME type for container format.
+
+        Args:
+            container: Container format (mp4, mkv, mp3, etc.).
+
+        Returns:
+            MIME type string.
+        """
+        # Container to MIME type mapping
+        mime_types: dict[str, str] = {
+            # Video containers
+            "mp4": "video/mp4",
+            "m4v": "video/mp4",
+            "mov": "video/quicktime",
+            "mkv": "video/x-matroska",
+            "webm": "video/webm",
+            "avi": "video/x-msvideo",
+            "wmv": "video/x-ms-wmv",
+            "ts": "video/mp2t",
+            "m2ts": "video/mp2t",
+            # Audio containers
+            "mp3": "audio/mpeg",
+            "aac": "audio/aac",
+            "m4a": "audio/mp4",
+            "flac": "audio/flac",
+            "wav": "audio/wav",
+            "ogg": "audio/ogg",
+            "opus": "audio/opus",
+            "wma": "audio/x-ms-wma",
+            # HLS
+            "m3u8": "application/x-mpegURL",
+        }
+        return mime_types.get(container.lower(), "application/octet-stream")
+
+    def _build_direct_stream_url(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        media_source: MediaSourceInfo,
+    ) -> str:
+        """Build authenticated direct stream URL.
+
+        Args:
+            coordinator: The coordinator with client access.
+            media_source: The media source info.
+
+        Returns:
+            Full authenticated URL for direct streaming.
+        """
+        base_url = coordinator.client.base_url
+        api_key = coordinator.client._api_key
+
+        # Use DirectStreamUrl if provided
+        direct_url = media_source.get("DirectStreamUrl")
+        if direct_url:
+            # DirectStreamUrl is relative, prepend base URL
+            full_url = f"{base_url}{direct_url}"
+            # Add API key if not already present
+            if "api_key=" not in full_url:
+                separator = "&" if "?" in full_url else "?"
+                full_url = f"{full_url}{separator}api_key={api_key}"
+            return full_url
+
+        # Build URL from source ID (fallback)
+        source_id = media_source.get("Id", "")
+        container = media_source.get("Container", "mp4")
+        return f"{base_url}/Videos/{source_id}/stream.{container}?api_key={api_key}&Static=true"
+
+    def _build_transcoding_url(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        media_source: MediaSourceInfo,
+    ) -> str:
+        """Build authenticated transcoding URL.
+
+        Args:
+            coordinator: The coordinator with client access.
+            media_source: The media source info.
+
+        Returns:
+            Full authenticated URL for transcoded streaming.
+
+        Raises:
+            ValueError: If no transcoding URL is available.
+        """
+        transcoding_url = media_source.get("TranscodingUrl")
+        if not transcoding_url:
+            raise ValueError("No transcoding URL available in media source")
+
+        base_url = coordinator.client.base_url
+        api_key = coordinator.client._api_key
+
+        # TranscodingUrl is relative, prepend base URL
+        full_url = f"{base_url}{transcoding_url}"
+
+        # Add API key if not already present
+        if "api_key=" not in full_url:
+            separator = "&" if "?" in full_url else "?"
+            full_url = f"{full_url}{separator}api_key={api_key}"
+
+        return full_url
+
+    def _get_device_profile(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+    ) -> DeviceProfile:
+        """Get device profile from config or use default.
+
+        Args:
+            coordinator: The coordinator with config entry.
+
+        Returns:
+            DeviceProfile to use for playback info requests.
+        """
+        # Get profile name from options
+        profile_name = coordinator.config_entry.options.get("transcoding_profile", "universal")
+
+        # Use get_device_profile which handles unknown names
+        return get_device_profile(profile_name)
 
     async def async_resolve_media(
         self,
