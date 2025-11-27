@@ -30,6 +30,7 @@ def mock_coordinator() -> MagicMock:
     coordinator.server_id = "server123"
     coordinator.server_name = "Emby Server"
     coordinator.user_id = "user456"
+    coordinator.user_name = "testuser"
     coordinator.last_update_success = True
     coordinator.data = EmbyDiscoveryData(
         next_up=[],
@@ -47,6 +48,7 @@ def mock_coordinator_with_data() -> MagicMock:
     coordinator.server_id = "server123"
     coordinator.server_name = "Emby Server"
     coordinator.user_id = "user456"
+    coordinator.user_name = "testuser"
     coordinator.last_update_success = True
     coordinator.data = EmbyDiscoveryData(
         next_up=[
@@ -119,7 +121,8 @@ class TestEmbyNextUpSensor:
         """Test sensor initializes correctly."""
         sensor = EmbyNextUpSensor(mock_coordinator, "Emby Server")
 
-        assert sensor._attr_unique_id == "server123_next_up"
+        assert sensor._attr_unique_id == "server123_user456_next_up"
+        assert sensor._attr_name == "testuser Next Up"
         assert sensor._attr_translation_key == "next_up"
         assert sensor._attr_icon == "mdi:television-play"
 
@@ -210,7 +213,8 @@ class TestEmbyContinueWatchingSensor:
         """Test sensor initializes correctly."""
         sensor = EmbyContinueWatchingSensor(mock_coordinator, "Emby Server")
 
-        assert sensor._attr_unique_id == "server123_continue_watching"
+        assert sensor._attr_unique_id == "server123_user456_continue_watching"
+        assert sensor._attr_name == "testuser Continue Watching"
         assert sensor._attr_translation_key == "continue_watching"
         assert sensor._attr_icon == "mdi:play-pause"
 
@@ -271,7 +275,8 @@ class TestEmbyRecentlyAddedSensor:
         """Test sensor initializes correctly."""
         sensor = EmbyRecentlyAddedSensor(mock_coordinator, "Emby Server")
 
-        assert sensor._attr_unique_id == "server123_recently_added"
+        assert sensor._attr_unique_id == "server123_user456_recently_added"
+        assert sensor._attr_name == "testuser Recently Added"
         assert sensor._attr_translation_key == "recently_added"
         assert sensor._attr_icon == "mdi:new-box"
 
@@ -330,7 +335,8 @@ class TestEmbySuggestionsSensor:
         """Test sensor initializes correctly."""
         sensor = EmbySuggestionsSensor(mock_coordinator, "Emby Server")
 
-        assert sensor._attr_unique_id == "server123_suggestions"
+        assert sensor._attr_unique_id == "server123_user456_suggestions"
+        assert sensor._attr_name == "testuser Suggestions"
         assert sensor._attr_translation_key == "suggestions"
         assert sensor._attr_icon == "mdi:lightbulb"
 

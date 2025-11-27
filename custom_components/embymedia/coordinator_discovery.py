@@ -61,12 +61,14 @@ class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
         server_id: The Emby server ID.
         config_entry: Config entry for reading options.
         user_id: The user ID for user-specific discovery data.
+        user_name: The user name for display purposes.
     """
 
     client: EmbyClient
     server_id: str
     config_entry: EmbyConfigEntry
     _user_id: str
+    _user_name: str
 
     def __init__(
         self,
@@ -76,6 +78,7 @@ class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
         config_entry: EmbyConfigEntry,
         user_id: str,
         scan_interval: int = DEFAULT_DISCOVERY_SCAN_INTERVAL,
+        user_name: str | None = None,
     ) -> None:
         """Initialize the discovery coordinator.
 
@@ -86,22 +89,29 @@ class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
             config_entry: Config entry for reading options.
             user_id: User ID for user-specific discovery data.
             scan_interval: Polling interval in seconds (default: 900 = 15 min).
+            user_name: Optional user name for display purposes.
         """
         super().__init__(
             hass,
             _LOGGER,
-            name=f"{DOMAIN}_{server_id}_discovery",
+            name=f"{DOMAIN}_{server_id}_discovery_{user_id}",
             update_interval=timedelta(seconds=scan_interval),
         )
         self.client = client
         self.server_id = server_id
         self.config_entry = config_entry
         self._user_id = user_id
+        self._user_name = user_name or user_id
 
     @property
     def user_id(self) -> str:
         """Return the configured user ID."""
         return self._user_id
+
+    @property
+    def user_name(self) -> str:
+        """Return the user name for display purposes."""
+        return self._user_name
 
     async def _async_update_data(self) -> EmbyDiscoveryData:
         """Fetch discovery data from Emby server.

@@ -63,8 +63,9 @@ class TestEmbyDiscoveryCoordinatorInit:
         assert coordinator.client == mock_client
         assert coordinator.server_id == "server123"
         assert coordinator.user_id == "user456"
+        assert coordinator.user_name == "user456"  # Defaults to user_id when not provided
         assert coordinator.update_interval == timedelta(seconds=DEFAULT_DISCOVERY_SCAN_INTERVAL)
-        assert coordinator.name == f"{DOMAIN}_server123_discovery"
+        assert coordinator.name == f"{DOMAIN}_server123_discovery_user456"
 
     async def test_coordinator_custom_scan_interval(
         self,

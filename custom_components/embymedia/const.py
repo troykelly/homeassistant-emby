@@ -29,7 +29,7 @@ class EmbyRuntimeData:
         session_coordinator: EmbyDataUpdateCoordinator,
         server_coordinator: EmbyServerCoordinator,
         library_coordinator: EmbyLibraryCoordinator,
-        discovery_coordinator: EmbyDiscoveryCoordinator | None = None,
+        discovery_coordinators: dict[str, EmbyDiscoveryCoordinator] | None = None,
     ) -> None:
         """Initialize runtime data.
 
@@ -37,18 +37,26 @@ class EmbyRuntimeData:
             session_coordinator: Coordinator for session/media player data.
             server_coordinator: Coordinator for server status data.
             library_coordinator: Coordinator for library counts data.
-            discovery_coordinator: Optional coordinator for discovery data.
+            discovery_coordinators: Optional dict of user_id -> coordinator for discovery data.
         """
         self.session_coordinator = session_coordinator
         self.server_coordinator = server_coordinator
         self.library_coordinator = library_coordinator
-        self.discovery_coordinator = discovery_coordinator
+        self.discovery_coordinators = discovery_coordinators or {}
 
     # Provide backward compatibility as the old coordinator
     @property
     def coordinator(self) -> EmbyDataUpdateCoordinator:
         """Return the session coordinator (for backward compatibility)."""
         return self.session_coordinator
+
+    # Backward compatibility for single discovery coordinator
+    @property
+    def discovery_coordinator(self) -> EmbyDiscoveryCoordinator | None:
+        """Return the first discovery coordinator (for backward compatibility)."""
+        if self.discovery_coordinators:
+            return next(iter(self.discovery_coordinators.values()))
+        return None
 
 
 # Type alias for config entry with runtime data

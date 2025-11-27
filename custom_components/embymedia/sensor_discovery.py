@@ -94,7 +94,10 @@ class EmbyNextUpSensor(EmbyDiscoverySensorBase):
     ) -> None:
         """Initialize the next up sensor."""
         super().__init__(coordinator, server_name)
-        self._attr_unique_id = f"{coordinator.server_id}_next_up"
+        # Include user_id in unique_id to support multi-user mode
+        self._attr_unique_id = f"{coordinator.server_id}_{coordinator.user_id}_next_up"
+        # Set custom name with user name (e.g., "troy Next Up")
+        self._attr_name = f"{coordinator.user_name} Next Up"
 
     @property
     def native_value(self) -> int | None:
@@ -148,7 +151,10 @@ class EmbyContinueWatchingSensor(EmbyDiscoverySensorBase):
     ) -> None:
         """Initialize the continue watching sensor."""
         super().__init__(coordinator, server_name)
-        self._attr_unique_id = f"{coordinator.server_id}_continue_watching"
+        # Include user_id in unique_id to support multi-user mode
+        self._attr_unique_id = f"{coordinator.server_id}_{coordinator.user_id}_continue_watching"
+        # Set custom name with user name (e.g., "troy Continue Watching")
+        self._attr_name = f"{coordinator.user_name} Continue Watching"
 
     @property
     def native_value(self) -> int | None:
@@ -201,7 +207,10 @@ class EmbyRecentlyAddedSensor(EmbyDiscoverySensorBase):
     ) -> None:
         """Initialize the recently added sensor."""
         super().__init__(coordinator, server_name)
-        self._attr_unique_id = f"{coordinator.server_id}_recently_added"
+        # Include user_id in unique_id to support multi-user mode
+        self._attr_unique_id = f"{coordinator.server_id}_{coordinator.user_id}_recently_added"
+        # Set custom name with user name (e.g., "troy Recently Added")
+        self._attr_name = f"{coordinator.user_name} Recently Added"
 
     @property
     def native_value(self) -> int | None:
@@ -253,7 +262,10 @@ class EmbySuggestionsSensor(EmbyDiscoverySensorBase):
     ) -> None:
         """Initialize the suggestions sensor."""
         super().__init__(coordinator, server_name)
-        self._attr_unique_id = f"{coordinator.server_id}_suggestions"
+        # Include user_id in unique_id to support multi-user mode
+        self._attr_unique_id = f"{coordinator.server_id}_{coordinator.user_id}_suggestions"
+        # Set custom name with user name (e.g., "troy Suggestions")
+        self._attr_name = f"{coordinator.user_name} Suggestions"
 
     @property
     def native_value(self) -> int | None:
