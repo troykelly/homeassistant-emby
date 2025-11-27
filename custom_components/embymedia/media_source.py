@@ -209,6 +209,12 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
                 return await self._async_browse_movies_by_genre(coordinator, parts[0], parts[1])
         if content_type == "moviecollection" and item_id:
             return await self._async_browse_movie_collections(coordinator, item_id)
+        if content_type == "moviestudio" and item_id:
+            return await self._async_browse_movie_studios(coordinator, item_id)
+        if content_type == "moviestudioitems" and item_id:
+            parts = item_id.split("/")
+            if len(parts) >= 2:
+                return await self._async_browse_movies_by_studio(coordinator, parts[0], parts[1])
 
         # TV library category routing
         if content_type == "tvlibrary" and item_id:
@@ -237,6 +243,40 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             parts = item_id.split("/")
             if len(parts) >= 2:
                 return await self._async_browse_tv_by_genre(coordinator, parts[0], parts[1])
+        if content_type == "tvstudio" and item_id:
+            return await self._async_browse_tv_studios(coordinator, item_id)
+        if content_type == "tvstudioitems" and item_id:
+            parts = item_id.split("/")
+            if len(parts) >= 2:
+                return await self._async_browse_tv_by_studio(coordinator, parts[0], parts[1])
+
+        # Music library category routing
+        if content_type == "musiclibrary" and item_id:
+            return await self._async_browse_music_library(coordinator, item_id)
+        if content_type == "musicartists" and item_id:
+            return await self._async_browse_music_artists(coordinator, item_id)
+        if content_type == "musicartistletter" and item_id:
+            parts = item_id.split("/")
+            if len(parts) >= 2:
+                return await self._async_browse_artists_by_letter(
+                    coordinator, parts[0], parts[1]
+                )
+        if content_type == "musicalbums" and item_id:
+            return await self._async_browse_music_albums(coordinator, item_id)
+        if content_type == "musicalbumletter" and item_id:
+            parts = item_id.split("/")
+            if len(parts) >= 2:
+                return await self._async_browse_albums_by_letter(
+                    coordinator, parts[0], parts[1]
+                )
+        if content_type == "musicgenres" and item_id:
+            return await self._async_browse_music_genres(coordinator, item_id)
+        if content_type == "musicgenreitems" and item_id:
+            parts = item_id.split("/")
+            if len(parts) >= 2:
+                return await self._async_browse_genre_items(coordinator, parts[0], parts[1])
+        if content_type == "musicplaylists" and item_id:
+            return await self._async_browse_music_playlists(coordinator, item_id)
 
         # Browse item (e.g., series, album)
         return await self._async_browse_item(coordinator, content_type, item_id)
@@ -316,7 +356,7 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
                     identifier = build_identifier(coordinator.server_id, "tvlibrary", view_id)
                     media_content_type = MediaType.VIDEO
                 elif collection_type == "music":
-                    identifier = build_identifier(coordinator.server_id, "library", view_id)
+                    identifier = build_identifier(coordinator.server_id, "musiclibrary", view_id)
                     media_content_type = MediaType.MUSIC
                 else:
                     identifier = build_identifier(coordinator.server_id, "library", view_id)
@@ -431,6 +471,7 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             ("Year", "movieyear", MediaClass.DIRECTORY),
             ("Decade", "moviedecade", MediaClass.DIRECTORY),
             ("Genre", "moviegenre", MediaClass.DIRECTORY),
+            ("Studio", "moviestudio", MediaClass.DIRECTORY),
             ("Collections", "moviecollection", MediaClass.DIRECTORY),
         ]
 
@@ -812,6 +853,83 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             children=children,
         )
 
+    async def _async_browse_movie_studios(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse movie studios."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            studios = await coordinator.client.async_get_studios(
+                user_id, parent_id=library_id, include_item_types="Movie"
+            )
+            for studio in studios:
+                studio_id = studio.get("Id", "")
+                studio_name = studio.get("Name", "Unknown")
+                children.append(
+                    BrowseMediaSource(
+                        domain=DOMAIN,
+                        identifier=build_identifier(
+                            coordinator.server_id,
+                            "moviestudioitems",
+                            f"{library_id}/{studio_id}",
+                        ),
+                        media_class=MediaClass.DIRECTORY,
+                        media_content_type=MediaType.VIDEO,
+                        title=studio_name,
+                        can_play=False,
+                        can_expand=True,
+                    )
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(coordinator.server_id, "moviestudio", library_id),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="Studio",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_movies_by_studio(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+        studio_id: str,
+    ) -> BrowseMediaSource:
+        """Browse movies from a specific studio."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            result = await coordinator.client.async_get_items(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Movie",
+                recursive=True,
+                studio_ids=studio_id,
+            )
+            for item in result.get("Items", []):
+                children.append(self._item_to_browse_media_source(coordinator, item))
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "moviestudioitems", f"{library_id}/{studio_id}"
+            ),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="Studio",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
     # ==================== TV Library Browsing ====================
 
     async def _async_browse_tv_library(
@@ -825,6 +943,7 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             ("Year", "tvyear", MediaClass.DIRECTORY),
             ("Decade", "tvdecade", MediaClass.DIRECTORY),
             ("Genre", "tvgenre", MediaClass.DIRECTORY),
+            ("Studio", "tvstudio", MediaClass.DIRECTORY),
         ]
 
         children: list[BrowseMediaSource] = []
@@ -1170,6 +1289,492 @@ class EmbyMediaSource(MediaSource):  # type: ignore[misc]
             media_class=MediaClass.DIRECTORY,
             media_content_type=MediaType.VIDEO,
             title="Genre",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_tv_studios(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse TV studios/networks."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            studios = await coordinator.client.async_get_studios(
+                user_id, parent_id=library_id, include_item_types="Series"
+            )
+            for studio in studios:
+                studio_id = studio.get("Id", "")
+                studio_name = studio.get("Name", "Unknown")
+                children.append(
+                    BrowseMediaSource(
+                        domain=DOMAIN,
+                        identifier=build_identifier(
+                            coordinator.server_id,
+                            "tvstudioitems",
+                            f"{library_id}/{studio_id}",
+                        ),
+                        media_class=MediaClass.DIRECTORY,
+                        media_content_type=MediaType.VIDEO,
+                        title=studio_name,
+                        can_play=False,
+                        can_expand=True,
+                    )
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(coordinator.server_id, "tvstudio", library_id),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="Studio",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_tv_by_studio(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+        studio_id: str,
+    ) -> BrowseMediaSource:
+        """Browse TV shows from a specific studio/network."""
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            result = await coordinator.client.async_get_items(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Series",
+                recursive=True,
+                studio_ids=studio_id,
+            )
+            for item in result.get("Items", []):
+                children.append(
+                    self._item_to_browse_media_source(coordinator, item, content_type="series")
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "tvstudioitems", f"{library_id}/{studio_id}"
+            ),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.VIDEO,
+            title="Studio",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    # =========================================================================
+    # Music Library Browsing Methods
+    # =========================================================================
+
+    async def _async_browse_music_library(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse a music library - show category menu.
+
+        Music libraries show categories (Artists, Albums, Genres, Playlists)
+        to organize large collections effectively.
+
+        Args:
+            coordinator: The server's coordinator.
+            library_id: The music library ID.
+
+        Returns:
+            BrowseMediaSource with categories as children.
+        """
+        categories = [
+            ("Artists", "musicartists", MediaClass.DIRECTORY),
+            ("Albums", "musicalbums", MediaClass.DIRECTORY),
+            ("Genres", "musicgenres", MediaClass.DIRECTORY),
+            ("Playlists", "musicplaylists", MediaClass.PLAYLIST),
+        ]
+
+        children: list[BrowseMediaSource] = []
+        for title, content_type, media_class in categories:
+            children.append(
+                BrowseMediaSource(
+                    domain=DOMAIN,
+                    identifier=build_identifier(coordinator.server_id, content_type, library_id),
+                    media_class=media_class,
+                    media_content_type=MediaType.MUSIC,
+                    title=title,
+                    can_play=False,
+                    can_expand=True,
+                )
+            )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(coordinator.server_id, "musiclibrary", library_id),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.MUSIC,
+            title="Music Library",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    def _build_letter_menu(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        content_type: str,
+        library_id: str,
+    ) -> list[BrowseMediaSource]:
+        """Build A-Z letter menu for large library navigation.
+
+        Args:
+            coordinator: The server's coordinator.
+            content_type: The content type prefix (e.g., 'musicartistletter').
+            library_id: The library ID.
+
+        Returns:
+            List of BrowseMediaSource items for # and A-Z letters.
+        """
+        letters = ["#"] + [chr(i) for i in range(ord("A"), ord("Z") + 1)]
+        children: list[BrowseMediaSource] = []
+
+        for letter in letters:
+            children.append(
+                BrowseMediaSource(
+                    domain=DOMAIN,
+                    identifier=build_identifier(
+                        coordinator.server_id, content_type, f"{library_id}/{letter}"
+                    ),
+                    media_class=MediaClass.DIRECTORY,
+                    media_content_type=MediaType.MUSIC,
+                    title=letter,
+                    can_play=False,
+                    can_expand=True,
+                )
+            )
+
+        return children
+
+    async def _async_browse_music_artists(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse music artists category - show A-Z letter menu.
+
+        Args:
+            coordinator: The server's coordinator.
+            library_id: The music library ID.
+
+        Returns:
+            BrowseMediaSource with A-Z letters as children.
+        """
+        children = self._build_letter_menu(coordinator, "musicartistletter", library_id)
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(coordinator.server_id, "musicartists", library_id),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.MUSIC,
+            title="Artists",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_artists_by_letter(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+        letter: str,
+    ) -> BrowseMediaSource:
+        """Browse artists starting with a specific letter.
+
+        Args:
+            coordinator: The server's coordinator.
+            library_id: The music library ID.
+            letter: The letter to filter by (# for numbers/symbols).
+
+        Returns:
+            BrowseMediaSource with filtered artists as children.
+        """
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            try:
+                # For "#", we need special handling - Emby uses empty string for non-alpha
+                name_filter = "" if letter == "#" else letter
+
+                result = await coordinator.client.async_get_items(
+                    user_id,
+                    parent_id=library_id,
+                    include_item_types="MusicArtist",
+                    recursive=True,
+                    name_starts_with=name_filter if name_filter else None,
+                )
+                items = result.get("Items", [])
+
+                # For "#", filter to non-alpha items manually
+                if letter == "#":
+                    items = [i for i in items if not i.get("Name", "")[0:1].isalpha()]
+
+            except EmbyError as err:
+                _LOGGER.debug("Failed to get artists by letter %s: %s", letter, err)
+                items = []
+
+            for item in items:
+                children.append(
+                    self._item_to_browse_media_source(coordinator, item, content_type="artist")
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "musicartistletter", f"{library_id}/{letter}"
+            ),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.MUSIC,
+            title=f"Artists - {letter}",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_music_albums(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse music albums category - show A-Z letter menu.
+
+        Args:
+            coordinator: The server's coordinator.
+            library_id: The music library ID.
+
+        Returns:
+            BrowseMediaSource with A-Z letters as children.
+        """
+        children = self._build_letter_menu(coordinator, "musicalbumletter", library_id)
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(coordinator.server_id, "musicalbums", library_id),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.MUSIC,
+            title="Albums",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_albums_by_letter(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+        letter: str,
+    ) -> BrowseMediaSource:
+        """Browse albums starting with a specific letter.
+
+        Args:
+            coordinator: The server's coordinator.
+            library_id: The music library ID.
+            letter: The letter to filter by.
+
+        Returns:
+            BrowseMediaSource with filtered albums as children.
+        """
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            try:
+                name_filter = "" if letter == "#" else letter
+
+                result = await coordinator.client.async_get_items(
+                    user_id,
+                    parent_id=library_id,
+                    include_item_types="MusicAlbum",
+                    recursive=True,
+                    name_starts_with=name_filter if name_filter else None,
+                )
+                items = result.get("Items", [])
+
+                # For "#", filter to non-alpha items manually
+                if letter == "#":
+                    items = [i for i in items if not i.get("Name", "")[0:1].isalpha()]
+
+            except EmbyError as err:
+                _LOGGER.debug("Failed to get albums by letter %s: %s", letter, err)
+                items = []
+
+            for item in items:
+                children.append(
+                    self._item_to_browse_media_source(coordinator, item, content_type="album")
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "musicalbumletter", f"{library_id}/{letter}"
+            ),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.MUSIC,
+            title=f"Albums - {letter}",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_music_genres(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse music genres.
+
+        Args:
+            coordinator: The server's coordinator.
+            library_id: The music library ID.
+
+        Returns:
+            BrowseMediaSource with genres as children.
+        """
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            try:
+                genres = await coordinator.client.async_get_music_genres(user_id, library_id)
+            except EmbyError as err:
+                _LOGGER.debug("Failed to get music genres: %s", err)
+                genres = []
+
+            for genre in genres:
+                children.append(
+                    BrowseMediaSource(
+                        domain=DOMAIN,
+                        identifier=build_identifier(
+                            coordinator.server_id, "musicgenreitems", f"{library_id}/{genre['Id']}"
+                        ),
+                        media_class=MediaClass.GENRE,
+                        media_content_type=MediaType.MUSIC,
+                        title=genre["Name"],
+                        can_play=False,
+                        can_expand=True,
+                    )
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(coordinator.server_id, "musicgenres", library_id),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.MUSIC,
+            title="Genres",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_genre_items(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+        genre_id: str,
+    ) -> BrowseMediaSource:
+        """Browse items in a music genre.
+
+        Args:
+            coordinator: The server's coordinator.
+            library_id: The music library ID.
+            genre_id: The genre ID.
+
+        Returns:
+            BrowseMediaSource with albums in the genre as children.
+        """
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            try:
+                # Fetch albums with this genre
+                result = await coordinator.client.async_get_items(
+                    user_id,
+                    parent_id=library_id,
+                    include_item_types="MusicAlbum",
+                    recursive=True,
+                    genre_ids=genre_id,
+                )
+                items = result.get("Items", [])
+            except EmbyError as err:
+                _LOGGER.debug("Failed to get genre items: %s", err)
+                items = []
+
+            for item in items:
+                children.append(
+                    self._item_to_browse_media_source(coordinator, item, content_type="album")
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(
+                coordinator.server_id, "musicgenreitems", f"{library_id}/{genre_id}"
+            ),
+            media_class=MediaClass.GENRE,
+            media_content_type=MediaType.MUSIC,
+            title="Genre",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_music_playlists(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        library_id: str,
+    ) -> BrowseMediaSource:
+        """Browse music playlists.
+
+        Args:
+            coordinator: The server's coordinator.
+            library_id: The music library ID.
+
+        Returns:
+            BrowseMediaSource with playlists as children.
+        """
+        children: list[BrowseMediaSource] = []
+        user_id = self._get_user_id(coordinator)
+
+        if user_id:
+            try:
+                result = await coordinator.client.async_get_items(
+                    user_id,
+                    include_item_types="Playlist",
+                    recursive=True,
+                )
+                items = result.get("Items", [])
+            except EmbyError as err:
+                _LOGGER.debug("Failed to get playlists: %s", err)
+                items = []
+
+            for item in items:
+                children.append(
+                    self._item_to_browse_media_source(coordinator, item, content_type="playlist")
+                )
+
+        return BrowseMediaSource(
+            domain=DOMAIN,
+            identifier=build_identifier(coordinator.server_id, "musicplaylists", library_id),
+            media_class=MediaClass.DIRECTORY,
+            media_content_type=MediaType.MUSIC,
+            title="Playlists",
             can_play=False,
             can_expand=True,
             children=children,

@@ -140,9 +140,9 @@ entity: media_player.emby_living_room_tv
 3. Navigate: **Libraries** → **Categories** → **Content**
 
 **Available categories:**
-- 🎬 **Movies**: A-Z, Year, Decade, Genre, Collections
-- 📺 **TV Shows**: A-Z, Year, Decade, Genre → Series → Season → Episode
-- 🎵 **Music**: Artists, Albums, Genres, Playlists
+- 🎬 **Movies**: A-Z, Year, Decade, Genre, Studio, Collections
+- 📺 **TV Shows**: A-Z, Year, Decade, Genre, Studio → Series → Season → Episode
+- 🎵 **Music**: Artists A-Z, Albums A-Z, Genres, Playlists
 - 📡 **Live TV**: Channel listing
 
 ### Voice Commands

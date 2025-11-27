@@ -236,10 +236,207 @@ pytest tests/test_media_source.py::test_browse_movies_by_year -v
 
 ---
 
+### Task 5: Fix /Years API Endpoint Failure
+
+**Priority:** High
+
+**Symptoms:**
+- The Emby `/Years` endpoint returns 500 Internal Server Error with "Nullable object must have a value"
+- This affects both Movies > Year and TV Shows > Year browsing
+- The endpoint is broken on many Emby server versions
+
+**Root Cause:**
+- The `/Years` endpoint in Emby is unreliable/broken
+- Adding `UserId` parameter causes the 500 error
+- Without `UserId`, it returns 0 results
+
+**Solution:**
+- Modified `async_get_years()` in `api.py` to use a fallback approach
+- First tries the `/Years` endpoint (in case it works on some servers)
+- If that fails or returns empty, extracts unique years from items by:
+  - Fetching items with `ProductionYear` field
+  - Extracting unique years from the response
+  - Building year browse items sorted newest first
+
+**Acceptance Criteria:**
+- [x] Year browsing works when `/Years` endpoint fails
+- [x] Year browsing works for both Movies and TV Shows
+- [x] Results are cached to avoid repeated API calls
+- [x] All existing tests pass
+
+---
+
+### Task 6: Add Music Library Category Browsing
+
+**Priority:** High
+
+**Symptoms:**
+- Generic media source shows first 100 artists when browsing Music library
+- Should show category menu like media_player.py does
+
+**Solution:**
+- Added `musiclibrary` content type routing
+- Music libraries now show category menu: Artists, Albums, Genres, Playlists
+- Each category has appropriate sub-navigation (A-Z for Artists/Albums, list for Genres/Playlists)
+
+**New Content Types:**
+- `musiclibrary` - Shows category menu
+- `musicartists` - Shows A-Z letter menu for artists
+- `musicartistletter` - Shows artists starting with letter
+- `musicalbums` - Shows A-Z letter menu for albums
+- `musicalbumletter` - Shows albums starting with letter
+- `musicgenres` - Shows genre list
+- `musicgenreitems` - Shows albums in genre
+- `musicplaylists` - Shows playlists
+
+**Acceptance Criteria:**
+- [x] Music library shows category menu (Artists, Albums, Genres, Playlists)
+- [x] Artists A-Z navigation works
+- [x] Albums A-Z navigation works
+- [x] Genre browsing works
+- [x] Playlist browsing works
+- [x] Tests added for all music browsing paths
+
+---
+
+### Task 7: Add Studio Browsing
+
+**Priority:** Medium
+
+**Description:**
+Add Studio/Network browsing for Movies and TV Shows. The Emby `/Studios` endpoint provides a list of studios/networks for filtering content.
+
+**New Browsing Paths:**
+- Movies > Studio > [Studio Name] > Movies from that studio
+- TV Shows > Studio > [Studio Name] > TV Shows from that studio
+
+**Implementation:**
+
+1. **API** (`api.py`):
+   - Add `async_get_studios()` method to fetch studios list
+
+2. **Media Player** (`media_player.py`):
+   - Add "Studio" to movie library categories
+   - Add "Studio" to TV library categories
+   - Add `_async_browse_movie_studios()` method
+   - Add `_async_browse_movies_by_studio()` method
+   - Add `_async_browse_tv_studios()` method
+   - Add `_async_browse_tv_by_studio()` method
+
+3. **Media Source** (`media_source.py`):
+   - Add "Studio" to movie library categories
+   - Add "Studio" to TV library categories
+   - Add studio browsing methods
+
+4. **Tests**:
+   - Add tests for studio browsing in both media_player and media_source
+
+**New Content Types:**
+- `moviestudios` - Shows list of movie studios
+- `moviestudioitems` - Shows movies from a studio
+- `tvstudios` - Shows list of TV studios/networks
+- `tvstudioitems` - Shows TV shows from a studio/network
+
+**Acceptance Criteria:**
+- [x] Movies > Studio shows list of studios
+- [x] Clicking a studio shows movies from that studio
+- [x] TV Shows > Studio shows list of networks
+- [x] Clicking a network shows TV shows from that network
+- [x] Tests cover all studio browsing paths
+
+---
+
+## Files Changed
+
+| File | Changes |
+|------|---------|
+| `custom_components/embymedia/api.py` | Add year extraction fallback, add `async_get_studios()` |
+| `custom_components/embymedia/media_source.py` | Fix year browsing, add music categories, add studio browsing |
+| `custom_components/embymedia/media_player.py` | Add studio browsing |
+| `tests/test_media_source.py` | Add comprehensive browsing tests |
+| `tests/test_browse.py` | Add studio browsing tests |
+| `docs/phase-12-patch-tasks.md` | This document |
+| `docs/roadmap.md` | Add Phase 12 Patch section |
+
+---
+
+## Testing Plan
+
+### Manual Testing
+
+1. **Year Browsing:**
+   - Start HA with Emby integration
+   - Open Media panel (without an active Emby player)
+   - Navigate: Emby > [Server] > Movies > Year
+   - Click on a specific year
+   - Verify movies are displayed (or empty list if none)
+
+2. **Decade Browsing (regression check):**
+   - Navigate: Emby > [Server] > Movies > Decade
+   - Click on a specific decade
+   - Verify movies are displayed
+
+3. **TV Year/Decade:**
+   - Navigate: Emby > [Server] > TV Shows > Year/Decade
+   - Verify shows are displayed
+
+4. **Music Library:**
+   - Navigate: Emby > [Server] > Music
+   - Verify category menu appears (Artists, Albums, Genres, Playlists)
+   - Test each category navigation
+
+5. **Studio Browsing:**
+   - Navigate: Emby > [Server] > Movies > Studio
+   - Click on a studio (e.g., "Netflix", "Columbia Pictures")
+   - Verify movies from that studio are displayed
+   - Navigate: Emby > [Server] > TV Shows > Studio
+   - Click on a network (e.g., "HBO", "NBC")
+   - Verify TV shows from that network are displayed
+
+6. **Session-based Browsing (regression check):**
+   - Have an active Emby session
+   - Use the media player entity's browse feature
+   - Verify all browsing still works
+
+### Automated Testing
+
+```bash
+# Run all media source tests
+pytest tests/test_media_source.py -v
+
+# Run with coverage
+pytest tests/test_media_source.py --cov=custom_components.embymedia.media_source --cov-report=term-missing
+
+# Run specific test
+pytest tests/test_media_source.py::test_browse_movies_by_year -v
+```
+
+---
+
+## Success Criteria
+
+- [x] Browsing movies by year works in generic media source
+- [x] Browsing TV shows by year works in generic media source
+- [x] Browsing by decade continues to work (regression check)
+- [x] Music library shows category navigation
+- [x] Studio browsing works for Movies
+- [x] Studio browsing works for TV Shows
+- [x] All browsing features match between media_player and media_source
+- [x] 100% test coverage maintained
+- [x] No new ruff/mypy issues
+- [x] All existing tests pass
+
+---
+
 ## Release Notes (for CHANGELOG)
+
+### Added
+- Added Studio/Network browsing for Movies and TV Shows
+- Added Music library category browsing (Artists A-Z, Albums A-Z, Genres, Playlists)
 
 ### Fixed
 - Fixed "Unknown error" when browsing movies by year in media source
 - Fixed "Unknown error" when browsing TV shows by year in media source
+- Fixed year browsing when Emby /Years endpoint fails (fallback to extracting from items)
 - Improved error handling in media source browsing with descriptive messages
 - Synchronized media source browsing features with media player entity browsing

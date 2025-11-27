@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Self, cast
 
 import aiohttp
 
@@ -820,6 +820,7 @@ class EmbyClient:
         name_starts_with: str | None = None,
         years: str | None = None,
         genre_ids: str | None = None,
+        studio_ids: str | None = None,
     ) -> EmbyItemsResponse:
         """Get items from a library or folder.
 
@@ -835,6 +836,7 @@ class EmbyClient:
             name_starts_with: Filter by name starting with letter.
             years: Comma-separated years to filter by (e.g., "2020,2021,2022").
             genre_ids: Comma-separated genre IDs to filter by.
+            studio_ids: Comma-separated studio IDs to filter by.
 
         Returns:
             Items response with items and total count.
@@ -862,6 +864,8 @@ class EmbyClient:
             params.append(f"Years={years}")
         if genre_ids:
             params.append(f"GenreIds={genre_ids}")
+        if studio_ids:
+            params.append(f"StudioIds={studio_ids}")
 
         query_string = "&".join(params)
         endpoint = f"/Users/{user_id}/Items?{query_string}"
@@ -1094,6 +1098,49 @@ class EmbyClient:
         self._browse_cache.set(cache_key, items)
         return items
 
+    async def async_get_studios(
+        self,
+        user_id: str,
+        parent_id: str | None = None,
+        include_item_types: str | None = None,
+    ) -> list[EmbyBrowseItem]:
+        """Get studios from the library.
+
+        Args:
+            user_id: The user ID.
+            parent_id: Optional parent library ID to filter studios.
+            include_item_types: Optional item types to filter studios (e.g., "Movie", "Series").
+
+        Returns:
+            List of studio items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        # Check cache first
+        cache_key = self._browse_cache.generate_key(
+            "studios", user_id, parent_id=parent_id, include_item_types=include_item_types
+        )
+        cached = self._browse_cache.get(cache_key)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
+
+        params = [f"UserId={user_id}", "SortBy=SortName", "SortOrder=Ascending"]
+        if parent_id:
+            params.append(f"ParentId={parent_id}")
+        if include_item_types:
+            params.append(f"IncludeItemTypes={include_item_types}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Studios?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+
+        # Cache the result
+        self._browse_cache.set(cache_key, items)
+        return items
+
     async def async_get_years(
         self,
         user_id: str,
@@ -1101,6 +1148,10 @@ class EmbyClient:
         include_item_types: str | None = None,
     ) -> list[EmbyBrowseItem]:
         """Get years from the library.
+
+        The Emby /Years endpoint is unreliable (returns 500 error on many servers).
+        This method uses a fallback approach: fetch items with ProductionYear field
+        and extract unique years.
 
         Args:
             user_id: The user ID.
@@ -1122,19 +1173,89 @@ class EmbyClient:
         if cached is not None:
             return cached  # type: ignore[return-value]
 
-        params = [f"UserId={user_id}", "SortBy=SortName", "SortOrder=Descending"]
+        # Try the /Years endpoint first
+        try:
+            params = ["SortBy=SortName", "SortOrder=Descending"]
+            if parent_id:
+                params.append(f"ParentId={parent_id}")
+            if include_item_types:
+                params.append(f"IncludeItemTypes={include_item_types}")
+
+            query_string = "&".join(params)
+            endpoint = f"/Years?{query_string}"
+            response = await self._request(HTTP_GET, endpoint)
+            items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+
+            # If we got results, cache and return
+            if items:
+                self._browse_cache.set(cache_key, items)
+                return items
+        except EmbyServerError:
+            # /Years endpoint failed, use fallback
+            pass
+
+        # Fallback: Extract years from items with ProductionYear field
+        items = await self._extract_years_from_items(
+            user_id, parent_id, include_item_types
+        )
+
+        # Cache the result
+        self._browse_cache.set(cache_key, items)
+        return items
+
+    async def _extract_years_from_items(
+        self,
+        user_id: str,
+        parent_id: str | None = None,
+        include_item_types: str | None = None,
+    ) -> list[EmbyBrowseItem]:
+        """Extract unique years from library items.
+
+        Fetches items with ProductionYear field and builds a list of unique years.
+
+        Args:
+            user_id: The user ID.
+            parent_id: Optional parent library ID.
+            include_item_types: Optional item types filter.
+
+        Returns:
+            List of year items sorted newest first.
+        """
+        # Fetch items with ProductionYear field
+        params = [
+            f"UserId={user_id}",
+            "SortBy=ProductionYear",
+            "SortOrder=Descending",
+            "Fields=ProductionYear",
+            "Recursive=true",
+            "Limit=10000",  # Get all items to extract years
+        ]
         if parent_id:
             params.append(f"ParentId={parent_id}")
         if include_item_types:
             params.append(f"IncludeItemTypes={include_item_types}")
 
         query_string = "&".join(params)
-        endpoint = f"/Years?{query_string}"
+        endpoint = f"/Users/{user_id}/Items?{query_string}"
         response = await self._request(HTTP_GET, endpoint)
-        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
 
-        # Cache the result
-        self._browse_cache.set(cache_key, items)
+        # Extract unique years
+        years_set: set[int] = set()
+        response_dict = cast(dict[str, list[dict[str, int | str]]], response)
+        for item in response_dict.get("Items", []):
+            year = item.get("ProductionYear")
+            if year and isinstance(year, int):
+                years_set.add(year)
+
+        # Convert to EmbyBrowseItem format, sorted newest first
+        items: list[EmbyBrowseItem] = []
+        for year in sorted(years_set, reverse=True):
+            items.append({
+                "Id": str(year),
+                "Name": str(year),
+                "Type": "Year",
+            })
+
         return items
 
     async def async_get_playlist_items(
