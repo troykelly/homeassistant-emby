@@ -104,6 +104,82 @@ class EmbyMediaSource(MediaSource):
         """
         super().__init__(DOMAIN)
         self.hass = hass
+        # Track active transcoding sessions: play_session_id -> device_id
+        self._active_sessions: dict[str, str] = {}
+
+    def register_session(self, play_session_id: str, device_id: str) -> None:
+        """Register an active transcoding session.
+
+        Args:
+            play_session_id: The play session ID from Emby.
+            device_id: The device ID associated with the session.
+        """
+        self._active_sessions[play_session_id] = device_id
+        _LOGGER.debug(
+            "Registered transcoding session %s for device %s",
+            play_session_id,
+            device_id,
+        )
+
+    def unregister_session(self, play_session_id: str) -> None:
+        """Unregister a transcoding session.
+
+        Args:
+            play_session_id: The play session ID to remove.
+        """
+        if play_session_id in self._active_sessions:
+            del self._active_sessions[play_session_id]
+            _LOGGER.debug("Unregistered transcoding session %s", play_session_id)
+
+    def get_active_sessions(self) -> dict[str, str]:
+        """Get a copy of active transcoding sessions.
+
+        Returns:
+            Dictionary mapping play_session_id to device_id.
+        """
+        return dict(self._active_sessions)
+
+    async def async_cleanup_sessions(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+    ) -> None:
+        """Clean up all active transcoding sessions.
+
+        Called when the integration is unloaded to stop any active
+        transcoding sessions on the server.
+
+        Args:
+            coordinator: The coordinator with the client to use.
+        """
+        if not self._active_sessions:
+            return
+
+        _LOGGER.debug(
+            "Cleaning up %d active transcoding sessions",
+            len(self._active_sessions),
+        )
+
+        # Stop each transcoding session
+        for play_session_id, device_id in list(self._active_sessions.items()):
+            try:
+                await coordinator.client.async_stop_transcoding(
+                    device_id=device_id,
+                    play_session_id=play_session_id,
+                )
+                _LOGGER.debug(
+                    "Stopped transcoding session %s for device %s",
+                    play_session_id,
+                    device_id,
+                )
+            except Exception:
+                _LOGGER.warning(
+                    "Failed to stop transcoding session %s",
+                    play_session_id,
+                    exc_info=True,
+                )
+
+        # Clear all sessions
+        self._active_sessions.clear()
 
     def _get_coordinators(self) -> dict[str, EmbyDataUpdateCoordinator]:
         """Get all configured Emby coordinators.
