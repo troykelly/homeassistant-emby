@@ -1416,6 +1416,132 @@ class TestOptionsFlowPrefixToggles:
         assert result["data"][CONF_PREFIX_BUTTON] is False
 
 
+class TestOptionsFlowDiscoverySensors:
+    """Test discovery sensors toggle in options flow (Phase 15)."""
+
+    @pytest.mark.asyncio
+    async def test_options_flow_discovery_sensors_toggle_present(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test discovery sensors toggle is available in options flow."""
+        from custom_components.embymedia.const import CONF_ENABLE_DISCOVERY_SENSORS
+
+        mock_config_entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "init"
+
+        # Test setting discovery sensors toggle
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "scan_interval": 15,
+                CONF_ENABLE_DISCOVERY_SENSORS: True,
+            },
+        )
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"][CONF_ENABLE_DISCOVERY_SENSORS] is True
+
+    @pytest.mark.asyncio
+    async def test_options_flow_discovery_sensors_can_be_disabled(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test discovery sensors toggle can be disabled."""
+        from custom_components.embymedia.const import CONF_ENABLE_DISCOVERY_SENSORS
+
+        mock_config_entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+
+        # Disable discovery sensors
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "scan_interval": 15,
+                CONF_ENABLE_DISCOVERY_SENSORS: False,
+            },
+        )
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"][CONF_ENABLE_DISCOVERY_SENSORS] is False
+
+    @pytest.mark.asyncio
+    async def test_options_flow_discovery_sensors_defaults_to_true(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test discovery sensors toggle defaults to True (enabled)."""
+        from custom_components.embymedia.const import (
+            CONF_ENABLE_DISCOVERY_SENSORS,
+            DEFAULT_ENABLE_DISCOVERY_SENSORS,
+        )
+
+        mock_config_entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+
+        # Submit without explicitly setting discovery sensors toggle
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {"scan_interval": 15},
+        )
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        # When not explicitly set, should use default (True)
+        assert (
+            result["data"].get(CONF_ENABLE_DISCOVERY_SENSORS, DEFAULT_ENABLE_DISCOVERY_SENSORS)
+            is True
+        )
+
+    @pytest.mark.asyncio
+    async def test_options_flow_preserves_existing_discovery_sensors_setting(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test existing discovery sensors setting is preserved in form."""
+        from custom_components.embymedia.const import CONF_ENABLE_DISCOVERY_SENSORS
+
+        # Create entry with existing discovery sensors option disabled
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_API_KEY: "test-api-key",
+            },
+            options={
+                "scan_interval": 20,
+                CONF_ENABLE_DISCOVERY_SENSORS: False,  # Disabled
+            },
+            unique_id="test-server-id-12345",
+        )
+        mock_entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(mock_entry.entry_id)
+        assert result["type"] is FlowResultType.FORM
+
+        # Keep discovery sensors disabled
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "scan_interval": 25,
+                CONF_ENABLE_DISCOVERY_SENSORS: False,
+            },
+        )
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"]["scan_interval"] == 25
+        assert result["data"][CONF_ENABLE_DISCOVERY_SENSORS] is False
+
+
 class TestEntityOptionsStep:
     """Test entity_options step in config flow (Phase 11)."""
 

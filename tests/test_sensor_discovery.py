@@ -189,6 +189,16 @@ class TestEmbyNextUpSensor:
 
         assert sensor.available is False
 
+    def test_extra_state_attributes_no_data(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test extra_state_attributes returns None when no data."""
+        mock_coordinator.data = None
+        sensor = EmbyNextUpSensor(mock_coordinator, "Emby Server")
+
+        assert sensor.extra_state_attributes is None
+
 
 class TestEmbyContinueWatchingSensor:
     """Tests for EmbyContinueWatchingSensor."""
@@ -230,6 +240,26 @@ class TestEmbyContinueWatchingSensor:
         assert items[0]["type"] == "Movie"
         assert items[0]["progress_percent"] == 50.0
 
+    def test_native_value_no_data(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns None when no data."""
+        mock_coordinator.data = None
+        sensor = EmbyContinueWatchingSensor(mock_coordinator, "Emby Server")
+
+        assert sensor.native_value is None
+
+    def test_extra_state_attributes_no_data(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test extra_state_attributes returns None when no data."""
+        mock_coordinator.data = None
+        sensor = EmbyContinueWatchingSensor(mock_coordinator, "Emby Server")
+
+        assert sensor.extra_state_attributes is None
+
 
 class TestEmbyRecentlyAddedSensor:
     """Tests for EmbyRecentlyAddedSensor."""
@@ -268,6 +298,26 @@ class TestEmbyRecentlyAddedSensor:
         assert len(items) == 3
         assert items[0]["id"] == "new1"
         assert items[0]["type"] == "Movie"
+
+    def test_native_value_no_data(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns None when no data."""
+        mock_coordinator.data = None
+        sensor = EmbyRecentlyAddedSensor(mock_coordinator, "Emby Server")
+
+        assert sensor.native_value is None
+
+    def test_extra_state_attributes_no_data(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test extra_state_attributes returns None when no data."""
+        mock_coordinator.data = None
+        sensor = EmbyRecentlyAddedSensor(mock_coordinator, "Emby Server")
+
+        assert sensor.extra_state_attributes is None
 
 
 class TestEmbySuggestionsSensor:
@@ -308,6 +358,26 @@ class TestEmbySuggestionsSensor:
         assert items[0]["id"] == "suggest1"
         assert items[0]["name"] == "Suggested Movie"
         assert items[0]["rating"] == 8.5
+
+    def test_native_value_no_data(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns None when no data."""
+        mock_coordinator.data = None
+        sensor = EmbySuggestionsSensor(mock_coordinator, "Emby Server")
+
+        assert sensor.native_value is None
+
+    def test_extra_state_attributes_no_data(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test extra_state_attributes returns None when no data."""
+        mock_coordinator.data = None
+        sensor = EmbySuggestionsSensor(mock_coordinator, "Emby Server")
+
+        assert sensor.extra_state_attributes is None
 
 
 class TestDiscoverySensorDeviceInfo:
