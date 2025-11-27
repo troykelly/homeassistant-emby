@@ -45,6 +45,10 @@ if TYPE_CHECKING:
         EmbySessionResponse,
         EmbyUser,
         EmbyVirtualFolder,
+        LatestMediaItem,
+        NextUpItem,
+        ResumableItem,
+        SuggestionItem,
     )
 
 _LOGGER = logging.getLogger(__name__)
@@ -1795,6 +1799,156 @@ class EmbyClient:
             params.append(f"PlaySessionId={play_session_id}")
 
         return f"{url}?{'&'.join(params)}"
+
+    # =========================================================================
+    # Discovery API Methods (Phase 15)
+    # =========================================================================
+
+    async def async_get_next_up(
+        self,
+        user_id: str,
+        limit: int = 10,
+        enable_images: bool = True,
+        legacy_next_up: bool = True,
+    ) -> list[NextUpItem]:
+        """Get next up episodes for user.
+
+        Fetches the next episode to watch for each TV series the user is
+        currently watching.
+
+        Args:
+            user_id: The user ID.
+            limit: Maximum number of episodes to return.
+            enable_images: Include image information.
+            legacy_next_up: Use legacy next up logic (Legacynextup=true).
+                Legacy mode is more reliable on some Emby versions.
+
+        Returns:
+            List of next up episode items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        params: list[str] = [
+            f"UserId={user_id}",
+            f"Limit={limit}",
+            f"EnableImages={str(enable_images).lower()}",
+        ]
+        if legacy_next_up:
+            params.append("Legacynextup=true")
+
+        query_string = "&".join(params)
+        endpoint = f"/Shows/NextUp?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[NextUpItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    async def async_get_resumable_items(
+        self,
+        user_id: str,
+        limit: int = 10,
+        include_item_types: str | None = None,
+    ) -> list[ResumableItem]:
+        """Get resumable items (Continue Watching) for user.
+
+        Fetches movies and episodes that have been partially watched.
+
+        Args:
+            user_id: The user ID.
+            limit: Maximum number of items to return.
+            include_item_types: Filter by item type (e.g., "Movie,Episode").
+
+        Returns:
+            List of resumable items sorted by last played date.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        params: list[str] = [
+            "Filters=IsResumable",
+            f"Limit={limit}",
+            "SortBy=DatePlayed",
+            "SortOrder=Descending",
+            "Recursive=true",
+        ]
+        if include_item_types:
+            params.append(f"IncludeItemTypes={include_item_types}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Users/{user_id}/Items?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[ResumableItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    async def async_get_latest_media(
+        self,
+        user_id: str,
+        limit: int = 10,
+        include_item_types: str | None = None,
+        parent_id: str | None = None,
+    ) -> list[LatestMediaItem]:
+        """Get recently added media items.
+
+        Fetches the most recently added content to the library.
+
+        Args:
+            user_id: The user ID.
+            limit: Maximum number of items to return.
+            include_item_types: Filter by item type (e.g., "Movie,Episode,Audio").
+            parent_id: Optional library ID to filter within.
+
+        Returns:
+            List of latest media items sorted by date added.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        params: list[str] = [f"Limit={limit}"]
+        if include_item_types:
+            params.append(f"IncludeItemTypes={include_item_types}")
+        if parent_id:
+            params.append(f"ParentId={parent_id}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Users/{user_id}/Items/Latest?{query_string}"
+        # /Items/Latest returns array directly, not wrapped in Items property
+        response = await self._request(HTTP_GET, endpoint)
+        return response  # type: ignore[return-value]
+
+    async def async_get_suggestions(
+        self,
+        user_id: str,
+        limit: int = 10,
+        suggestion_type: str | None = None,
+    ) -> list[SuggestionItem]:
+        """Get personalized suggestions for user.
+
+        Fetches content recommendations based on watch history.
+
+        Args:
+            user_id: The user ID.
+            limit: Maximum number of suggestions to return.
+            suggestion_type: Optional type filter (e.g., "Movie", "Series").
+
+        Returns:
+            List of suggested items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        params: list[str] = [f"Limit={limit}"]
+        if suggestion_type:
+            params.append(f"Type={suggestion_type}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Users/{user_id}/Suggestions?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[SuggestionItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
 
     async def close(self) -> None:
         """Close the client session.
