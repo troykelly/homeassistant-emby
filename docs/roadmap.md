@@ -609,12 +609,110 @@ Bug fix release addressing media browser issues in the generic media source.
 
 ---
 
+## Phase 13: Dynamic Transcoding for Universal Media Playback
+
+### Overview
+
+This phase implements intelligent transcoding support for the media source provider, enabling Emby content to be "cast" to any device (Chromecast, Roku, Apple TV, Sonos, etc.) with automatic format negotiation based on target device capabilities.
+
+### 13.1 PlaybackInfo API Integration
+- [ ] Add `async_get_playback_info()` API method
+- [ ] Implement `PlaybackInfoRequest` TypedDict
+- [ ] Implement `PlaybackInfoResponse` TypedDict
+- [ ] Implement `MediaSourceInfo` TypedDict for response parsing
+- [ ] Handle `TranscodingUrl` and `DirectStreamUrl` from response
+- [ ] Generate unique `PlaySessionId` for each stream request
+
+### 13.2 Device Profile System
+- [ ] Create `DeviceProfile` TypedDict structure
+- [ ] Implement `DirectPlayProfile` TypedDict
+- [ ] Implement `TranscodingProfile` TypedDict
+- [ ] Implement `SubtitleProfile` TypedDict
+- [ ] Create predefined profiles:
+  - `UNIVERSAL_PROFILE` - Safe fallback (H.264/AAC)
+  - `CHROMECAST_PROFILE` - Chromecast-optimized
+  - `ROKU_PROFILE` - Roku-optimized
+  - `APPLETV_PROFILE` - Apple TV-optimized
+  - `AUDIO_ONLY_PROFILE` - For speakers (Sonos, Google Home)
+
+### 13.3 Enhanced Media Source Resolution
+- [ ] Update `async_resolve_media()` to use PlaybackInfo
+- [ ] Implement format negotiation logic:
+  - Direct Play if source is compatible
+  - Direct Stream if container needs remuxing only
+  - HLS Transcoding if full transcode required
+- [ ] Return appropriate MIME type based on stream type
+- [ ] Support `application/x-mpegURL` for HLS streams
+
+### 13.4 HLS Streaming Support
+- [ ] Generate HLS master playlist URLs with transcoding parameters
+- [ ] Add `DeviceId` and `MediaSourceId` parameters
+- [ ] Configure video codec (h264), audio codec (aac), channels
+- [ ] Support adaptive bitrate parameters
+
+### 13.5 Transcoding Session Management
+- [ ] Track active transcoding sessions via `PlaySessionId`
+- [ ] Implement `async_stop_transcoding()` API method
+- [ ] Call `DELETE /Videos/ActiveEncodings?DeviceId=xxx` on cleanup
+- [ ] Handle session cleanup on integration unload
+
+### 13.6 Configuration Options
+- [ ] Add `CONF_TRANSCODING_PROFILE` option (universal/chromecast/roku/appletv)
+- [ ] Add `CONF_MAX_STREAMING_BITRATE` option (default: 40 Mbps)
+- [ ] Add `CONF_PREFER_DIRECT_PLAY` option (default: true)
+- [ ] Add `CONF_MAX_VIDEO_WIDTH` option (default: 1920)
+- [ ] Add `CONF_MAX_VIDEO_HEIGHT` option (default: 1080)
+- [ ] Add options to Options Flow
+
+### 13.7 Audio Streaming Enhancement
+- [ ] Use Universal Audio endpoint `/Audio/{id}/universal`
+- [ ] Support HLS audio transcoding (`TranscodingProtocol=hls`)
+- [ ] Support progressive audio fallback
+- [ ] Configure `MaxStreamingBitrate`, `MaxSampleRate`
+
+### 13.8 TypedDicts & Constants
+- [ ] `PlaybackInfoRequest` - POST body structure
+- [ ] `PlaybackInfoResponse` - Response with MediaSources
+- [ ] `MediaSourceInfo` - Individual media source details
+- [ ] `MediaStreamInfo` - Audio/video/subtitle stream details
+- [ ] `DeviceProfile` - Device capability declaration
+- [ ] `DirectPlayProfile` - Direct play supported formats
+- [ ] `TranscodingProfile` - Transcoding fallback configuration
+- [ ] `SubtitleProfile` - Subtitle delivery options
+- [ ] Constants for common codecs, containers, protocols
+
+### 13.9 Testing
+- [ ] Unit tests for `async_get_playback_info()`
+- [ ] Unit tests for device profile generation
+- [ ] Unit tests for format negotiation logic
+- [ ] Unit tests for HLS URL generation
+- [ ] Unit tests for transcoding session cleanup
+- [ ] Integration tests with mocked PlaybackInfo responses
+- [ ] Maintain 100% code coverage
+
+### 13.10 Documentation
+- [ ] Update README with transcoding section
+- [ ] Document device profiles and their capabilities
+- [ ] Document configuration options
+- [ ] Add troubleshooting guide for transcoding issues
+
+**Deliverables:**
+- ✅ PlaybackInfo API integration for smart format selection
+- ✅ Predefined device profiles for common cast targets
+- ✅ Dynamic transcoding with HLS support
+- ✅ Direct Play/Direct Stream when compatible
+- ✅ Configuration options for transcoding preferences
+- ✅ Automatic transcoding session cleanup
+- ✅ Full test coverage
+
+---
+
 ## Implementation Order
 
 ```
 Phase 1 ─┬─► Phase 2 ─┬─► Phase 3 ─► Phase 4
          │            │
-         │            └─► Phase 5 ─► Phase 6
+         │            └─► Phase 5 ─► Phase 6 ─► Phase 13 (Transcoding)
          │
          └─────────────────────────► Phase 7 ─┬─► Phase 8
                                               │
@@ -629,6 +727,7 @@ Phase 8 ─► Phase 9 ─► Phase 10 ─► Phase 11
 - Phase 5 (Browsing) can start after Phase 2
 - Phase 7 (WebSocket) can start after Phase 1
 - Phase 12 (Sensors) can start after Phase 7 (requires WebSocket)
+- Phase 13 (Transcoding) can start after Phase 6 (extends media_source)
 
 ---
 
@@ -680,6 +779,10 @@ Phase 8 ─► Phase 9 ─► Phase 10 ─► Phase 11
 | `/Library/VirtualFolders` | GET | Library folders info (Phase 12) |
 | `/System/ActivityLog/Entries` | GET | Activity log entries (Phase 12) |
 | `/Plugins` | GET | Installed plugins (Phase 12) |
+| `/Items/{id}/PlaybackInfo` | POST | Get playback info with DeviceProfile (Phase 13) |
+| `/Videos/{id}/master.m3u8` | GET | HLS adaptive streaming (Phase 13) |
+| `/Audio/{id}/universal` | GET | Universal audio streaming (Phase 13) |
+| `/Videos/ActiveEncodings` | DELETE | Stop transcoding session (Phase 13) |
 
 ### WebSocket Subscriptions
 
