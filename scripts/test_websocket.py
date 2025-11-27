@@ -50,28 +50,28 @@ async def test_websocket() -> None:
                 print("-" * 60)
 
                 # Subscribe to session updates (interval in ms)
-                subscribe_msg = json.dumps({
-                    "MessageType": "SessionsStart",
-                    "Data": "0,1500"  # Initial position, interval in ms
-                })
+                subscribe_msg = json.dumps(
+                    {
+                        "MessageType": "SessionsStart",
+                        "Data": "0,1500",  # Initial position, interval in ms
+                    }
+                )
                 await ws.send_str(subscribe_msg)
                 print(f"Sent: {subscribe_msg}")
                 print("-" * 60)
 
                 # Also try ScheduledTasksInfoStart to see all message types
-                scheduled_msg = json.dumps({
-                    "MessageType": "ScheduledTasksInfoStart",
-                    "Data": "0,30000"
-                })
+                scheduled_msg = json.dumps(
+                    {"MessageType": "ScheduledTasksInfoStart", "Data": "0,30000"}
+                )
                 await ws.send_str(scheduled_msg)
                 print(f"Sent: {scheduled_msg}")
                 print("-" * 60)
 
                 # Activity log subscription
-                activity_msg = json.dumps({
-                    "MessageType": "ActivityLogEntryStart",
-                    "Data": "0,10000"
-                })
+                activity_msg = json.dumps(
+                    {"MessageType": "ActivityLogEntryStart", "Data": "0,10000"}
+                )
                 await ws.send_str(activity_msg)
                 print(f"Sent: {activity_msg}")
                 print("-" * 60)
@@ -100,7 +100,7 @@ async def test_websocket() -> None:
                             print(f"[{timestamp}] #{msg_count} MessageType: {msg_type}")
 
                             if msg_data:
-                                if isinstance(msg_data, (dict, list)):
+                                if isinstance(msg_data, dict | list):
                                     # Pretty print complex data
                                     formatted = json.dumps(msg_data, indent=2)
                                     # Truncate if too long

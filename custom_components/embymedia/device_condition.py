@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant.const import (
@@ -95,18 +96,23 @@ async def async_condition_from_config(
     entity_id: str = config[CONF_ENTITY_ID]
     condition_type: str = config[CONF_TYPE]
 
-    def test_condition(hass: HomeAssistant) -> bool:
+    def test_condition(
+        hass: HomeAssistant,
+        variables: Mapping[str, Any] | None = None,
+    ) -> bool | None:
         """Test the condition.
 
         Args:
             hass: Home Assistant instance.
+            variables: Optional template variables (unused).
 
         Returns:
-            True if condition is met, False otherwise.
+            True if condition is met, False otherwise, None if state unavailable.
         """
+        _ = variables  # Not used for device conditions
         state = hass.states.get(entity_id)
         if state is None:
-            return False
+            return None
 
         current_state = state.state
         if condition_type == "is_playing":

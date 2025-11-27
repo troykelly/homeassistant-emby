@@ -13,11 +13,14 @@ from custom_components.embymedia.const import (
     CONF_IGNORED_DEVICES,
     CONF_MAX_AUDIO_BITRATE,
     CONF_MAX_VIDEO_BITRATE,
+    CONF_TRANSCODING_PROFILE,
     CONF_VIDEO_CONTAINER,
     DEFAULT_SCAN_INTERVAL,
+    DEFAULT_TRANSCODING_PROFILE,
     DOMAIN,
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
+    TRANSCODING_PROFILES,
 )
 
 
@@ -245,3 +248,59 @@ class TestOptionsFlowTranscoding:
         assert result["type"] is FlowResultType.CREATE_ENTRY
         assert result["data"][CONF_MAX_VIDEO_BITRATE] == 8000
         assert result["data"][CONF_MAX_AUDIO_BITRATE] == 320
+
+    @pytest.mark.asyncio
+    async def test_transcoding_profile_selection(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry_options: MockConfigEntry,
+    ) -> None:
+        """Test transcoding profile can be selected."""
+        mock_config_entry_options.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(mock_config_entry_options.entry_id)
+
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "scan_interval": 10,
+                CONF_TRANSCODING_PROFILE: "chromecast",
+            },
+        )
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"][CONF_TRANSCODING_PROFILE] == "chromecast"
+
+    @pytest.mark.asyncio
+    async def test_transcoding_profile_default_universal(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry_options: MockConfigEntry,
+    ) -> None:
+        """Test transcoding profile defaults to universal."""
+        mock_config_entry_options.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(mock_config_entry_options.entry_id)
+
+        # Just submit form with required fields, should use default profile
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "scan_interval": 10,
+            },
+        )
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        # Default profile is universal (or not set, depending on implementation)
+        # The key should either not be present or be the default
+        profile = result["data"].get(CONF_TRANSCODING_PROFILE, DEFAULT_TRANSCODING_PROFILE)
+        assert profile == DEFAULT_TRANSCODING_PROFILE
+
+    def test_transcoding_profiles_constant(self) -> None:
+        """Test transcoding profiles constant is valid."""
+        assert "universal" in TRANSCODING_PROFILES
+        assert "chromecast" in TRANSCODING_PROFILES
+        assert "roku" in TRANSCODING_PROFILES
+        assert "appletv" in TRANSCODING_PROFILES
+        assert "audio_only" in TRANSCODING_PROFILES
+        assert len(TRANSCODING_PROFILES) >= 5

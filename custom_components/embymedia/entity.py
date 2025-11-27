@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from .models import EmbySession
 
 
-class EmbyEntity(CoordinatorEntity["EmbyDataUpdateCoordinator"]):  # type: ignore[misc]
+class EmbyEntity(CoordinatorEntity["EmbyDataUpdateCoordinator"]):
     """Base class for Emby entities.
 
     Provides common functionality including:

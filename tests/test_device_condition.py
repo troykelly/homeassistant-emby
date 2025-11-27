@@ -546,21 +546,21 @@ class TestConditionFromConfig:
 
             # Entity is idle, but we check for playing
             condition_config = {
-                "entity_id": "media_player.test_player",
+                "entity_id": "media_player.emby_test_player",
                 "type": "is_playing",
             }
 
             condition_fn = await async_condition_from_config(hass, condition_config)
 
-            # Should return False when not playing
+            # Should return False when not playing (entity exists but state doesn't match)
             assert condition_fn(hass) is False
 
     @pytest.mark.asyncio
-    async def test_condition_false_for_nonexistent_entity(
+    async def test_condition_none_for_nonexistent_entity(
         self,
         hass: HomeAssistant,
     ) -> None:
-        """Test condition returns False for non-existent entity."""
+        """Test condition returns None for non-existent entity (unknown state)."""
         from custom_components.embymedia.device_condition import (
             async_condition_from_config,
         )
@@ -572,8 +572,8 @@ class TestConditionFromConfig:
 
         condition_fn = await async_condition_from_config(hass, condition_config)
 
-        # Should return False when entity doesn't exist
-        assert condition_fn(hass) is False
+        # Should return None when entity doesn't exist (state is unknown)
+        assert condition_fn(hass) is None
 
     @pytest.mark.asyncio
     async def test_condition_is_off(
