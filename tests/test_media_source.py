@@ -683,9 +683,7 @@ class TestItemToBrowseMediaSource:
         self,
         hass: HomeAssistant,
     ) -> None:
-        """Test audio item gets music media type."""
-        from homeassistant.components.media_player import MediaType
-
+        """Test audio item gets audio MIME type prefix for device compatibility."""
         from custom_components.embymedia.media_source import EmbyMediaSource
 
         mock_coordinator = MagicMock()
@@ -702,7 +700,9 @@ class TestItemToBrowseMediaSource:
 
         result = media_source._item_to_browse_media_source(mock_coordinator, item)
 
-        assert result.media_content_type == MediaType.MUSIC
+        # Uses MIME type prefix for audio-only device filtering compatibility
+        # Cast and similar players filter with item.media_content_type.startswith("audio/")
+        assert result.media_content_type == "audio/"
 
     def test_playable_items(
         self,

@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from homeassistant.components.media_player import MediaClass, MediaType
+from homeassistant.components.media_player import MediaClass
 from homeassistant.components.media_source import (
     BrowseMediaSource,
     MediaSource,
@@ -377,7 +377,7 @@ class EmbyMediaSource(MediaSource):
                     domain=DOMAIN,
                     identifier=server_id,
                     media_class=MediaClass.DIRECTORY,
-                    media_content_type=MediaType.VIDEO,
+                    media_content_type="video/",
                     title=coordinator.server_name,
                     can_play=False,
                     can_expand=True,
@@ -389,7 +389,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=None,
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="Emby",
             can_play=False,
             can_expand=True,
@@ -427,21 +427,22 @@ class EmbyMediaSource(MediaSource):
                     thumbnail = coordinator.client.get_image_url(view_id)
 
                 # Use special identifier for each library type
+                # Use MIME type prefixes for compatibility with audio-only devices
                 if collection_type == "livetv":
                     identifier = build_identifier(coordinator.server_id, "livetv")
-                    media_content_type = MediaType.CHANNEL
+                    media_content_type = "video/"
                 elif collection_type == "movies":
                     identifier = build_identifier(coordinator.server_id, "movielibrary", view_id)
-                    media_content_type = MediaType.VIDEO
+                    media_content_type = "video/"
                 elif collection_type == "tvshows":
                     identifier = build_identifier(coordinator.server_id, "tvlibrary", view_id)
-                    media_content_type = MediaType.VIDEO
+                    media_content_type = "video/"
                 elif collection_type == "music":
                     identifier = build_identifier(coordinator.server_id, "musiclibrary", view_id)
-                    media_content_type = MediaType.MUSIC
+                    media_content_type = "audio/"
                 else:
                     identifier = build_identifier(coordinator.server_id, "library", view_id)
-                    media_content_type = MediaType.VIDEO
+                    media_content_type = "video/"
 
                 children.append(
                     BrowseMediaSource(
@@ -460,7 +461,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=coordinator.server_id,
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title=coordinator.server_name,
             can_play=False,
             can_expand=True,
@@ -499,7 +500,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "library", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="Library",
             can_play=False,
             can_expand=True,
@@ -532,7 +533,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "livetv"),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.CHANNEL,
+            media_content_type="video/",
             title="Live TV",
             can_play=False,
             can_expand=True,
@@ -563,7 +564,7 @@ class EmbyMediaSource(MediaSource):
                     domain=DOMAIN,
                     identifier=build_identifier(coordinator.server_id, content_type, library_id),
                     media_class=media_class,
-                    media_content_type=MediaType.VIDEO,
+                    media_content_type="video/",
                     title=title,
                     can_play=False,
                     can_expand=True,
@@ -574,7 +575,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "movielibrary", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="Movies",
             can_play=False,
             can_expand=True,
@@ -598,7 +599,7 @@ class EmbyMediaSource(MediaSource):
                         coordinator.server_id, "movieazletter", f"{library_id}/{letter}"
                     ),
                     media_class=MediaClass.DIRECTORY,
-                    media_content_type=MediaType.VIDEO,
+                    media_content_type="video/",
                     title=letter,
                     can_play=False,
                     can_expand=True,
@@ -609,7 +610,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "movieaz", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="A-Z",
             can_play=False,
             can_expand=True,
@@ -644,7 +645,7 @@ class EmbyMediaSource(MediaSource):
                 coordinator.server_id, "movieazletter", f"{library_id}/{letter}"
             ),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title=letter,
             can_play=False,
             can_expand=True,
@@ -680,7 +681,7 @@ class EmbyMediaSource(MediaSource):
                             f"{library_id}/{year_name}",
                         ),
                         media_class=MediaClass.DIRECTORY,
-                        media_content_type=MediaType.VIDEO,
+                        media_content_type="video/",
                         title=year_name,
                         can_play=False,
                         can_expand=True,
@@ -691,7 +692,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "movieyear", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="Year",
             can_play=False,
             can_expand=True,
@@ -731,7 +732,7 @@ class EmbyMediaSource(MediaSource):
                 coordinator.server_id, "movieyearitems", f"{library_id}/{year}"
             ),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title=year,
             can_play=False,
             can_expand=True,
@@ -769,7 +770,7 @@ class EmbyMediaSource(MediaSource):
                         f"{library_id}/{decade}",
                     ),
                     media_class=MediaClass.DIRECTORY,
-                    media_content_type=MediaType.VIDEO,
+                    media_content_type="video/",
                     title=decade,
                     can_play=False,
                     can_expand=True,
@@ -780,7 +781,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "moviedecade", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="Decade",
             can_play=False,
             can_expand=True,
@@ -818,7 +819,7 @@ class EmbyMediaSource(MediaSource):
                 coordinator.server_id, "moviedecadeitems", f"{library_id}/{decade}"
             ),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title=decade,
             can_play=False,
             can_expand=True,
@@ -850,7 +851,7 @@ class EmbyMediaSource(MediaSource):
                             f"{library_id}/{genre_id}",
                         ),
                         media_class=MediaClass.GENRE,
-                        media_content_type=MediaType.VIDEO,
+                        media_content_type="video/",
                         title=genre_name,
                         can_play=False,
                         can_expand=True,
@@ -861,7 +862,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "moviegenre", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="Genre",
             can_play=False,
             can_expand=True,
@@ -895,7 +896,7 @@ class EmbyMediaSource(MediaSource):
                 coordinator.server_id, "moviegenreitems", f"{library_id}/{genre_id}"
             ),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="Genre",
             can_play=False,
             can_expand=True,
@@ -927,7 +928,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "moviecollection", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="Collections",
             can_play=False,
             can_expand=True,
@@ -959,7 +960,7 @@ class EmbyMediaSource(MediaSource):
                             f"{library_id}/{studio_id}",
                         ),
                         media_class=MediaClass.DIRECTORY,
-                        media_content_type=MediaType.VIDEO,
+                        media_content_type="video/",
                         title=studio_name,
                         can_play=False,
                         can_expand=True,
@@ -970,7 +971,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "moviestudio", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="Studio",
             can_play=False,
             can_expand=True,
@@ -1004,7 +1005,7 @@ class EmbyMediaSource(MediaSource):
                 coordinator.server_id, "moviestudioitems", f"{library_id}/{studio_id}"
             ),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="Studio",
             can_play=False,
             can_expand=True,
@@ -1034,7 +1035,7 @@ class EmbyMediaSource(MediaSource):
                     domain=DOMAIN,
                     identifier=build_identifier(coordinator.server_id, content_type, library_id),
                     media_class=media_class,
-                    media_content_type=MediaType.VIDEO,
+                    media_content_type="video/",
                     title=title,
                     can_play=False,
                     can_expand=True,
@@ -1045,7 +1046,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "tvlibrary", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="TV Shows",
             can_play=False,
             can_expand=True,
@@ -1069,7 +1070,7 @@ class EmbyMediaSource(MediaSource):
                         coordinator.server_id, "tvazletter", f"{library_id}/{letter}"
                     ),
                     media_class=MediaClass.DIRECTORY,
-                    media_content_type=MediaType.VIDEO,
+                    media_content_type="video/",
                     title=letter,
                     can_play=False,
                     can_expand=True,
@@ -1080,7 +1081,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "tvaz", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="A-Z",
             can_play=False,
             can_expand=True,
@@ -1117,7 +1118,7 @@ class EmbyMediaSource(MediaSource):
                 coordinator.server_id, "tvazletter", f"{library_id}/{letter}"
             ),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title=letter,
             can_play=False,
             can_expand=True,
@@ -1153,7 +1154,7 @@ class EmbyMediaSource(MediaSource):
                             f"{library_id}/{year_name}",
                         ),
                         media_class=MediaClass.DIRECTORY,
-                        media_content_type=MediaType.VIDEO,
+                        media_content_type="video/",
                         title=year_name,
                         can_play=False,
                         can_expand=True,
@@ -1164,7 +1165,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "tvyear", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="Year",
             can_play=False,
             can_expand=True,
@@ -1206,7 +1207,7 @@ class EmbyMediaSource(MediaSource):
                 coordinator.server_id, "tvyearitems", f"{library_id}/{year}"
             ),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title=year,
             can_play=False,
             can_expand=True,
@@ -1239,7 +1240,7 @@ class EmbyMediaSource(MediaSource):
                         coordinator.server_id, "tvdecadeitems", f"{library_id}/{decade}"
                     ),
                     media_class=MediaClass.DIRECTORY,
-                    media_content_type=MediaType.VIDEO,
+                    media_content_type="video/",
                     title=decade,
                     can_play=False,
                     can_expand=True,
@@ -1250,7 +1251,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "tvdecade", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="Decade",
             can_play=False,
             can_expand=True,
@@ -1289,7 +1290,7 @@ class EmbyMediaSource(MediaSource):
                 coordinator.server_id, "tvdecadeitems", f"{library_id}/{decade}"
             ),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title=decade,
             can_play=False,
             can_expand=True,
@@ -1321,7 +1322,7 @@ class EmbyMediaSource(MediaSource):
                             f"{library_id}/{genre_id}",
                         ),
                         media_class=MediaClass.GENRE,
-                        media_content_type=MediaType.VIDEO,
+                        media_content_type="video/",
                         title=genre_name,
                         can_play=False,
                         can_expand=True,
@@ -1332,7 +1333,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "tvgenre", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="Genre",
             can_play=False,
             can_expand=True,
@@ -1368,7 +1369,7 @@ class EmbyMediaSource(MediaSource):
                 coordinator.server_id, "tvgenreitems", f"{library_id}/{genre_id}"
             ),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="Genre",
             can_play=False,
             can_expand=True,
@@ -1400,7 +1401,7 @@ class EmbyMediaSource(MediaSource):
                             f"{library_id}/{studio_id}",
                         ),
                         media_class=MediaClass.DIRECTORY,
-                        media_content_type=MediaType.VIDEO,
+                        media_content_type="video/",
                         title=studio_name,
                         can_play=False,
                         can_expand=True,
@@ -1411,7 +1412,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "tvstudio", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="Studio",
             can_play=False,
             can_expand=True,
@@ -1447,7 +1448,7 @@ class EmbyMediaSource(MediaSource):
                 coordinator.server_id, "tvstudioitems", f"{library_id}/{studio_id}"
             ),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type="video/",
             title="Studio",
             can_play=False,
             can_expand=True,
@@ -1489,7 +1490,7 @@ class EmbyMediaSource(MediaSource):
                     domain=DOMAIN,
                     identifier=build_identifier(coordinator.server_id, content_type, library_id),
                     media_class=media_class,
-                    media_content_type=MediaType.MUSIC,
+                    media_content_type="audio/",
                     title=title,
                     can_play=False,
                     can_expand=True,
@@ -1500,7 +1501,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "musiclibrary", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.MUSIC,
+            media_content_type="audio/",
             title="Music Library",
             can_play=False,
             can_expand=True,
@@ -1534,7 +1535,7 @@ class EmbyMediaSource(MediaSource):
                         coordinator.server_id, content_type, f"{library_id}/{letter}"
                     ),
                     media_class=MediaClass.DIRECTORY,
-                    media_content_type=MediaType.MUSIC,
+                    media_content_type="audio/",
                     title=letter,
                     can_play=False,
                     can_expand=True,
@@ -1563,7 +1564,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "musicartists", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.MUSIC,
+            media_content_type="audio/",
             title="Artists",
             can_play=False,
             can_expand=True,
@@ -1622,7 +1623,7 @@ class EmbyMediaSource(MediaSource):
                 coordinator.server_id, "musicartistletter", f"{library_id}/{letter}"
             ),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.MUSIC,
+            media_content_type="audio/",
             title=f"Artists - {letter}",
             can_play=False,
             can_expand=True,
@@ -1649,7 +1650,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "musicalbums", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.MUSIC,
+            media_content_type="audio/",
             title="Albums",
             can_play=False,
             can_expand=True,
@@ -1707,7 +1708,7 @@ class EmbyMediaSource(MediaSource):
                 coordinator.server_id, "musicalbumletter", f"{library_id}/{letter}"
             ),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.MUSIC,
+            media_content_type="audio/",
             title=f"Albums - {letter}",
             can_play=False,
             can_expand=True,
@@ -1746,7 +1747,7 @@ class EmbyMediaSource(MediaSource):
                             coordinator.server_id, "musicgenreitems", f"{library_id}/{genre['Id']}"
                         ),
                         media_class=MediaClass.GENRE,
-                        media_content_type=MediaType.MUSIC,
+                        media_content_type="audio/",
                         title=genre["Name"],
                         can_play=False,
                         can_expand=True,
@@ -1757,7 +1758,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "musicgenres", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.MUSIC,
+            media_content_type="audio/",
             title="Genres",
             can_play=False,
             can_expand=True,
@@ -1809,7 +1810,7 @@ class EmbyMediaSource(MediaSource):
                 coordinator.server_id, "musicgenreitems", f"{library_id}/{genre_id}"
             ),
             media_class=MediaClass.GENRE,
-            media_content_type=MediaType.MUSIC,
+            media_content_type="audio/",
             title="Genre",
             can_play=False,
             can_expand=True,
@@ -1854,7 +1855,7 @@ class EmbyMediaSource(MediaSource):
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, "musicplaylists", library_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.MUSIC,
+            media_content_type="audio/",
             title="Playlists",
             can_play=False,
             can_expand=True,
@@ -1918,11 +1919,23 @@ class EmbyMediaSource(MediaSource):
                     child_browse = self._item_to_browse_media_source(coordinator, child_item)
                     children.append(child_browse)
 
+        # Determine appropriate media content type for the container
+        # Use MIME type prefixes so audio devices can filter properly
+        is_audio_container = content_type in (
+            "album",
+            "artist",
+            "musicalbum",
+            "musicartist",
+            "playlist",
+            "track",
+        )
+        container_media_type = "audio/" if is_audio_container else "video/"
+
         return BrowseMediaSource(
             domain=DOMAIN,
             identifier=build_identifier(coordinator.server_id, content_type, item_id),
             media_class=MediaClass.DIRECTORY,
-            media_content_type=MediaType.VIDEO,
+            media_content_type=container_media_type,
             title=content_type.title(),
             can_play=False,
             can_expand=True,
@@ -1963,7 +1976,18 @@ class EmbyMediaSource(MediaSource):
         )
 
         media_class = self._get_media_class_for_type(item_type)
-        media_content_type = MediaType.MUSIC if item_type in ("audio", "album") else MediaType.VIDEO
+        # Use MIME type prefixes so audio devices can filter properly
+        # Cast and similar players filter with item.media_content_type.startswith("audio/")
+        is_audio = item_type in ("audio", "album", "musicalbum", "musicartist", "playlist")
+        media_content_type = "audio/" if is_audio else "video/"
+
+        _LOGGER.debug(
+            "Browse item: name=%s, item_type=%s, content_type=%s, media_content_type=%s",
+            item_name,
+            item_type,
+            content_type,
+            media_content_type,
+        )
 
         thumbnail: str | None = None
         image_tags = item.get("ImageTags")
@@ -2216,10 +2240,11 @@ class EmbyMediaSource(MediaSource):
             # Use universal audio endpoint for better compatibility
             device_id = get_ha_device_id(self.hass)
             play_session_id = generate_play_session_id()
+            user_id = self._get_user_id(coordinator) or ""
 
             url = coordinator.client.get_universal_audio_url(
                 item_id=item_id,
-                user_id="",  # Empty for API key auth
+                user_id=user_id,
                 device_id=device_id,
                 container="mp3,aac,m4a,flac,ogg",
                 transcoding_container="mp3",
