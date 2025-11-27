@@ -18,7 +18,15 @@ from homeassistant.components.media_source import (
     Unresolvable,
 )
 
-from .const import DOMAIN, MIME_TYPES, DeviceProfile, EmbyBrowseItem, MediaSourceInfo
+from .const import (
+    DOMAIN,
+    MIME_TYPES,
+    DeviceProfile,
+    EmbyBrowseItem,
+    MediaSourceInfo,
+    generate_play_session_id,
+    get_ha_device_id,
+)
 from .exceptions import EmbyError
 from .profiles import get_device_profile
 
@@ -2205,8 +2213,23 @@ class EmbyMediaSource(MediaSource):
 
         # Generate stream URL based on content type
         if content_type in ("track", "audio"):
-            url = coordinator.client.get_audio_stream_url(item_id)
-            mime_type = MIME_TYPES.get(content_type, "audio/mpeg")
+            # Use universal audio endpoint for better compatibility
+            device_id = get_ha_device_id(self.hass)
+            play_session_id = generate_play_session_id()
+
+            url = coordinator.client.get_universal_audio_url(
+                item_id=item_id,
+                user_id="",  # Empty for API key auth
+                device_id=device_id,
+                container="mp3,aac,m4a,flac,ogg",
+                transcoding_container="mp3",
+                audio_codec="mp3",
+                play_session_id=play_session_id,
+            )
+            mime_type = "audio/mpeg"
+
+            # Register session for cleanup tracking
+            self.register_session(play_session_id, device_id)
         else:
             url = coordinator.client.get_video_stream_url(item_id)
             mime_type = MIME_TYPES.get(content_type, "video/mp4")
