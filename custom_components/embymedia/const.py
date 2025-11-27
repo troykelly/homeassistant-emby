@@ -699,3 +699,32 @@ def normalize_host(host: str) -> str:
         if host.lower().startswith(prefix):
             host = host[len(prefix) :]
     return host.rstrip("/")
+
+
+def get_ha_device_id(hass: object) -> str:
+    """Get a stable device ID for the Home Assistant instance.
+
+    This ID is used to identify transcoding sessions with the Emby server.
+    It uses the Home Assistant installation UUID for stability across restarts.
+
+    Args:
+        hass: Home Assistant instance (uses .data dict)
+
+    Returns:
+        Device ID string in format "homeassistant-{uuid}"
+    """
+    # hass.data is a dict-like object, we access it generically
+    data = getattr(hass, "data", {})
+    uuid = data.get("core.uuid", "unknown") if isinstance(data, dict) else "unknown"
+    return f"homeassistant-{uuid}"
+
+
+def generate_play_session_id() -> str:
+    """Generate a unique play session ID for transcoding.
+
+    Returns:
+        32-character hex string (UUID without dashes)
+    """
+    import uuid
+
+    return uuid.uuid4().hex
