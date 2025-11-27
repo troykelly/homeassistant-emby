@@ -609,92 +609,92 @@ Bug fix release addressing media browser issues in the generic media source.
 
 ---
 
-## Phase 13: Dynamic Transcoding for Universal Media Playback
+## Phase 13: Dynamic Transcoding for Universal Media Playback ✅
 
 ### Overview
 
 This phase implements intelligent transcoding support for the media source provider, enabling Emby content to be "cast" to any device (Chromecast, Roku, Apple TV, Sonos, etc.) with automatic format negotiation based on target device capabilities.
 
-### 13.1 PlaybackInfo API Integration
-- [ ] Add `async_get_playback_info()` API method
-- [ ] Implement `PlaybackInfoRequest` TypedDict
-- [ ] Implement `PlaybackInfoResponse` TypedDict
-- [ ] Implement `MediaSourceInfo` TypedDict for response parsing
-- [ ] Handle `TranscodingUrl` and `DirectStreamUrl` from response
-- [ ] Generate unique `PlaySessionId` for each stream request
+### 13.1 PlaybackInfo API Integration ✅
+- [x] Add `async_get_playback_info()` API method
+- [x] Implement `PlaybackInfoRequest` TypedDict
+- [x] Implement `PlaybackInfoResponse` TypedDict
+- [x] Implement `MediaSourceInfo` TypedDict for response parsing
+- [x] Handle `TranscodingUrl` and `DirectStreamUrl` from response
+- [x] Generate unique `PlaySessionId` for each stream request
 
-### 13.2 Device Profile System
-- [ ] Create `DeviceProfile` TypedDict structure
-- [ ] Implement `DirectPlayProfile` TypedDict
-- [ ] Implement `TranscodingProfile` TypedDict
-- [ ] Implement `SubtitleProfile` TypedDict
-- [ ] Create predefined profiles:
+### 13.2 Device Profile System ✅
+- [x] Create `DeviceProfile` TypedDict structure
+- [x] Implement `DirectPlayProfile` TypedDict
+- [x] Implement `TranscodingProfile` TypedDict
+- [x] Implement `SubtitleProfile` TypedDict
+- [x] Create predefined profiles:
   - `UNIVERSAL_PROFILE` - Safe fallback (H.264/AAC)
   - `CHROMECAST_PROFILE` - Chromecast-optimized
   - `ROKU_PROFILE` - Roku-optimized
   - `APPLETV_PROFILE` - Apple TV-optimized
   - `AUDIO_ONLY_PROFILE` - For speakers (Sonos, Google Home)
 
-### 13.3 Enhanced Media Source Resolution
-- [ ] Update `async_resolve_media()` to use PlaybackInfo
-- [ ] Implement format negotiation logic:
+### 13.3 Enhanced Media Source Resolution ✅
+- [x] Update `async_resolve_media()` to use PlaybackInfo
+- [x] Implement format negotiation logic:
   - Direct Play if source is compatible
   - Direct Stream if container needs remuxing only
   - HLS Transcoding if full transcode required
-- [ ] Return appropriate MIME type based on stream type
-- [ ] Support `application/x-mpegURL` for HLS streams
+- [x] Return appropriate MIME type based on stream type
+- [x] Support `application/x-mpegURL` for HLS streams
 
-### 13.4 HLS Streaming Support
-- [ ] Generate HLS master playlist URLs with transcoding parameters
-- [ ] Add `DeviceId` and `MediaSourceId` parameters
-- [ ] Configure video codec (h264), audio codec (aac), channels
-- [ ] Support adaptive bitrate parameters
+### 13.4 HLS Streaming Support ✅
+- [x] Generate HLS master playlist URLs with transcoding parameters
+- [x] Add `DeviceId` and `MediaSourceId` parameters
+- [x] Configure video codec (h264), audio codec (aac), channels
+- [x] Support adaptive bitrate parameters
 
-### 13.5 Transcoding Session Management
-- [ ] Track active transcoding sessions via `PlaySessionId`
-- [ ] Implement `async_stop_transcoding()` API method
-- [ ] Call `DELETE /Videos/ActiveEncodings?DeviceId=xxx` on cleanup
-- [ ] Handle session cleanup on integration unload
+### 13.5 Transcoding Session Management ✅
+- [x] Track active transcoding sessions via `PlaySessionId`
+- [x] Implement `async_stop_transcoding()` API method
+- [x] Call `DELETE /Videos/ActiveEncodings?DeviceId=xxx` on cleanup
+- [x] Handle session cleanup on integration unload
 
-### 13.6 Configuration Options
-- [ ] Add `CONF_TRANSCODING_PROFILE` option (universal/chromecast/roku/appletv)
-- [ ] Add `CONF_MAX_STREAMING_BITRATE` option (default: 40 Mbps)
-- [ ] Add `CONF_PREFER_DIRECT_PLAY` option (default: true)
-- [ ] Add `CONF_MAX_VIDEO_WIDTH` option (default: 1920)
-- [ ] Add `CONF_MAX_VIDEO_HEIGHT` option (default: 1080)
-- [ ] Add options to Options Flow
+### 13.6 Configuration Options ✅
+- [x] Add `CONF_TRANSCODING_PROFILE` option (universal/chromecast/roku/appletv)
+- [x] Add `CONF_MAX_STREAMING_BITRATE` option (default: 40 Mbps)
+- [x] Add `CONF_PREFER_DIRECT_PLAY` option (default: true)
+- [x] Add `CONF_MAX_VIDEO_WIDTH` option (default: 1920)
+- [x] Add `CONF_MAX_VIDEO_HEIGHT` option (default: 1080)
+- [x] Add options to Options Flow
 
-### 13.7 Audio Streaming Enhancement
-- [ ] Use Universal Audio endpoint `/Audio/{id}/universal`
-- [ ] Support HLS audio transcoding (`TranscodingProtocol=hls`)
-- [ ] Support progressive audio fallback
-- [ ] Configure `MaxStreamingBitrate`, `MaxSampleRate`
+### 13.7 Audio Streaming Enhancement ✅
+- [x] Use Universal Audio endpoint `/Audio/{id}/universal`
+- [x] Support HLS audio transcoding (`TranscodingProtocol=hls`)
+- [x] Support progressive audio fallback
+- [x] Configure `MaxStreamingBitrate`, `MaxSampleRate`
 
-### 13.8 TypedDicts & Constants
-- [ ] `PlaybackInfoRequest` - POST body structure
-- [ ] `PlaybackInfoResponse` - Response with MediaSources
-- [ ] `MediaSourceInfo` - Individual media source details
-- [ ] `MediaStreamInfo` - Audio/video/subtitle stream details
-- [ ] `DeviceProfile` - Device capability declaration
-- [ ] `DirectPlayProfile` - Direct play supported formats
-- [ ] `TranscodingProfile` - Transcoding fallback configuration
-- [ ] `SubtitleProfile` - Subtitle delivery options
-- [ ] Constants for common codecs, containers, protocols
+### 13.8 TypedDicts & Constants ✅
+- [x] `PlaybackInfoRequest` - POST body structure
+- [x] `PlaybackInfoResponse` - Response with MediaSources
+- [x] `MediaSourceInfo` - Individual media source details
+- [x] `MediaStreamInfo` - Audio/video/subtitle stream details
+- [x] `DeviceProfile` - Device capability declaration
+- [x] `DirectPlayProfile` - Direct play supported formats
+- [x] `TranscodingProfile` - Transcoding fallback configuration
+- [x] `SubtitleProfile` - Subtitle delivery options
+- [x] Constants for common codecs, containers, protocols
 
-### 13.9 Testing
-- [ ] Unit tests for `async_get_playback_info()`
-- [ ] Unit tests for device profile generation
-- [ ] Unit tests for format negotiation logic
-- [ ] Unit tests for HLS URL generation
-- [ ] Unit tests for transcoding session cleanup
-- [ ] Integration tests with mocked PlaybackInfo responses
-- [ ] Maintain 100% code coverage
+### 13.9 Testing ✅
+- [x] Unit tests for `async_get_playback_info()`
+- [x] Unit tests for device profile generation
+- [x] Unit tests for format negotiation logic
+- [x] Unit tests for HLS URL generation
+- [x] Unit tests for transcoding session cleanup
+- [x] Integration tests with mocked PlaybackInfo responses
+- [x] 100% code coverage (1102 tests)
 
-### 13.10 Documentation
-- [ ] Update README with transcoding section
-- [ ] Document device profiles and their capabilities
-- [ ] Document configuration options
-- [ ] Add troubleshooting guide for transcoding issues
+### 13.10 Documentation ✅
+- [x] Update README with transcoding section
+- [x] Document device profiles and their capabilities
+- [x] Document configuration options
+- [x] Add troubleshooting guide for transcoding issues
 
 **Deliverables:**
 - ✅ PlaybackInfo API integration for smart format selection
