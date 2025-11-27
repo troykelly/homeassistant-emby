@@ -808,10 +808,447 @@ Phase 8 ─► Phase 9 ─► Phase 10 ─► Phase 11
 
 ---
 
+## Phase 14: Enhanced Playback & Queue Management
+
+### Overview
+
+Advanced playback features including Instant Mix (radio mode), similar items recommendations, queue visualization, and announcement support for TTS integration.
+
+### 14.1 Instant Mix Support
+- [ ] Add `async_get_instant_mix()` API method (`/Items/{Id}/InstantMix`)
+- [ ] Add `async_get_artist_instant_mix()` API method (`/Artists/InstantMix`)
+- [ ] Create `embymedia.play_instant_mix` service
+- [ ] Support instant mix from currently playing item
+- [ ] Support instant mix from specified item ID
+
+### 14.2 Similar Items
+- [ ] Add `async_get_similar_items()` API method (`/Items/{Id}/Similar`)
+- [ ] Create `embymedia.play_similar` service
+- [ ] Expose similar items as media player attribute
+
+### 14.3 Queue Management
+- [ ] Parse `NowPlayingQueue` from session data
+- [ ] Add `queue_position` attribute to media player
+- [ ] Add `queue_size` attribute to media player
+- [ ] Add `CLEAR_PLAYLIST` feature support
+- [ ] Create `embymedia.clear_queue` service
+
+### 14.4 Announcement Support
+- [ ] Implement `MEDIA_ANNOUNCE` feature flag
+- [ ] Add `async_play_media()` announce parameter handling
+- [ ] Pause current playback before announcement
+- [ ] Resume playback after announcement completes
+- [ ] Support TTS integration via announce
+
+### 14.5 Testing & Documentation
+- [ ] Unit tests for all new API methods
+- [ ] Unit tests for queue management
+- [ ] Unit tests for announcement flow
+- [ ] Update README with new features
+- [ ] Maintain 100% code coverage
+
+**Deliverables:**
+- Instant Mix/radio mode from any item or artist
+- Similar items recommendations
+- Queue visualization and management
+- TTS announcement support with auto-resume
+
+---
+
+## Phase 15: Smart Discovery Sensors
+
+### Overview
+
+Sensors exposing personalized content recommendations including Next Up episodes, Continue Watching, Recently Added, and Suggestions.
+
+### 15.1 Next Up Sensor
+- [ ] Add `async_get_next_up()` API method (`/Shows/NextUp`)
+- [ ] Create `sensor.{server}_next_up` entity
+- [ ] Expose next episode title, series, thumbnail as attributes
+- [ ] Support per-user next up (uses configured user)
+- [ ] Add `Legacynextup=true` parameter option
+
+### 15.2 Continue Watching Sensor
+- [ ] Add `async_get_resumable_items()` API method (`Filters=IsResumable`)
+- [ ] Create `sensor.{server}_continue_watching` entity
+- [ ] Expose item count with list as attribute
+- [ ] Include progress percentage per item
+- [ ] Support multiple media types (movies, episodes)
+
+### 15.3 Recently Added Sensors
+- [ ] Add `async_get_latest_media()` API method (`/Users/{id}/Items/Latest`)
+- [ ] Create `sensor.{server}_recently_added_movies` entity
+- [ ] Create `sensor.{server}_recently_added_episodes` entity
+- [ ] Create `sensor.{server}_recently_added_music` entity
+- [ ] Expose item list with thumbnails as attributes
+
+### 15.4 Suggestions Sensor
+- [ ] Add `async_get_suggestions()` API method (`/Users/{id}/Suggestions`)
+- [ ] Create `sensor.{server}_suggestions` entity
+- [ ] Expose personalized recommendations as attributes
+
+### 15.5 Discovery Coordinator
+- [ ] Create `EmbyDiscoveryCoordinator` with configurable interval
+- [ ] Default 15-minute polling interval
+- [ ] Option to disable discovery sensors
+- [ ] Efficient batched API calls
+
+### 15.6 Testing & Documentation
+- [ ] Unit tests for all new API methods
+- [ ] Unit tests for discovery coordinator
+- [ ] Unit tests for all sensor entities
+- [ ] Update README with discovery sensors section
+- [ ] Maintain 100% code coverage
+
+**Deliverables:**
+- Next Up sensor showing next episode to watch
+- Continue Watching sensor with resumable items
+- Recently Added sensors per media type
+- Personalized Suggestions sensor
+- Configurable polling and enable/disable options
+
+---
+
+## Phase 16: Live TV & DVR Integration
+
+### Overview
+
+Comprehensive Live TV support including channel sensors, recording management, timer scheduling, and EPG data exposure.
+
+### 16.1 Live TV Information
+- [ ] Add `async_get_live_tv_info()` API method (`/LiveTv/Info`)
+- [ ] Create `binary_sensor.{server}_live_tv_enabled` entity
+- [ ] Expose enabled users as attribute
+
+### 16.2 Recording Sensors
+- [ ] Add `async_get_recordings()` API method (`/LiveTv/Recordings`)
+- [ ] Add `async_get_timers()` API method (`/LiveTv/Timers`)
+- [ ] Create `sensor.{server}_recordings` entity (count with list attribute)
+- [ ] Create `sensor.{server}_scheduled_recordings` entity (upcoming timers)
+
+### 16.3 Timer Management Services
+- [ ] Add `async_get_timer_defaults()` API method (`/LiveTv/Timers/Defaults`)
+- [ ] Add `async_create_timer()` API method (`POST /LiveTv/Timers`)
+- [ ] Add `async_cancel_timer()` API method (`DELETE /LiveTv/Timers/{Id}`)
+- [ ] Create `embymedia.schedule_recording` service
+- [ ] Create `embymedia.cancel_recording` service
+
+### 16.4 Series Timer Support
+- [ ] Add `async_get_series_timers()` API method (`/LiveTv/SeriesTimers`)
+- [ ] Add `async_create_series_timer()` API method (`POST /LiveTv/SeriesTimers`)
+- [ ] Create `embymedia.schedule_series` service
+- [ ] Expose series timers as sensor attribute
+
+### 16.5 EPG Data (Optional)
+- [ ] Add `async_get_programs()` API method (`/LiveTv/Programs`)
+- [ ] Add `async_get_recommended_programs()` API method
+- [ ] Expose current/next program per channel as attributes
+
+### 16.6 Testing & Documentation
+- [ ] Unit tests for all Live TV API methods
+- [ ] Unit tests for timer services
+- [ ] Unit tests for recording sensors
+- [ ] Update README with Live TV section
+- [ ] Maintain 100% code coverage
+
+**Deliverables:**
+- Live TV enabled binary sensor
+- Recording count and scheduled recordings sensors
+- Services to schedule/cancel recordings
+- Series timer support for recording entire shows
+- Optional EPG data exposure
+
+---
+
+## Phase 17: Playlist Management
+
+### Overview
+
+Full playlist lifecycle management including creation, modification, and deletion of playlists from Home Assistant.
+
+### 17.1 Playlist Creation
+- [ ] Add `async_create_playlist()` API method (`POST /Playlists`)
+- [ ] Create `embymedia.create_playlist` service
+- [ ] Support Audio and Video playlist types
+- [ ] Support initial item list on creation
+
+### 17.2 Playlist Modification
+- [ ] Add `async_add_to_playlist()` API method (`POST /Playlists/{Id}/Items`)
+- [ ] Add `async_remove_from_playlist()` API method (`DELETE /Playlists/{Id}/Items`)
+- [ ] Create `embymedia.add_to_playlist` service
+- [ ] Create `embymedia.remove_from_playlist` service
+- [ ] Support adding currently playing item
+
+### 17.3 Playlist Sensors
+- [ ] Add `async_get_playlists()` API method
+- [ ] Create `sensor.{server}_playlists` entity (count)
+- [ ] Expose playlist list with item counts as attribute
+
+### 17.4 Playlist Browsing Enhancement
+- [ ] Add playlist management options to media browser
+- [ ] Support "Add to playlist" context action
+- [ ] Show playlist contents with reorder capability
+
+### 17.5 Testing & Documentation
+- [ ] Unit tests for all playlist API methods
+- [ ] Unit tests for playlist services
+- [ ] Integration tests for playlist workflows
+- [ ] Update README with playlist management section
+- [ ] Maintain 100% code coverage
+
+**Deliverables:**
+- Service to create new playlists
+- Services to add/remove items from playlists
+- Playlist count sensor with list attribute
+- Enhanced media browser playlist integration
+
+---
+
+## Phase 18: User Activity & Statistics
+
+### Overview
+
+Comprehensive activity monitoring including server activity log, user watch statistics, connected devices, and playback history.
+
+### 18.1 Activity Log Sensor
+- [ ] Add `async_get_activity_log()` API method (`/System/ActivityLog/Entries`)
+- [ ] Create `sensor.{server}_last_activity` entity
+- [ ] Expose recent activity list as attribute
+- [ ] Filter by severity and type options
+- [ ] Support date range filtering
+
+### 18.2 Device Management
+- [ ] Add `async_get_devices()` API method (`/Devices`)
+- [ ] Create `sensor.{server}_connected_devices` entity
+- [ ] Expose device list with last seen timestamps
+- [ ] Add device info attributes (name, app, version)
+
+### 18.3 User Watch Statistics
+- [ ] Add `async_get_user_watch_history()` API method
+- [ ] Create `sensor.{server}_{user}_recently_played` entity
+- [ ] Track items played today/this week
+- [ ] Calculate estimated watch time
+
+### 18.4 Playback Reporting Integration
+- [ ] Subscribe to `PlaybackProgress` WebSocket events
+- [ ] Track playback duration per session
+- [ ] Aggregate daily/weekly statistics
+- [ ] Expose statistics as sensor attributes
+
+### 18.5 Testing & Documentation
+- [ ] Unit tests for activity log API
+- [ ] Unit tests for device management
+- [ ] Unit tests for statistics calculations
+- [ ] Update README with activity monitoring section
+- [ ] Maintain 100% code coverage
+
+**Deliverables:**
+- Activity log sensor with recent events
+- Connected devices sensor with device list
+- User watch history and statistics
+- Real-time playback tracking via WebSocket
+
+---
+
+## Phase 19: Collection Management
+
+### Overview
+
+Collection (BoxSet) lifecycle management and enhanced library browsing by person, tag, and other metadata.
+
+### 19.1 Collection Services
+- [ ] Add `async_create_collection()` API method (`POST /Collections`)
+- [ ] Add `async_add_to_collection()` API method
+- [ ] Add `async_remove_from_collection()` API method
+- [ ] Create `embymedia.create_collection` service
+- [ ] Create `embymedia.add_to_collection` service
+
+### 19.2 Collection Sensors
+- [ ] Create `sensor.{server}_collections` entity (count)
+- [ ] Expose collection list with item counts
+- [ ] Track collection completeness percentage
+
+### 19.3 Person Browsing
+- [ ] Add `async_get_persons()` API method (`/Persons`)
+- [ ] Add person browsing to media browser
+- [ ] Support filtering by actor, director, writer
+- [ ] Show person image and filmography
+
+### 19.4 Tag Browsing
+- [ ] Add `async_get_tags()` API method (`/Tags`)
+- [ ] Add tag browsing to media browser
+- [ ] Support user-defined tags
+- [ ] Filter items by tag
+
+### 19.5 Testing & Documentation
+- [ ] Unit tests for collection API methods
+- [ ] Unit tests for person/tag browsing
+- [ ] Integration tests for collection workflows
+- [ ] Update README with collection management section
+- [ ] Maintain 100% code coverage
+
+**Deliverables:**
+- Services to create and manage collections
+- Collection count sensor with list
+- Person browsing in media browser
+- Tag-based filtering and browsing
+
+---
+
+## Phase 20: Server Administration
+
+### Overview
+
+Server administration capabilities including scheduled task control, server restart/shutdown, plugin monitoring, and storage information.
+
+### 20.1 Scheduled Task Control
+- [ ] Add `async_run_scheduled_task()` API method (`POST /ScheduledTasks/{Id}/Trigger`)
+- [ ] Add `async_stop_scheduled_task()` API method
+- [ ] Create `embymedia.run_scheduled_task` service
+- [ ] Create button entities for common tasks (library scan, etc.)
+- [ ] Expose available tasks as service selector
+
+### 20.2 Server Control
+- [ ] Add `async_restart_server()` API method (`POST /System/Restart`)
+- [ ] Add `async_shutdown_server()` API method (`POST /System/Shutdown`)
+- [ ] Create `embymedia.restart_server` service
+- [ ] Create `embymedia.shutdown_server` service
+- [ ] Add confirmation requirement for destructive actions
+
+### 20.3 Plugin Sensors
+- [ ] Add `async_get_plugins()` API method (`/Plugins`)
+- [ ] Create `sensor.{server}_plugins` entity (count)
+- [ ] Expose plugin list with version info
+- [ ] Detect plugins with available updates
+
+### 20.4 Storage Information
+- [ ] Parse virtual folder paths from existing API
+- [ ] Create `sensor.{server}_storage` entity (optional)
+- [ ] Expose library paths and sizes
+- [ ] Monitor available disk space (if accessible)
+
+### 20.5 Testing & Documentation
+- [ ] Unit tests for task control API
+- [ ] Unit tests for server control (mocked)
+- [ ] Unit tests for plugin detection
+- [ ] Update README with administration section
+- [ ] Maintain 100% code coverage
+
+**Deliverables:**
+- Service to trigger scheduled tasks on demand
+- Server restart/shutdown services (with confirmation)
+- Plugin count sensor with update detection
+- Optional storage monitoring
+
+---
+
+## Phase 21: Enhanced WebSocket Events
+
+### Overview
+
+Extended WebSocket event handling to fire Home Assistant events for library changes, user data updates, and server notifications.
+
+### 21.1 Library Change Events
+- [ ] Subscribe to `LibraryChanged` WebSocket message
+- [ ] Fire `embymedia_library_updated` HA event
+- [ ] Include added/updated/removed item IDs
+- [ ] Clear browse cache on library changes
+- [ ] Trigger coordinator refresh for affected data
+
+### 21.2 User Data Events
+- [ ] Subscribe to `UserDataChanged` WebSocket message
+- [ ] Fire `embymedia_user_data_changed` HA event
+- [ ] Include item ID, user ID, and change type
+- [ ] Support favorite/rating/played status changes
+- [ ] Update relevant sensors on changes
+
+### 21.3 Notification Events
+- [ ] Subscribe to `NotificationAdded` WebSocket message
+- [ ] Fire `embymedia_notification` HA event
+- [ ] Include notification text, level, and category
+- [ ] Option to create persistent notifications in HA
+
+### 21.4 User Account Events
+- [ ] Subscribe to `UserUpdated`, `UserDeleted` WebSocket messages
+- [ ] Fire `embymedia_user_changed` HA event
+- [ ] Reload integration on significant user changes
+
+### 21.5 Event Documentation
+- [ ] Document all fired events with payload schemas
+- [ ] Provide example automations for each event type
+- [ ] Add event descriptions to developer docs
+
+### 21.6 Testing & Documentation
+- [ ] Unit tests for WebSocket message parsing
+- [ ] Unit tests for event firing
+- [ ] Integration tests for event-driven updates
+- [ ] Update README with events section
+- [ ] Maintain 100% code coverage
+
+**Deliverables:**
+- Library change events for automation triggers
+- User data change events (favorites, ratings, played)
+- Server notification forwarding to HA
+- Comprehensive event documentation with examples
+
+---
+
+## Future Phases (Backlog)
+
+### Phase 22: Multi-Instance & Advanced Config
+- Better handling of multiple Emby servers
+- Per-user config entries for isolated data
+- Device grouping for synchronized playback
+
+### Phase 23: Media Player Enhancements
+- `TURN_ON`/`TURN_OFF` with Wake-on-LAN
+- `SELECT_SOURCE` for audio/subtitle track selection
+- Backdrop image support in addition to poster
+- `media_position_percentage` attribute
+
+### Phase 24: Voice Assistant Deep Integration
+- Enhanced natural language search
+- Context-aware playback ("play the next episode")
+- Multi-room audio commands
+- Integration with Assist pipelines
+
+---
+
+## Updated Implementation Order
+
+```
+Completed Phases (1-13) ────────────────────────────────────────────►
+
+Phase 14 (Queue/Mix) ─┬─► Phase 17 (Playlists)
+                      │
+Phase 15 (Discovery)  ├─► Phase 18 (Activity)
+                      │
+Phase 16 (Live TV)    └─► Phase 19 (Collections)
+
+Phase 20 (Admin) ─────────► Phase 21 (WebSocket Events)
+
+Future: Phase 22 ─► Phase 23 ─► Phase 24
+```
+
+**Recommended Priority:**
+1. Phase 15 (Discovery Sensors) - High user value
+2. Phase 14 (Queue/Instant Mix) - Enhanced playback
+3. Phase 20 (Admin) - Server control automation
+4. Phase 18 (Activity) - Usage monitoring
+5. Phase 16 (Live TV) - For Live TV users
+6. Phase 17 (Playlists) - Library management
+7. Phase 21 (WebSocket) - Reactive automations
+8. Phase 19 (Collections) - Power user features
+
+---
+
 ## Version History
 
 | Version | Date | Milestone |
 |---------|------|-----------|
 | 0.1.0 | 2025-11-26 | MVP - Full media player with browsing, WebSocket, services |
-| 0.2.0 | TBD | Sensor platform (Phase 12) |
+| 0.2.0 | 2025-11-26 | Sensor platform (Phase 12) |
+| 0.3.0 | 2025-11-27 | Dynamic transcoding (Phase 13) |
+| 0.4.0 | TBD | Discovery sensors (Phase 15) |
+| 0.5.0 | TBD | Queue management & Instant Mix (Phase 14) |
 | 1.0.0 | TBD | Production release |
