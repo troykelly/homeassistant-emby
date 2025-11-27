@@ -735,7 +735,7 @@ class TestItemToBrowseMediaSource:
 
         media_source = EmbyMediaSource(hass)
 
-        expandable_types = ["series", "season", "album", "folder"]
+        expandable_types = ["series", "season", "album", "musicalbum", "folder", "musicartist"]
 
         for item_type in expandable_types:
             item = {"Id": "item-123", "Name": "Test", "Type": item_type.title()}
@@ -2548,3 +2548,103 @@ class TestMediaSourceLibraryTypeRouting:
         assert result.children[2].identifier == f"{mock_server_info['Id']}/musiclibrary/lib-music"
         # Unknown -> library (fallback)
         assert result.children[3].identifier == f"{mock_server_info['Id']}/library/lib-other"
+
+
+class TestBrowseArtistAlbums:
+    """Test browsing an artist shows their albums."""
+
+    @pytest.fixture
+    def mock_coordinator_for_media_source(self, mock_server_info: dict[str, Any]) -> MagicMock:
+        """Create a mock coordinator for media source tests."""
+        mock_client = MagicMock()
+        mock_client.async_get_items = AsyncMock(return_value={"Items": [], "TotalRecordCount": 0})
+        mock_client.async_get_artist_albums = AsyncMock(return_value=[])
+        mock_client.get_image_url = MagicMock(return_value="http://test/image.jpg")
+
+        mock_coordinator = MagicMock()
+        mock_coordinator.server_id = mock_server_info["Id"]
+        mock_coordinator.server_name = mock_server_info["ServerName"]
+        mock_coordinator.client = mock_client
+        mock_coordinator.data = {"device-1": MagicMock(user_id="user-123")}
+        return mock_coordinator
+
+    @pytest.mark.asyncio
+    async def test_browse_artist_shows_albums(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_server_info: dict[str, Any],
+        mock_coordinator_for_media_source: MagicMock,
+    ) -> None:
+        """Test browsing an artist returns their albums grouped correctly."""
+        from homeassistant.components.media_source import MediaSourceItem
+
+        from custom_components.embymedia.media_source import EmbyMediaSource
+
+        mock_albums = [
+            {
+                "Id": "album-1",
+                "Name": "Greatest Hits",
+                "Type": "MusicAlbum",
+                "ImageTags": {"Primary": "tag1"},
+            },
+            {
+                "Id": "album-2",
+                "Name": "Live Concert",
+                "Type": "MusicAlbum",
+                "ImageTags": {"Primary": "tag2"},
+            },
+        ]
+        mock_coordinator_for_media_source.client.async_get_artist_albums = AsyncMock(
+            return_value=mock_albums
+        )
+
+        mock_config_entry.add_to_hass(hass)
+        mock_config_entry.runtime_data = MagicMock(
+            session_coordinator=mock_coordinator_for_media_source
+        )
+
+        media_source = EmbyMediaSource(hass)
+        item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/artist/artist-abba", None)
+
+        result = await media_source.async_browse_media(item)
+
+        assert result.children is not None
+        assert len(result.children) == 2
+        assert result.children[0].title == "Greatest Hits"
+        assert result.children[1].title == "Live Concert"
+        # Verify albums are expandable (not playable)
+        assert result.children[0].can_expand is True
+        assert result.children[0].can_play is False
+        mock_coordinator_for_media_source.client.async_get_artist_albums.assert_called_once_with(
+            "user-123", "artist-abba"
+        )
+
+    @pytest.mark.asyncio
+    async def test_browse_artist_no_user_id(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_server_info: dict[str, Any],
+    ) -> None:
+        """Test browsing artist with no user_id returns empty."""
+        from homeassistant.components.media_source import MediaSourceItem
+
+        from custom_components.embymedia.media_source import EmbyMediaSource
+
+        mock_config_entry.add_to_hass(hass)
+
+        mock_coordinator = MagicMock()
+        mock_coordinator.server_id = mock_server_info["Id"]
+        mock_coordinator.data = {}  # No sessions, so no user_id
+        mock_coordinator.client = MagicMock()
+
+        mock_config_entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
+
+        media_source = EmbyMediaSource(hass)
+        item = MediaSourceItem(hass, DOMAIN, f"{mock_server_info['Id']}/artist/artist-abba", None)
+
+        result = await media_source.async_browse_media(item)
+
+        assert result.children is not None
+        assert len(result.children) == 0
