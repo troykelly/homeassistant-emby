@@ -63,7 +63,7 @@ class EmbyLibraryData(TypedDict, total=False):
     user_resumable_count: int
 
 
-class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):  # type: ignore[misc]
+class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
     """Coordinator for fetching server info and scheduled tasks.
 
     Polls server information every 5 minutes (configurable) including:
@@ -161,7 +161,7 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):  # type: ign
             raise UpdateFailed(f"Error fetching server data: {err}") from err
 
 
-class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):  # type: ignore[misc]
+class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
     """Coordinator for fetching library counts and statistics.
 
     Polls library information every hour (configurable) including:

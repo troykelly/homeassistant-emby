@@ -56,7 +56,7 @@ WEB_PLAYER_CLIENTS: frozenset[str] = frozenset(
 _LOGGER = logging.getLogger(__name__)
 
 
-class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):  # type: ignore[misc]
+class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
     """Coordinator for fetching Emby session data.
 
     This coordinator polls the Emby server for active sessions and
@@ -308,7 +308,7 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
                 return
             self._websocket_enabled = True
             # Reduce polling interval since we have real-time updates
-            self.update_interval = timedelta(seconds=WEBSOCKET_POLL_INTERVAL)
+            self.update_interval = timedelta(seconds=WEBSOCKET_POLL_INTERVAL)  # type: ignore[misc]
             _LOGGER.info("WebSocket connected to Emby server %s", self.server_name)
             # Start receive loop in background and store task for cleanup
             self._websocket_receive_task = self.hass.async_create_task(
@@ -405,10 +405,10 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]): 
                 "WebSocket connected, reducing poll interval to %d seconds",
                 WEBSOCKET_POLL_INTERVAL,
             )
-            self.update_interval = timedelta(seconds=WEBSOCKET_POLL_INTERVAL)
+            self.update_interval = timedelta(seconds=WEBSOCKET_POLL_INTERVAL)  # type: ignore[misc]
         else:
             _LOGGER.warning("WebSocket disconnected from Emby server. Using polling fallback")
-            self.update_interval = timedelta(seconds=self._configured_scan_interval)
+            self.update_interval = timedelta(seconds=self._configured_scan_interval)  # type: ignore[misc]
 
     def _process_sessions_data(
         self,

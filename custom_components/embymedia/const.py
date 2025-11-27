@@ -464,6 +464,204 @@ MIME_TYPES: Final[dict[str, str]] = {
     "audio": "audio/mpeg",
 }
 
+# HLS MIME type
+MIME_TYPE_HLS: Final = "application/x-mpegURL"
+
+
+# =============================================================================
+# TypedDicts for Transcoding / PlaybackInfo API (Phase 13)
+# =============================================================================
+
+
+class MediaStreamInfo(TypedDict, total=False):
+    """Individual stream (video/audio/subtitle) information.
+
+    Represents a single stream within a media source, containing codec
+    and format details needed for playback decisions.
+    """
+
+    # Common fields
+    Index: int
+    Type: str  # "Video", "Audio", "Subtitle"
+    Codec: str
+    Language: str
+    Title: str
+    IsDefault: bool
+    IsForced: bool
+
+    # Video-specific fields
+    Width: int
+    Height: int
+    BitRate: int
+    AspectRatio: str
+    AverageFrameRate: float
+    Profile: str
+    Level: float
+
+    # Audio-specific fields
+    Channels: int
+    SampleRate: int
+    ChannelLayout: str
+
+
+class MediaSourceInfo(TypedDict, total=False):
+    """Media source information from PlaybackInfo response.
+
+    Contains all information about a media source including its
+    capabilities for direct play, direct stream, and transcoding.
+    """
+
+    Id: str
+    Name: str
+    Path: str
+    Protocol: str  # "File", "Http", "Rtmp", etc.
+    Container: str
+    Size: int
+    Bitrate: int
+    RunTimeTicks: int
+
+    # Playback capability flags
+    SupportsTranscoding: bool
+    SupportsDirectStream: bool
+    SupportsDirectPlay: bool
+
+    # URLs for different playback methods
+    TranscodingUrl: str
+    TranscodingSubProtocol: str  # "hls" or empty
+    TranscodingContainer: str
+    DirectStreamUrl: str
+
+    # Stream information
+    MediaStreams: list[MediaStreamInfo]
+    DefaultAudioStreamIndex: int
+    DefaultSubtitleStreamIndex: int
+
+
+class PlaybackInfoResponse(TypedDict, total=False):
+    """Response from PlaybackInfo endpoint.
+
+    Contains the available media sources and session information
+    for playing the requested item.
+    """
+
+    MediaSources: list[MediaSourceInfo]
+    PlaySessionId: str
+    ErrorCode: str  # Present when there's an error
+
+
+class DirectPlayProfile(TypedDict, total=False):
+    """Direct play capability declaration.
+
+    Defines what container/codec combinations the device
+    can play directly without transcoding.
+    """
+
+    Container: str  # Comma-separated: "mp4,mkv,webm"
+    VideoCodec: str  # Comma-separated: "h264,hevc"
+    AudioCodec: str  # Comma-separated: "aac,mp3,ac3"
+    Type: str  # "Video", "Audio", "Photo"
+
+
+class TranscodingProfile(TypedDict, total=False):
+    """Transcoding fallback configuration.
+
+    Defines how media should be transcoded when direct play
+    is not supported.
+    """
+
+    Container: str
+    Type: str  # "Video", "Audio"
+    VideoCodec: str
+    AudioCodec: str
+    Protocol: str  # "hls" or empty for progressive
+    Context: str  # "Streaming" or "Static"
+    MaxAudioChannels: str
+    MinSegments: int
+    SegmentLength: int
+    BreakOnNonKeyFrames: bool
+    TranscodeSeekInfo: str  # "Auto" or "Bytes"
+    CopyTimestamps: bool
+
+
+class SubtitleProfile(TypedDict, total=False):
+    """Subtitle delivery options.
+
+    Defines how subtitles should be delivered to the device.
+    """
+
+    Format: str  # "srt", "vtt", "ass"
+    Method: str  # "Encode", "Embed", "External", "Hls"
+    Language: str
+
+
+class DeviceProfile(TypedDict, total=False):
+    """Device capability profile for playback negotiation.
+
+    Describes what the target device can play directly and
+    how content should be transcoded when necessary.
+    """
+
+    Name: str
+    Id: str
+    MaxStreamingBitrate: int
+    MaxStaticBitrate: int
+    MusicStreamingTranscodingBitrate: int
+    DirectPlayProfiles: list[DirectPlayProfile]
+    TranscodingProfiles: list[TranscodingProfile]
+    SubtitleProfiles: list[SubtitleProfile]
+
+
+class PlaybackInfoRequest(TypedDict, total=False):
+    """Request body for PlaybackInfo endpoint.
+
+    Sent to the server to get playback information including
+    the optimal streaming URL based on device capabilities.
+    """
+
+    UserId: str
+    MaxStreamingBitrate: int
+    StartTimeTicks: int
+    AudioStreamIndex: int
+    SubtitleStreamIndex: int
+    MaxAudioChannels: int
+    MediaSourceId: str
+    LiveStreamId: str
+    DeviceProfile: DeviceProfile
+    EnableDirectPlay: bool
+    EnableDirectStream: bool
+    EnableTranscoding: bool
+    AllowVideoStreamCopy: bool
+    AllowAudioStreamCopy: bool
+    AutoOpenLiveStream: bool
+
+
+# =============================================================================
+# Transcoding Configuration Constants (Phase 13)
+# =============================================================================
+
+# Transcoding configuration keys
+CONF_TRANSCODING_PROFILE: Final = "transcoding_profile"
+CONF_MAX_STREAMING_BITRATE: Final = "max_streaming_bitrate"
+CONF_PREFER_DIRECT_PLAY: Final = "prefer_direct_play"
+CONF_MAX_VIDEO_WIDTH: Final = "max_video_width"
+CONF_MAX_VIDEO_HEIGHT: Final = "max_video_height"
+
+# Default values for transcoding
+DEFAULT_TRANSCODING_PROFILE: Final = "universal"
+DEFAULT_MAX_STREAMING_BITRATE: Final = 40_000_000  # 40 Mbps
+DEFAULT_PREFER_DIRECT_PLAY: Final = True
+DEFAULT_MAX_VIDEO_WIDTH: Final = 1920
+DEFAULT_MAX_VIDEO_HEIGHT: Final = 1080
+
+# Available transcoding profile choices
+TRANSCODING_PROFILES: Final[list[str]] = [
+    "universal",
+    "chromecast",
+    "roku",
+    "appletv",
+    "audio_only",
+]
+
 
 # =============================================================================
 # Utility Functions
