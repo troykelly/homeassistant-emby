@@ -33,6 +33,7 @@ from .browse import (
     encode_content_id,
 )
 from .entity import EmbyEntity
+from .exceptions import EmbyError
 from .models import MediaType as EmbyMediaType
 
 if TYPE_CHECKING:
@@ -798,6 +799,10 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             return await self._async_browse_movies_by_genre(user_id, ids[0], ids[1])
         if content_type == "moviecollection" and ids:
             return await self._async_browse_movie_collections(user_id, ids[0])
+        if content_type == "moviestudio" and ids:
+            return await self._async_browse_movie_studios(user_id, ids[0])
+        if content_type == "moviestudioitems" and len(ids) >= 2:
+            return await self._async_browse_movies_by_studio(user_id, ids[0], ids[1])
 
         # TV library routing
         if content_type == "tvlibrary" and ids:
@@ -818,6 +823,10 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             return await self._async_browse_tv_genres(user_id, ids[0])
         if content_type == "tvgenreitems" and len(ids) >= 2:
             return await self._async_browse_tv_by_genre(user_id, ids[0], ids[1])
+        if content_type == "tvstudio" and ids:
+            return await self._async_browse_tv_studios(user_id, ids[0])
+        if content_type == "tvstudioitems" and len(ids) >= 2:
+            return await self._async_browse_tv_by_studio(user_id, ids[0], ids[1])
 
         # Default: try to browse as a library
         raise BrowseError(f"Unknown content type: {content_type}")
@@ -1659,6 +1668,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             ("Year", "movieyear", MediaClass.DIRECTORY),
             ("Decade", "moviedecade", MediaClass.DIRECTORY),
             ("Genre", "moviegenre", MediaClass.DIRECTORY),
+            ("Studio", "moviestudio", MediaClass.DIRECTORY),
             ("Collections", "moviecollection", MediaClass.DIRECTORY),
         ]
 
@@ -1767,13 +1777,17 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
         coordinator: EmbyDataUpdateCoordinator = self.coordinator
         client = coordinator.client
 
-        years = await client.async_get_years(
-            user_id,
-            parent_id=library_id,
-            include_item_types="Movie",
-        )
-
         children: list[BrowseMedia] = []
+        try:
+            years = await client.async_get_years(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Movie",
+            )
+        except EmbyError as err:
+            _LOGGER.debug("Failed to get movie years: %s", err)
+            years = []
+
         for year in years:
             children.append(
                 BrowseMedia(
@@ -1813,16 +1827,20 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
         coordinator: EmbyDataUpdateCoordinator = self.coordinator
         client = coordinator.client
 
-        result = await client.async_get_items(
-            user_id,
-            parent_id=library_id,
-            include_item_types="Movie",
-            recursive=True,
-            years=year,
-        )
-        items = result.get("Items", [])
-
         children: list[BrowseMedia] = []
+        try:
+            result = await client.async_get_items(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Movie",
+                recursive=True,
+                years=year,
+            )
+            items = result.get("Items", [])
+        except EmbyError as err:
+            _LOGGER.debug("Failed to get movies by year %s: %s", year, err)
+            items = []
+
         for item in items:
             children.append(self._item_to_browse_media(item))
 
@@ -2018,6 +2036,90 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             children=children,
         )
 
+    async def _async_browse_movie_studios(self, user_id: str, library_id: str) -> BrowseMedia:
+        """Browse movie studios - show studio list.
+
+        Args:
+            user_id: The user ID for API calls.
+            library_id: The movies library ID.
+
+        Returns:
+            BrowseMedia with studios as children.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        studios = await client.async_get_studios(
+            user_id,
+            parent_id=library_id,
+            include_item_types="Movie",
+        )
+
+        children: list[BrowseMedia] = []
+        for studio in studios:
+            children.append(
+                BrowseMedia(
+                    media_class=MediaClass.DIRECTORY,
+                    media_content_id=encode_content_id(
+                        "moviestudioitems", library_id, studio["Id"]
+                    ),
+                    media_content_type=MediaType.VIDEO,
+                    title=studio["Name"],
+                    can_play=False,
+                    can_expand=True,
+                    thumbnail=None,
+                )
+            )
+
+        return BrowseMedia(
+            media_class=MediaClass.DIRECTORY,
+            media_content_id=encode_content_id("moviestudio", library_id),
+            media_content_type=MediaType.VIDEO,
+            title="Studio",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_movies_by_studio(
+        self, user_id: str, library_id: str, studio_id: str
+    ) -> BrowseMedia:
+        """Browse movies from a specific studio.
+
+        Args:
+            user_id: The user ID for API calls.
+            library_id: The movies library ID.
+            studio_id: The studio ID to filter by.
+
+        Returns:
+            BrowseMedia with movies from that studio as children.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        result = await client.async_get_items(
+            user_id,
+            parent_id=library_id,
+            include_item_types="Movie",
+            recursive=True,
+            studio_ids=studio_id,
+        )
+        items = result.get("Items", [])
+
+        children: list[BrowseMedia] = []
+        for item in items:
+            children.append(self._item_to_browse_media(item))
+
+        return BrowseMedia(
+            media_class=MediaClass.DIRECTORY,
+            media_content_id=encode_content_id("moviestudioitems", library_id, studio_id),
+            media_content_type=MediaType.VIDEO,
+            title="Movies by Studio",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
     # -------------------------------------------------------------------------
     # TV Show Library Browsing Methods
     # -------------------------------------------------------------------------
@@ -2040,6 +2142,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             ("Year", "tvyear", MediaClass.DIRECTORY),
             ("Decade", "tvdecade", MediaClass.DIRECTORY),
             ("Genre", "tvgenre", MediaClass.DIRECTORY),
+            ("Studio", "tvstudio", MediaClass.DIRECTORY),
         ]
 
         children: list[BrowseMedia] = []
@@ -2147,13 +2250,17 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
         coordinator: EmbyDataUpdateCoordinator = self.coordinator
         client = coordinator.client
 
-        years = await client.async_get_years(
-            user_id,
-            parent_id=library_id,
-            include_item_types="Series",
-        )
-
         children: list[BrowseMedia] = []
+        try:
+            years = await client.async_get_years(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Series",
+            )
+        except EmbyError as err:
+            _LOGGER.debug("Failed to get TV years: %s", err)
+            years = []
+
         for year in years:
             children.append(
                 BrowseMedia(
@@ -2193,16 +2300,20 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
         coordinator: EmbyDataUpdateCoordinator = self.coordinator
         client = coordinator.client
 
-        result = await client.async_get_items(
-            user_id,
-            parent_id=library_id,
-            include_item_types="Series",
-            recursive=True,
-            years=year,
-        )
-        items = result.get("Items", [])
-
         children: list[BrowseMedia] = []
+        try:
+            result = await client.async_get_items(
+                user_id,
+                parent_id=library_id,
+                include_item_types="Series",
+                recursive=True,
+                years=year,
+            )
+            items = result.get("Items", [])
+        except EmbyError as err:
+            _LOGGER.debug("Failed to get TV shows by year %s: %s", year, err)
+            items = []
+
         for item in items:
             children.append(self._item_to_browse_media(item))
 
@@ -2358,6 +2469,88 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):  # type: ignore[misc]
             media_content_id=encode_content_id("tvgenreitems", library_id, genre_id),
             media_content_type=MediaType.TVSHOW,
             title="TV Shows by Genre",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_tv_studios(self, user_id: str, library_id: str) -> BrowseMedia:
+        """Browse TV studios/networks - show studio list.
+
+        Args:
+            user_id: The user ID for API calls.
+            library_id: The TV shows library ID.
+
+        Returns:
+            BrowseMedia with studios/networks as children.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        studios = await client.async_get_studios(
+            user_id,
+            parent_id=library_id,
+            include_item_types="Series",
+        )
+
+        children: list[BrowseMedia] = []
+        for studio in studios:
+            children.append(
+                BrowseMedia(
+                    media_class=MediaClass.DIRECTORY,
+                    media_content_id=encode_content_id("tvstudioitems", library_id, studio["Id"]),
+                    media_content_type=MediaType.TVSHOW,
+                    title=studio["Name"],
+                    can_play=False,
+                    can_expand=True,
+                    thumbnail=None,
+                )
+            )
+
+        return BrowseMedia(
+            media_class=MediaClass.DIRECTORY,
+            media_content_id=encode_content_id("tvstudio", library_id),
+            media_content_type=MediaType.TVSHOW,
+            title="Studio",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_tv_by_studio(
+        self, user_id: str, library_id: str, studio_id: str
+    ) -> BrowseMedia:
+        """Browse TV shows from a specific studio/network.
+
+        Args:
+            user_id: The user ID for API calls.
+            library_id: The TV shows library ID.
+            studio_id: The studio/network ID to filter by.
+
+        Returns:
+            BrowseMedia with TV shows from that studio as children.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        result = await client.async_get_items(
+            user_id,
+            parent_id=library_id,
+            include_item_types="Series",
+            recursive=True,
+            studio_ids=studio_id,
+        )
+        items = result.get("Items", [])
+
+        children: list[BrowseMedia] = []
+        for item in items:
+            children.append(self._item_to_browse_media(item))
+
+        return BrowseMedia(
+            media_class=MediaClass.DIRECTORY,
+            media_content_id=encode_content_id("tvstudioitems", library_id, studio_id),
+            media_content_type=MediaType.TVSHOW,
+            title="TV Shows by Studio",
             can_play=False,
             can_expand=True,
             children=children,

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Studio/Network Browsing** - Browse movies and TV shows by studio or network
+  - Movies > Studio shows list of production studios
+  - TV Shows > Studio shows list of networks/studios
+- **Enhanced Music Library Browsing** - Full category navigation for music libraries
+  - Artists A-Z letter navigation
+  - Albums A-Z letter navigation
+  - Genre browsing with albums
+  - Playlist browsing
+
+### Fixed
+- Fixed "Unknown error" when browsing movies by year in media source
+- Fixed "Unknown error" when browsing TV shows by year in media source
+- Fixed year browsing when Emby `/Years` endpoint fails (automatic fallback to extracting years from items)
+- Improved error handling in media source browsing with descriptive messages
+- Synchronized media source browsing features with media player entity browsing
+
 ## [0.2.0] - 2025-11-26
 
 ### Added

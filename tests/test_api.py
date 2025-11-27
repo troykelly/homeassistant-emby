@@ -2421,6 +2421,161 @@ class TestBrowseCacheIntegration:
             assert result2 == result1
             assert mock_request.call_count == 1  # Still 1, not 2
 
+    @pytest.mark.asyncio
+    async def test_async_get_studios_success(self) -> None:
+        """Test that async_get_studios fetches studios list."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        mock_response = {
+            "Items": [
+                {"Id": "studio-1", "Name": "Warner Bros"},
+                {"Id": "studio-2", "Name": "Disney"},
+            ],
+            "TotalRecordCount": 2,
+        }
+
+        with patch.object(client, "_request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = mock_response
+
+            result = await client.async_get_studios(
+                "user-123", parent_id="lib-movies", include_item_types="Movie"
+            )
+
+            assert len(result) == 2
+            assert result[0]["Name"] == "Warner Bros"
+            assert result[1]["Name"] == "Disney"
+            mock_request.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_async_get_studios_uses_cache(self) -> None:
+        """Test that async_get_studios uses caching."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        mock_response = {
+            "Items": [{"Id": "studio-1", "Name": "Netflix"}],
+            "TotalRecordCount": 1,
+        }
+
+        with patch.object(client, "_request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = mock_response
+
+            result1 = await client.async_get_studios(
+                "user-123", parent_id="lib-1", include_item_types="Movie"
+            )
+            assert mock_request.call_count == 1
+
+            result2 = await client.async_get_studios(
+                "user-123", parent_id="lib-1", include_item_types="Movie"
+            )
+            assert result2 == result1
+            assert mock_request.call_count == 1  # Still 1, cached
+
+    @pytest.mark.asyncio
+    async def test_async_get_years_fallback_on_server_error(self) -> None:
+        """Test that async_get_years falls back to extracting from items."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        # Mock items with ProductionYear field
+        mock_items_response = {
+            "Items": [
+                {"Id": "movie-1", "Name": "Movie 1", "ProductionYear": 2020},
+                {"Id": "movie-2", "Name": "Movie 2", "ProductionYear": 2020},
+                {"Id": "movie-3", "Name": "Movie 3", "ProductionYear": 2019},
+            ],
+            "TotalRecordCount": 3,
+        }
+
+        with patch.object(client, "_request", new_callable=AsyncMock) as mock_request:
+            # First call for /Years fails with server error
+            mock_request.side_effect = [
+                EmbyServerError("500 Internal Server Error"),
+                mock_items_response,
+            ]
+
+            result = await client.async_get_years(
+                "user-123", parent_id="lib-movies", include_item_types="Movie"
+            )
+
+            # Should have extracted unique years
+            assert len(result) == 2
+            year_names = [item["Name"] for item in result]
+            assert "2020" in year_names
+            assert "2019" in year_names
+            # Years should be sorted descending
+            assert result[0]["Name"] == "2020"
+            assert result[1]["Name"] == "2019"
+
+    @pytest.mark.asyncio
+    async def test_async_get_years_fallback_on_empty_result(self) -> None:
+        """Test fallback when /Years returns empty."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        mock_items_response = {
+            "Items": [
+                {"Id": "movie-1", "Name": "Movie 1", "ProductionYear": 2023},
+            ],
+            "TotalRecordCount": 1,
+        }
+
+        with patch.object(client, "_request", new_callable=AsyncMock) as mock_request:
+            # First call returns empty, second call gets items
+            mock_request.side_effect = [
+                {"Items": [], "TotalRecordCount": 0},
+                mock_items_response,
+            ]
+
+            result = await client.async_get_years(
+                "user-123", parent_id="lib-movies", include_item_types="Movie"
+            )
+
+            assert len(result) == 1
+            assert result[0]["Name"] == "2023"
+
+    @pytest.mark.asyncio
+    async def test_async_get_items_with_studio_ids(self) -> None:
+        """Test async_get_items with studio_ids filter."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        mock_response = {
+            "Items": [{"Id": "movie-1", "Name": "Studio Movie"}],
+            "TotalRecordCount": 1,
+        }
+
+        with patch.object(client, "_request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = mock_response
+
+            result = await client.async_get_items(
+                "user-123",
+                parent_id="lib-movies",
+                include_item_types="Movie",
+                studio_ids="studio-123",
+            )
+
+            assert len(result.get("Items", [])) == 1
+            # Verify studio_ids was in the request
+            call_args = mock_request.call_args
+            assert "StudioIds=studio-123" in call_args[0][1]
+
 
 class TestRemoteControlAPI:
     """Test remote control API methods (Phase 8.2)."""
