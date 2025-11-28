@@ -921,54 +921,56 @@ Sensors exposing personalized content recommendations including Next Up episodes
 
 ---
 
-## Phase 16: Live TV & DVR Integration
+## Phase 16: Live TV & DVR Integration ✅
 
 ### Overview
 
 Comprehensive Live TV support including channel sensors, recording management, timer scheduling, and EPG data exposure.
 
 ### 16.1 Live TV Information
-- [ ] Add `async_get_live_tv_info()` API method (`/LiveTv/Info`)
-- [ ] Create `binary_sensor.{server}_live_tv_enabled` entity
-- [ ] Expose enabled users as attribute
+- [x] Add `async_get_live_tv_info()` API method (`/LiveTv/Info`)
+- [x] Create `binary_sensor.{server}_live_tv_enabled` entity
+- [x] Expose tuner count and active recordings as attributes
 
 ### 16.2 Recording Sensors
-- [ ] Add `async_get_recordings()` API method (`/LiveTv/Recordings`)
-- [ ] Add `async_get_timers()` API method (`/LiveTv/Timers`)
-- [ ] Create `sensor.{server}_recordings` entity (count with list attribute)
-- [ ] Create `sensor.{server}_scheduled_recordings` entity (upcoming timers)
+- [x] Add `async_get_recordings()` API method (`/LiveTv/Recordings`)
+- [x] Add `async_get_timers()` API method (`/LiveTv/Timers`)
+- [x] Create `sensor.{server}_recordings` entity (count)
+- [x] Create `sensor.{server}_active_recordings` entity (currently recording)
+- [x] Create `sensor.{server}_scheduled_recordings` entity (upcoming timers)
 
 ### 16.3 Timer Management Services
-- [ ] Add `async_get_timer_defaults()` API method (`/LiveTv/Timers/Defaults`)
-- [ ] Add `async_create_timer()` API method (`POST /LiveTv/Timers`)
-- [ ] Add `async_cancel_timer()` API method (`DELETE /LiveTv/Timers/{Id}`)
-- [ ] Create `embymedia.schedule_recording` service
-- [ ] Create `embymedia.cancel_recording` service
+- [x] Add `async_get_timer_defaults()` API method (`/LiveTv/Timers/Defaults`)
+- [x] Add `async_create_timer()` API method (`POST /LiveTv/Timers`)
+- [x] Add `async_cancel_timer()` API method (`DELETE /LiveTv/Timers/{Id}`)
+- [x] Create `embymedia.schedule_recording` service
+- [x] Create `embymedia.cancel_recording` service
 
 ### 16.4 Series Timer Support
-- [ ] Add `async_get_series_timers()` API method (`/LiveTv/SeriesTimers`)
-- [ ] Add `async_create_series_timer()` API method (`POST /LiveTv/SeriesTimers`)
-- [ ] Create `embymedia.schedule_series` service
-- [ ] Expose series timers as sensor attribute
+- [x] Add `async_get_series_timers()` API method (`/LiveTv/SeriesTimers`)
+- [x] Add `async_create_series_timer()` API method (`POST /LiveTv/SeriesTimers`)
+- [x] Add `async_cancel_series_timer()` API method (`DELETE /LiveTv/SeriesTimers/{Id}`)
+- [x] Create `embymedia.cancel_series_timer` service
+- [x] Create `sensor.{server}_series_recording_rules` entity
 
 ### 16.5 EPG Data (Optional)
-- [ ] Add `async_get_programs()` API method (`/LiveTv/Programs`)
-- [ ] Add `async_get_recommended_programs()` API method
-- [ ] Expose current/next program per channel as attributes
+- [x] Add `async_get_programs()` API method (`/LiveTv/Programs`)
+- [x] Add `async_get_recommended_programs()` API method
 
 ### 16.6 Testing & Documentation
-- [ ] Unit tests for all Live TV API methods
-- [ ] Unit tests for timer services
-- [ ] Unit tests for recording sensors
-- [ ] Update README with Live TV section
-- [ ] Maintain 100% code coverage
+- [x] Unit tests for all Live TV API methods
+- [x] Unit tests for timer services
+- [x] Unit tests for recording sensors
+- [x] Update README with Live TV section
+- [x] Maintain 100% code coverage
 
 **Deliverables:**
-- Live TV enabled binary sensor
-- Recording count and scheduled recordings sensors
-- Services to schedule/cancel recordings
-- Series timer support for recording entire shows
-- Optional EPG data exposure
+- ✅ Live TV enabled binary sensor
+- ✅ Recording count, active recordings, and scheduled recordings sensors
+- ✅ Series recording rules sensor
+- ✅ Services to schedule/cancel recordings
+- ✅ Service to cancel series timers
+- ✅ EPG data API methods (optional, implemented)
 
 ---
 

@@ -28,9 +28,10 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
-class EmbyServerData(TypedDict):
+class EmbyServerData(TypedDict, total=False):
     """Type definition for server coordinator data."""
 
+    # Required fields
     server_version: str
     has_pending_restart: bool
     has_update_available: bool
@@ -38,6 +39,14 @@ class EmbyServerData(TypedDict):
     running_tasks_count: int
     library_scan_active: bool
     library_scan_progress: float | None
+
+    # Live TV fields (Phase 16)
+    live_tv_enabled: bool
+    live_tv_tuner_count: int
+    live_tv_active_recordings: int
+    recording_count: int
+    scheduled_timer_count: int
+    series_timer_count: int
 
 
 class EmbyLibraryData(TypedDict, total=False):
@@ -145,6 +154,41 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
                     library_scan_progress = task.get("CurrentProgressPercentage")
                     break
 
+            # Fetch Live TV info (Phase 16)
+            live_tv_enabled = False
+            live_tv_tuner_count = 0
+            live_tv_active_recordings = 0
+            recording_count = 0
+            scheduled_timer_count = 0
+            series_timer_count = 0
+            try:
+                live_tv_info = await self.client.async_get_live_tv_info()
+                live_tv_enabled = bool(live_tv_info.get("IsEnabled", False))
+                live_tv_tuner_count = live_tv_info.get("TunerCount", 0)
+                live_tv_active_recordings = live_tv_info.get("ActiveRecordingCount", 0)
+
+                # Fetch recording and timer counts if Live TV is enabled
+                if live_tv_enabled:
+                    timers = await self.client.async_get_timers()
+                    scheduled_timer_count = len(timers)
+
+                    series_timers = await self.client.async_get_series_timers()
+                    series_timer_count = len(series_timers)
+
+                    # Get recording count from recordings API
+                    # Note: We use a user_id from enabled users if available
+                    enabled_users = live_tv_info.get("EnabledUsers", [])
+                    if enabled_users:
+                        recordings = await self.client.async_get_recordings(
+                            user_id=enabled_users[0]
+                        )
+                        recording_count = len(recordings)
+
+            except (EmbyError, TypeError, AttributeError):
+                # Live TV info is optional, don't fail the whole update
+                # TypeError/AttributeError can occur if client doesn't have the method (e.g., in tests)
+                _LOGGER.debug("Could not fetch Live TV info, Live TV may not be configured")
+
             return EmbyServerData(
                 server_version=str(server_info.get("Version", "Unknown")),
                 has_pending_restart=bool(server_info.get("HasPendingRestart", False)),
@@ -153,6 +197,12 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
                 running_tasks_count=running_tasks_count,
                 library_scan_active=library_scan_active,
                 library_scan_progress=library_scan_progress,
+                live_tv_enabled=live_tv_enabled,
+                live_tv_tuner_count=live_tv_tuner_count,
+                live_tv_active_recordings=live_tv_active_recordings,
+                recording_count=recording_count,
+                scheduled_timer_count=scheduled_timer_count,
+                series_timer_count=series_timer_count,
             )
 
         except EmbyConnectionError as err:

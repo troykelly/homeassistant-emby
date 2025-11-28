@@ -335,7 +335,7 @@ class TestAsyncSetupEntry:
 
         await async_setup_entry(hass, mock_config_entry, mock_add_entities)
 
-        assert len(entities_added) == 4  # 4 binary sensors
+        assert len(entities_added) == 5  # 5 binary sensors (includes Live TV enabled)
 
 
 class TestBinarySensorDataNone:

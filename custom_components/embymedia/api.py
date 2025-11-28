@@ -39,10 +39,16 @@ if TYPE_CHECKING:
         EmbyItemCounts,
         EmbyItemsResponse,
         EmbyLibraryItem,
+        EmbyLiveTvInfo,
+        EmbyProgram,
         EmbyPublicInfo,
+        EmbyRecording,
         EmbyScheduledTask,
+        EmbySeriesTimer,
         EmbyServerInfo,
         EmbySessionResponse,
+        EmbyTimer,
+        EmbyTimerDefaults,
         EmbyUser,
         EmbyVirtualFolder,
         LatestMediaItem,
@@ -2050,6 +2056,250 @@ class EmbyClient:
         endpoint = f"/Items/{item_id}/Similar?UserId={user_id}&Limit={limit}"
         response = await self._request(HTTP_GET, endpoint)
         items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    # =========================================================================
+    # Live TV & DVR API Methods (Phase 16)
+    # =========================================================================
+
+    async def async_get_live_tv_info(self) -> EmbyLiveTvInfo:
+        """Get Live TV configuration and status.
+
+        Returns:
+            Live TV info including enabled status and tuner count.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        response = await self._request(HTTP_GET, "/LiveTv/Info")
+        return response  # type: ignore[return-value]
+
+    async def async_get_recordings(
+        self,
+        user_id: str,
+        status: str | None = None,
+        series_timer_id: str | None = None,
+        is_in_progress: bool | None = None,
+    ) -> list[EmbyRecording]:
+        """Get recorded programs.
+
+        Args:
+            user_id: User ID to filter recordings.
+            status: Filter by status ("Completed", "InProgress", etc.).
+            series_timer_id: Filter by series timer ID.
+            is_in_progress: Filter for currently recording programs.
+
+        Returns:
+            List of recording items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        params: list[str] = [f"UserId={user_id}"]
+        if status:
+            params.append(f"Status={status}")
+        if series_timer_id:
+            params.append(f"SeriesTimerId={series_timer_id}")
+        if is_in_progress is not None:
+            params.append(f"IsInProgress={'true' if is_in_progress else 'false'}")
+
+        query_string = "&".join(params)
+        endpoint = f"/LiveTv/Recordings?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyRecording] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    async def async_get_timers(
+        self,
+        channel_id: str | None = None,
+        series_timer_id: str | None = None,
+    ) -> list[EmbyTimer]:
+        """Get scheduled recording timers.
+
+        Args:
+            channel_id: Filter by channel ID.
+            series_timer_id: Filter by series timer ID.
+
+        Returns:
+            List of timer objects.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        params: list[str] = []
+        if channel_id:
+            params.append(f"ChannelId={channel_id}")
+        if series_timer_id:
+            params.append(f"SeriesTimerId={series_timer_id}")
+
+        query_string = "&".join(params) if params else ""
+        endpoint = f"/LiveTv/Timers?{query_string}" if query_string else "/LiveTv/Timers"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyTimer] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    async def async_get_timer_defaults(
+        self,
+        program_id: str,
+    ) -> EmbyTimerDefaults:
+        """Get default timer settings for a program.
+
+        Args:
+            program_id: Program ID to get defaults for.
+
+        Returns:
+            Timer defaults with pre-populated settings.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = f"/LiveTv/Timers/Defaults?ProgramId={program_id}"
+        response = await self._request(HTTP_GET, endpoint)
+        return response  # type: ignore[return-value]
+
+    async def async_create_timer(
+        self,
+        timer_data: dict[str, object],
+    ) -> None:
+        """Create a new recording timer.
+
+        Args:
+            timer_data: Timer configuration (typically from get_timer_defaults).
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        await self._request_post("/LiveTv/Timers", data=timer_data)
+
+    async def async_cancel_timer(
+        self,
+        timer_id: str,
+    ) -> None:
+        """Cancel a recording timer.
+
+        Args:
+            timer_id: Timer ID to cancel.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        await self._request_delete(f"/LiveTv/Timers/{timer_id}")
+
+    async def async_get_series_timers(self) -> list[EmbySeriesTimer]:
+        """Get series recording timers.
+
+        Returns:
+            List of series timer objects.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        response = await self._request(HTTP_GET, "/LiveTv/SeriesTimers")
+        items: list[EmbySeriesTimer] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    async def async_create_series_timer(
+        self,
+        series_timer_data: dict[str, object],
+    ) -> None:
+        """Create a new series recording timer.
+
+        Args:
+            series_timer_data: Series timer configuration.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        await self._request_post("/LiveTv/SeriesTimers", data=series_timer_data)
+
+    async def async_cancel_series_timer(
+        self,
+        series_timer_id: str,
+    ) -> None:
+        """Cancel a series recording timer.
+
+        Args:
+            series_timer_id: Series timer ID to cancel.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        await self._request_delete(f"/LiveTv/SeriesTimers/{series_timer_id}")
+
+    async def async_get_programs(
+        self,
+        user_id: str,
+        channel_ids: list[str] | None = None,
+        min_start_date: str | None = None,
+        max_start_date: str | None = None,
+        has_aired: bool | None = None,
+        is_airing: bool | None = None,
+    ) -> list[EmbyProgram]:
+        """Get EPG program data.
+
+        Args:
+            user_id: User ID for personalization.
+            channel_ids: Filter by channel IDs.
+            min_start_date: Minimum start date (ISO 8601).
+            max_start_date: Maximum start date (ISO 8601).
+            has_aired: Filter for aired programs.
+            is_airing: Filter for currently airing programs.
+
+        Returns:
+            List of program objects.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        params: list[str] = [f"UserId={user_id}"]
+        if channel_ids:
+            params.append(f"ChannelIds={','.join(channel_ids)}")
+        if min_start_date:
+            params.append(f"MinStartDate={min_start_date}")
+        if max_start_date:
+            params.append(f"MaxStartDate={max_start_date}")
+        if has_aired is not None:
+            params.append(f"HasAired={'true' if has_aired else 'false'}")
+        if is_airing is not None:
+            params.append(f"IsAiring={'true' if is_airing else 'false'}")
+
+        query_string = "&".join(params)
+        endpoint = f"/LiveTv/Programs?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyProgram] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    async def async_get_recommended_programs(
+        self,
+        user_id: str,
+        limit: int = 10,
+    ) -> list[EmbyProgram]:
+        """Get recommended programs for a user.
+
+        Args:
+            user_id: User ID for personalization.
+            limit: Maximum number of programs to return.
+
+        Returns:
+            List of recommended program objects.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = f"/LiveTv/Programs/Recommended?UserId={user_id}&Limit={limit}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyProgram] = response.get("Items", [])  # type: ignore[assignment]
         return items
 
     async def close(self) -> None:

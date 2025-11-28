@@ -26,6 +26,7 @@ A modern Home Assistant integration for [Emby Media Server](https://emby.media/)
 | **🎙️ Voice Control** | Search and play media with Google/Alexa |
 | **🏠 Automations** | Device triggers for playback events |
 | **📊 Server Sensors** | Monitor server status, library counts, and activity |
+| **📡 Live TV & DVR** | Schedule recordings, manage timers, monitor DVR status |
 
 ## 📋 Requirements
 
@@ -307,6 +308,78 @@ automation:
         data:
           title: "Emby"
           message: "Library scan completed!"
+```
+</details>
+
+## 📺 Live TV & DVR
+
+The integration provides comprehensive Live TV support for Emby servers with Live TV configured.
+
+### Live TV Sensors
+
+| Sensor | Description |
+|--------|-------------|
+| `binary_sensor.{server}_live_tv_enabled` | Live TV enabled status (attributes: `tuner_count`, `active_recordings`) |
+| `sensor.{server}_recordings` | Total recordings count |
+| `sensor.{server}_active_recordings` | Currently recording count |
+| `sensor.{server}_scheduled_recordings` | Upcoming scheduled recordings |
+| `sensor.{server}_series_recording_rules` | Active series timer count |
+
+### Recording Management Services
+
+#### Schedule a Recording
+
+Schedule a one-time recording of a program:
+
+```yaml
+service: embymedia.schedule_recording
+target:
+  entity_id: media_player.emby_living_room_tv
+data:
+  program_id: "142098"
+  pre_padding_seconds: 60   # Start 1 minute early (optional)
+  post_padding_seconds: 120 # End 2 minutes late (optional)
+```
+
+#### Cancel a Recording
+
+Cancel a scheduled recording timer:
+
+```yaml
+service: embymedia.cancel_recording
+target:
+  entity_id: media_player.emby_living_room_tv
+data:
+  timer_id: "abc123def456"
+```
+
+#### Cancel a Series Timer
+
+Cancel a series recording rule (stops all future recordings):
+
+```yaml
+service: embymedia.cancel_series_timer
+target:
+  entity_id: media_player.emby_living_room_tv
+data:
+  series_timer_id: "series123"
+```
+
+<details>
+<summary><b>📺 Live TV automation example</b></summary>
+
+```yaml
+automation:
+  - alias: "Notify when recording starts"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.media_active_recordings
+        above: 0
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Emby Recording"
+          message: "A recording has started"
 ```
 </details>
 

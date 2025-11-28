@@ -84,6 +84,18 @@ def mock_emby_client() -> MagicMock:
             }
         ]
     )
+    # Live TV info (Phase 16)
+    client.async_get_live_tv_info = AsyncMock(
+        return_value={
+            "IsEnabled": True,
+            "EnabledUsers": ["user-1", "user-2"],
+            "TunerCount": 2,
+            "ActiveRecordingCount": 0,
+        }
+    )
+    client.async_get_timers = AsyncMock(return_value=[])
+    client.async_get_series_timers = AsyncMock(return_value=[])
+    client.async_get_recordings = AsyncMock(return_value=[])
     return client
 
 
