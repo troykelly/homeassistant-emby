@@ -20,6 +20,7 @@ from .api import EmbyClient
 from .const import (
     CONF_API_KEY,
     CONF_DIRECT_PLAY,
+    CONF_DISCOVERY_SCAN_INTERVAL,
     CONF_ENABLE_DISCOVERY_SENSORS,
     CONF_ENABLE_WEBSOCKET,
     CONF_IGNORE_WEB_PLAYERS,
@@ -36,6 +37,7 @@ from .const import (
     CONF_VERIFY_SSL,
     CONF_VIDEO_CONTAINER,
     DEFAULT_DIRECT_PLAY,
+    DEFAULT_DISCOVERY_SCAN_INTERVAL,
     DEFAULT_ENABLE_DISCOVERY_SENSORS,
     DEFAULT_ENABLE_WEBSOCKET,
     DEFAULT_IGNORE_WEB_PLAYERS,
@@ -799,6 +801,16 @@ class EmbyOptionsFlowHandler(OptionsFlow):
                             CONF_ENABLE_DISCOVERY_SENSORS, DEFAULT_ENABLE_DISCOVERY_SENSORS
                         ),
                     ): bool,
+                    # Phase 15: Discovery scan interval (300-3600 seconds)
+                    vol.Optional(
+                        CONF_DISCOVERY_SCAN_INTERVAL,
+                        default=self.config_entry.options.get(
+                            CONF_DISCOVERY_SCAN_INTERVAL, DEFAULT_DISCOVERY_SCAN_INTERVAL
+                        ),
+                    ): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=300, max=3600),
+                    ),
                 }
             ),
         )

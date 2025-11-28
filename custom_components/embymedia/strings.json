@@ -359,7 +359,8 @@
           "prefix_notify": "Prefix notify names with 'Emby'",
           "prefix_remote": "Prefix remote names with 'Emby'",
           "prefix_button": "Prefix button names with 'Emby'",
-          "enable_discovery_sensors": "Enable discovery sensors"
+          "enable_discovery_sensors": "Enable discovery sensors",
+          "discovery_scan_interval": "Discovery scan interval (seconds)"
         },
         "data_description": {
           "scan_interval": "How often to poll the Emby server for updates (5-300 seconds)",
@@ -375,7 +376,8 @@
           "prefix_notify": "When enabled, notification entities will have 'Emby' prefix in their device names",
           "prefix_remote": "When enabled, remote entities will have 'Emby' prefix in their device names",
           "prefix_button": "When enabled, button entities will have 'Emby' prefix in their device names",
-          "enable_discovery_sensors": "Create sensors for Next Up, Continue Watching, Recently Added, and Suggestions (requires a user to be selected)"
+          "enable_discovery_sensors": "Create sensors for Next Up, Continue Watching, Recently Added, and Suggestions (requires a user to be selected)",
+          "discovery_scan_interval": "How often to update discovery sensors (300-3600 seconds, default: 900)"
         }
       }
     }

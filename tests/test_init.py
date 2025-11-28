@@ -824,3 +824,68 @@ class TestAdminContextDiscoverySetup:
 
             # Should create coordinators for user1 and user2, but not empty ID
             assert mock_discovery_coordinator_class.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_discovery_coordinators_use_configurable_scan_interval(
+        self,
+        hass: HomeAssistant,
+        mock_server_info: dict[str, Any],
+    ) -> None:
+        """Test discovery coordinators use configured scan interval from options."""
+        from custom_components.embymedia.const import (
+            CONF_DISCOVERY_SCAN_INTERVAL,
+            CONF_USER_ID,
+        )
+
+        # Config entry with custom discovery scan interval
+        config_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: False,
+                CONF_USER_ID: "test-user-123",
+            },
+            options={
+                CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
+                "enable_discovery_sensors": True,
+                CONF_DISCOVERY_SCAN_INTERVAL: 1800,  # 30 minutes
+            },
+        )
+        config_entry.add_to_hass(hass)
+
+        session_coordinator = create_mock_session_coordinator()
+        server_coordinator = create_mock_server_coordinator()
+        library_coordinator = create_mock_library_coordinator()
+
+        with (
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
+            patch(
+                "custom_components.embymedia.EmbyDataUpdateCoordinator",
+            ) as mock_session_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyServerCoordinator",
+            ) as mock_server_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyLibraryCoordinator",
+            ) as mock_library_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyDiscoveryCoordinator",
+            ) as mock_discovery_coordinator_class,
+        ):
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(return_value=mock_server_info)
+
+            mock_session_coordinator_class.return_value = session_coordinator
+            mock_server_coordinator_class.return_value = server_coordinator
+            mock_library_coordinator_class.return_value = library_coordinator
+
+            await hass.config_entries.async_setup(config_entry.entry_id)
+
+            # Verify discovery coordinator was created with custom scan interval
+            assert mock_discovery_coordinator_class.call_count == 1
+            call_kwargs = mock_discovery_coordinator_class.call_args[1]
+            assert call_kwargs["scan_interval"] == 1800
