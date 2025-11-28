@@ -645,6 +645,20 @@ class EmbyClient:
         endpoint = f"/Sessions/{session_id}/Playing/{command}"
         await self._request_post(endpoint, data=args)
 
+    async def async_stop_playback(self, session_id: str) -> None:
+        """Stop playback on a session.
+
+        Convenience method that sends the Stop command.
+
+        Args:
+            session_id: The session ID to stop playback on.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        await self.async_send_playback_command(session_id, "Stop")
+
     def get_image_url(
         self,
         item_id: str,

@@ -3345,3 +3345,23 @@ class TestSimilarItemsAPI:
 
             with pytest.raises(EmbyNotFoundError):
                 await client.async_get_similar_items("user-123", "nonexistent-item")
+
+
+class TestStopPlaybackAPI:
+    """Tests for stop playback API method."""
+
+    @pytest.mark.asyncio
+    async def test_async_stop_playback(self) -> None:
+        """Test async_stop_playback sends stop command."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        with patch.object(
+            client, "async_send_playback_command", new_callable=AsyncMock
+        ) as mock_command:
+            await client.async_stop_playback("session-abc")
+
+            mock_command.assert_called_once_with("session-abc", "Stop")

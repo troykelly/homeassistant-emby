@@ -177,6 +177,10 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
         if session.play_state and session.play_state.can_seek:
             features |= MediaPlayerEntityFeature.SEEK
 
+        # Clear playlist if there's a queue
+        if session.queue_item_ids:
+            features |= MediaPlayerEntityFeature.CLEAR_PLAYLIST
+
         return features
 
     @property
@@ -501,6 +505,18 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
             session.session_id,
             "Stop",
         )
+
+    async def async_clear_playlist(self) -> None:
+        """Clear the playback queue.
+
+        Stops playback to clear the current queue since Emby
+        doesn't have a direct "clear queue" command.
+        """
+        session = self.session
+        if session is None:
+            return
+
+        await self.coordinator.client.async_stop_playback(session.session_id)
 
     async def async_media_next_track(self) -> None:
         """Send next track command."""
