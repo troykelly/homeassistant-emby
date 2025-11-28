@@ -39,6 +39,10 @@ SERVICE_CANCEL_SERIES_TIMER = "cancel_series_timer"
 SERVICE_CREATE_PLAYLIST = "create_playlist"
 SERVICE_ADD_TO_PLAYLIST = "add_to_playlist"
 SERVICE_REMOVE_FROM_PLAYLIST = "remove_from_playlist"
+# Collection services (Phase 19)
+SERVICE_CREATE_COLLECTION = "create_collection"
+SERVICE_ADD_TO_COLLECTION = "add_to_collection"
+SERVICE_REMOVE_FROM_COLLECTION = "remove_from_collection"
 
 # Service attributes
 ATTR_MESSAGE = "message"
@@ -60,6 +64,9 @@ ATTR_MEDIA_TYPE = "media_type"
 ATTR_ITEM_IDS = "item_ids"
 ATTR_PLAYLIST_ID = "playlist_id"
 ATTR_PLAYLIST_ITEM_IDS = "playlist_item_ids"
+# Collection service attributes (Phase 19)
+ATTR_COLLECTION_NAME = "collection_name"
+ATTR_COLLECTION_ID = "collection_id"
 
 # Service schemas - support both entity_id and device_id targeting
 SEND_MESSAGE_SCHEMA = vol.Schema(
@@ -167,6 +174,34 @@ REMOVE_FROM_PLAYLIST_SCHEMA = vol.Schema(
         vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
         vol.Required(ATTR_PLAYLIST_ID): cv.string,
         vol.Required(ATTR_PLAYLIST_ITEM_IDS): vol.All(cv.ensure_list, [cv.string]),
+    }
+)
+
+# Collection service schemas (Phase 19)
+CREATE_COLLECTION_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
+        vol.Required(ATTR_COLLECTION_NAME): cv.string,
+        vol.Optional(ATTR_ITEM_IDS): vol.All(cv.ensure_list, [cv.string]),
+    }
+)
+
+ADD_TO_COLLECTION_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
+        vol.Required(ATTR_COLLECTION_ID): cv.string,
+        vol.Required(ATTR_ITEM_IDS): vol.All(cv.ensure_list, [cv.string]),
+    }
+)
+
+REMOVE_FROM_COLLECTION_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
+        vol.Required(ATTR_COLLECTION_ID): cv.string,
+        vol.Required(ATTR_ITEM_IDS): vol.All(cv.ensure_list, [cv.string]),
     }
 )
 
@@ -751,6 +786,91 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to remove from playlist for {entity_id}: {err}"
                 ) from err
 
+    # Collection services (Phase 19)
+    async def async_create_collection(call: ServiceCall) -> None:
+        """Create a new collection."""
+        entity_ids = _get_entity_ids_from_call(hass, call)
+        collection_name: str = call.data[ATTR_COLLECTION_NAME]
+        item_ids: list[str] | None = call.data.get(ATTR_ITEM_IDS)
+
+        # Validate item IDs if provided
+        if item_ids:
+            for item_id in item_ids:
+                _validate_emby_id(item_id, "item_id")
+
+        for entity_id in entity_ids:
+            coordinator = _get_coordinator_for_entity(hass, entity_id)
+
+            try:
+                await coordinator.client.async_create_collection(
+                    name=collection_name,
+                    item_ids=item_ids,
+                )
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to create collection for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(
+                    f"Failed to create collection for {entity_id}: {err}"
+                ) from err
+
+    async def async_add_to_collection(call: ServiceCall) -> None:
+        """Add items to a collection."""
+        entity_ids = _get_entity_ids_from_call(hass, call)
+        collection_id: str = call.data[ATTR_COLLECTION_ID]
+        item_ids: list[str] = call.data[ATTR_ITEM_IDS]
+
+        # Validate IDs
+        _validate_emby_id(collection_id, "collection_id")
+        for item_id in item_ids:
+            _validate_emby_id(item_id, "item_id")
+
+        for entity_id in entity_ids:
+            coordinator = _get_coordinator_for_entity(hass, entity_id)
+
+            try:
+                await coordinator.client.async_add_to_collection(
+                    collection_id=collection_id,
+                    item_ids=item_ids,
+                )
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to add to collection for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(
+                    f"Failed to add to collection for {entity_id}: {err}"
+                ) from err
+
+    async def async_remove_from_collection(call: ServiceCall) -> None:
+        """Remove items from a collection."""
+        entity_ids = _get_entity_ids_from_call(hass, call)
+        collection_id: str = call.data[ATTR_COLLECTION_ID]
+        item_ids: list[str] = call.data[ATTR_ITEM_IDS]
+
+        # Validate collection_id
+        _validate_emby_id(collection_id, "collection_id")
+        for item_id in item_ids:
+            _validate_emby_id(item_id, "item_id")
+
+        for entity_id in entity_ids:
+            coordinator = _get_coordinator_for_entity(hass, entity_id)
+
+            try:
+                await coordinator.client.async_remove_from_collection(
+                    collection_id=collection_id,
+                    item_ids=item_ids,
+                )
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to remove from collection for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(
+                    f"Failed to remove from collection for {entity_id}: {err}"
+                ) from err
+
     # Register services
     hass.services.async_register(
         DOMAIN,
@@ -844,6 +964,25 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         async_remove_from_playlist,
         schema=REMOVE_FROM_PLAYLIST_SCHEMA,
     )
+    # Collection services (Phase 19)
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CREATE_COLLECTION,
+        async_create_collection,
+        schema=CREATE_COLLECTION_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADD_TO_COLLECTION,
+        async_add_to_collection,
+        schema=ADD_TO_COLLECTION_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_REMOVE_FROM_COLLECTION,
+        async_remove_from_collection,
+        schema=REMOVE_FROM_COLLECTION_SCHEMA,
+    )
 
     _LOGGER.debug("Emby services registered")
 
@@ -874,6 +1013,10 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_CREATE_PLAYLIST)
     hass.services.async_remove(DOMAIN, SERVICE_ADD_TO_PLAYLIST)
     hass.services.async_remove(DOMAIN, SERVICE_REMOVE_FROM_PLAYLIST)
+    # Collection services (Phase 19)
+    hass.services.async_remove(DOMAIN, SERVICE_CREATE_COLLECTION)
+    hass.services.async_remove(DOMAIN, SERVICE_ADD_TO_COLLECTION)
+    hass.services.async_remove(DOMAIN, SERVICE_REMOVE_FROM_COLLECTION)
 
     _LOGGER.debug("Emby services unregistered")
 
