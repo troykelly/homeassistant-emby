@@ -186,3 +186,88 @@ play_similar:
       description: Optional user ID (uses session user if not specified).
       selector:
         text:
+
+create_playlist:
+  name: Create Playlist
+  description: Create a new playlist on the Emby server.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    name:
+      name: Playlist Name
+      description: The name for the new playlist.
+      required: true
+      example: "My Favorites"
+      selector:
+        text:
+    media_type:
+      name: Media Type
+      description: The type of media for the playlist.
+      required: true
+      example: "Audio"
+      selector:
+        select:
+          options:
+            - "Audio"
+            - "Video"
+    user_id:
+      name: User ID
+      description: The user ID who will own the playlist.
+      required: true
+      selector:
+        text:
+    item_ids:
+      name: Item IDs
+      description: Optional list of item IDs to add to the playlist.
+      selector:
+        object:
+
+add_to_playlist:
+  name: Add to Playlist
+  description: Add items to an existing playlist.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    playlist_id:
+      name: Playlist ID
+      description: The ID of the playlist to add items to.
+      required: true
+      selector:
+        text:
+    item_ids:
+      name: Item IDs
+      description: List of item IDs to add to the playlist.
+      required: true
+      selector:
+        object:
+    user_id:
+      name: User ID
+      description: The user ID for permission validation.
+      required: true
+      selector:
+        text:
+
+remove_from_playlist:
+  name: Remove from Playlist
+  description: Remove items from a playlist.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    playlist_id:
+      name: Playlist ID
+      description: The ID of the playlist to remove items from.
+      required: true
+      selector:
+        text:
+    playlist_item_ids:
+      name: Playlist Item IDs
+      description: List of PlaylistItemId values (from playlist items, NOT media item IDs).
+      required: true
+      selector:
+        object:
