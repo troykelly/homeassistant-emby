@@ -93,6 +93,9 @@ def mock_emby_client() -> MagicMock:
             "ActiveRecordingCount": 0,
         }
     )
+    client.async_get_timers = AsyncMock(return_value=[])
+    client.async_get_series_timers = AsyncMock(return_value=[])
+    client.async_get_recordings = AsyncMock(return_value=[])
     return client
 
 

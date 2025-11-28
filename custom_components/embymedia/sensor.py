@@ -67,6 +67,11 @@ async def async_setup_entry(
         EmbySongCountSensor(library_coordinator, server_name),
         EmbyAlbumCountSensor(library_coordinator, server_name),
         EmbyArtistCountSensor(library_coordinator, server_name),
+        # Live TV sensors (Phase 16)
+        EmbyRecordingCountSensor(server_coordinator),
+        EmbyActiveRecordingsSensor(server_coordinator),
+        EmbyScheduledTimerCountSensor(server_coordinator),
+        EmbySeriesTimerCountSensor(server_coordinator),
     ]
 
     # Add discovery sensors for each user's coordinator
@@ -404,14 +409,115 @@ class EmbyArtistCountSensor(EmbyLibrarySensorBase):
         return int(self.coordinator.data.get("artist_count", 0))
 
 
+# =============================================================================
+# Live TV Sensors (Phase 16)
+# =============================================================================
+
+
+class EmbyRecordingCountSensor(EmbyServerSensorBase):
+    """Sensor for recording count.
+
+    Shows the total number of recordings in the library.
+    """
+
+    _attr_icon = "mdi:record-rec"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "recording_count"
+
+    def __init__(self, coordinator: EmbyServerCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.server_id}_recording_count"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the recording count."""
+        if self.coordinator.data is None:
+            return None
+        return int(self.coordinator.data.get("recording_count", 0))
+
+
+class EmbyActiveRecordingsSensor(EmbyServerSensorBase):
+    """Sensor for active recordings count.
+
+    Shows the number of recordings currently in progress.
+    """
+
+    _attr_icon = "mdi:record"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "active_recordings"
+
+    def __init__(self, coordinator: EmbyServerCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.server_id}_active_recordings"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the active recordings count."""
+        if self.coordinator.data is None:
+            return None
+        return int(self.coordinator.data.get("live_tv_active_recordings", 0))
+
+
+class EmbyScheduledTimerCountSensor(EmbyServerSensorBase):
+    """Sensor for scheduled timer count.
+
+    Shows the total number of scheduled recording timers.
+    """
+
+    _attr_icon = "mdi:timer"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "scheduled_timer_count"
+
+    def __init__(self, coordinator: EmbyServerCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.server_id}_scheduled_timer_count"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the scheduled timer count."""
+        if self.coordinator.data is None:
+            return None
+        return int(self.coordinator.data.get("scheduled_timer_count", 0))
+
+
+class EmbySeriesTimerCountSensor(EmbyServerSensorBase):
+    """Sensor for series timer count.
+
+    Shows the total number of series recording timers.
+    """
+
+    _attr_icon = "mdi:timer-sync"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "series_timer_count"
+
+    def __init__(self, coordinator: EmbyServerCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.server_id}_series_timer_count"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the series timer count."""
+        if self.coordinator.data is None:
+            return None
+        return int(self.coordinator.data.get("series_timer_count", 0))
+
+
 __all__ = [
+    "EmbyActiveRecordingsSensor",
     "EmbyActiveSessionsSensor",
     "EmbyAlbumCountSensor",
     "EmbyArtistCountSensor",
     "EmbyEpisodeCountSensor",
     "EmbyMovieCountSensor",
+    "EmbyRecordingCountSensor",
     "EmbyRunningTasksSensor",
+    "EmbyScheduledTimerCountSensor",
     "EmbySeriesCountSensor",
+    "EmbySeriesTimerCountSensor",
     "EmbySongCountSensor",
     "EmbyVersionSensor",
     "async_setup_entry",
