@@ -164,6 +164,12 @@
       },
       "series_timer_count": {
         "name": "Regras de gravação de séries"
+      },
+      "last_activity": {
+        "name": "Last Activity"
+      },
+      "connected_devices": {
+        "name": "Connected Devices"
       }
     },
     "image": {

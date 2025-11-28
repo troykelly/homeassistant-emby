@@ -164,6 +164,12 @@
       },
       "series_timer_count": {
         "name": "剧集录制规则"
+      },
+      "last_activity": {
+        "name": "Last Activity"
+      },
+      "connected_devices": {
+        "name": "Connected Devices"
       }
     },
     "image": {
