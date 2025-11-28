@@ -1367,12 +1367,12 @@ class EmbyOptionsFlowHandler(OptionsFlow):
 **Reference pattern:** `EmbyOptionsFlowHandler` in `config_flow.py`
 
 **Tests:**
-- [ ] Test options flow with user_id configured
-- [ ] Test options flow without user_id (no discovery options)
-- [ ] Test enable_discovery_sensors toggle
-- [ ] Test discovery_scan_interval validation (300-3600)
-- [ ] Test default values
-- [ ] Test saving options
+- [x] Test options flow with user_id configured
+- [x] Test options flow without user_id (no discovery options)
+- [x] Test enable_discovery_sensors toggle
+- [x] Test discovery_scan_interval validation (300-3600)
+- [x] Test default values
+- [x] Test saving options
 
 **Acceptance Criteria:**
 - Discovery options only shown when user_id configured
