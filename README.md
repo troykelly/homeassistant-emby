@@ -383,6 +383,64 @@ automation:
 ```
 </details>
 
+## 🎵 Playlist Management
+
+Create and manage Emby playlists directly from Home Assistant.
+
+### Create a Playlist
+
+```yaml
+service: embymedia.create_playlist
+target:
+  entity_id: media_player.emby_living_room_tv
+data:
+  name: "Road Trip Mix"
+  media_type: "Audio"
+  user_id: "your_user_id"
+  item_ids:  # Optional - initial items
+    - "abc123"
+    - "def456"
+```
+
+### Add Items to Playlist
+
+```yaml
+service: embymedia.add_to_playlist
+target:
+  entity_id: media_player.emby_living_room_tv
+data:
+  playlist_id: "playlist123"
+  item_ids:
+    - "ghi789"
+    - "jkl012"
+  user_id: "your_user_id"
+```
+
+### Remove Items from Playlist
+
+> **Important:** Use `playlist_item_ids` (NOT media item IDs). Get these from the playlist when browsing.
+
+```yaml
+service: embymedia.remove_from_playlist
+target:
+  entity_id: media_player.emby_living_room_tv
+data:
+  playlist_id: "playlist123"
+  playlist_item_ids:
+    - "1"
+    - "2"
+```
+
+### Playlist Sensor
+
+When a user is configured, a playlist count sensor is available:
+
+- `sensor.{server}_playlists` - Total playlists count
+
+**Notes:**
+- Playlists can contain either Audio OR Video items, not mixed
+- Playlists are user-specific - each user has their own playlists
+
 ## 🔧 Advanced Options
 
 Configure in **Settings** → **Devices & Services** → **Emby Media** → **Configure**:

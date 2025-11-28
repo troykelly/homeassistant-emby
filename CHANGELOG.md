@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Playlist Management** (Phase 17)
+  - New service: `embymedia.create_playlist` - Create new Audio or Video playlists
+  - New service: `embymedia.add_to_playlist` - Add items to existing playlists
+  - New service: `embymedia.remove_from_playlist` - Remove items from playlists using PlaylistItemId
+  - New sensor: `sensor.{server}_playlists` - Shows playlist count (requires user_id configuration)
+  - TypedDicts for playlist API type safety
+
 ## [0.3.0] - 2025-11-27
 
 ### Added
