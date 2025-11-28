@@ -907,8 +907,16 @@ Sensors exposing personalized content recommendations including Next Up episodes
 - [x] Unit tests for discovery coordinator
 - [x] Unit tests for all sensor entities
 - [x] Unit tests for all image entities
-- [x] 100% code coverage (1188 tests)
+- [x] 100% code coverage (1463 tests)
 - [x] Translations complete for all entities
+
+### 15.8 Per-User Count Sensors (Enhancement) ✅
+- [x] `EmbyUserFavoritesCountSensor` - Per-user favorites count
+- [x] `EmbyUserPlayedCountSensor` - Per-user watched items count
+- [x] `EmbyUserInProgressCountSensor` - Per-user resumable items count
+- [x] `EmbyUserPlaylistCountSensor` - Per-user playlists count
+- [x] Updated `EmbyDiscoveryCoordinator` to fetch user-specific counts
+- [x] All translations updated (11 files)
 
 **Deliverables:**
 - ✅ Next Up sensor showing next episode to watch
@@ -918,6 +926,7 @@ Sensors exposing personalized content recommendations including Next Up episodes
 - ✅ ImageEntity instances for cover art display in dashboards
 - ✅ Configurable polling and enable/disable options
 - ✅ Multi-user support (sensors and images per user)
+- ✅ Per-user count sensors (favorites, watched, in-progress, playlists)
 
 ---
 

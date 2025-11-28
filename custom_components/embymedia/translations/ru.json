@@ -173,6 +173,21 @@
       },
       "watch_statistics": {
         "name": "Watch Statistics"
+      },
+      "user_watch_statistics": {
+        "name": "Время просмотра пользователя"
+      },
+      "user_favorites_count": {
+        "name": "Избранное пользователя"
+      },
+      "user_played_count": {
+        "name": "Просмотрено пользователем"
+      },
+      "user_in_progress_count": {
+        "name": "В процессе пользователя"
+      },
+      "user_playlist_count": {
+        "name": "Плейлисты пользователя"
       }
     },
     "image": {

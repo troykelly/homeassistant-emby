@@ -173,6 +173,21 @@
       },
       "watch_statistics": {
         "name": "Watch Statistics"
+      },
+      "user_watch_statistics": {
+        "name": "Gebruiker kijktijd"
+      },
+      "user_favorites_count": {
+        "name": "Gebruiker favorieten"
+      },
+      "user_played_count": {
+        "name": "Gebruiker bekeken"
+      },
+      "user_in_progress_count": {
+        "name": "Gebruiker bezig"
+      },
+      "user_playlist_count": {
+        "name": "Gebruiker afspeellijsten"
       }
     },
     "image": {

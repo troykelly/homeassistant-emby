@@ -8,6 +8,20 @@ All sensors are grouped under the Emby server device and use a new `EmbyDiscover
 
 ## Implementation Status: COMPLETE ✅
 
+### Post-Completion Enhancement (2025-11-28)
+
+Added 4 per-user count sensors to complement server-level statistics:
+- `sensor.{user}_favorites` - Count of items marked as favorites by this user
+- `sensor.{user}_watched` - Count of items marked as played/watched by this user
+- `sensor.{user}_in_progress` - Count of resumable/partially-watched items
+- `sensor.{user}_playlists` - Count of playlists owned by this user
+
+These sensors are created for EACH user with discovery sensors enabled, alongside the existing server-level sensors (not replacing them). Implementation involved:
+- Updated `EmbyDiscoveryCoordinator` to fetch user-specific counts
+- Added `EmbyUserCounts` TypedDict to `coordinator_discovery.py`
+- Added 4 new sensor classes to `sensor_discovery.py`
+- Updated all 11 translation files with localized sensor names
+
 ---
 
 ## Background Research

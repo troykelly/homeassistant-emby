@@ -126,9 +126,11 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
         self._max_consecutive_failures: int = 5
         # Debouncing for WebSocket-triggered refreshes
         self._last_websocket_refresh: datetime | None = None
-        # Playback tracking (Phase 18)
+        # Playback tracking (Phase 18) - per user
+        # Key is "{user_id}:{session_id}" to track per-user sessions
         self._playback_sessions: dict[str, dict[str, int | str]] = {}
-        self._daily_watch_time: int = 0  # Total seconds watched today
+        # Per-user watch time: user_id -> seconds watched today
+        self._user_watch_times: dict[str, int] = {}
         self._last_reset_date: date = date.today()
 
     @property
@@ -159,12 +161,32 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
 
     @property
     def daily_watch_time(self) -> int:
-        """Return total watch time today in seconds.
+        """Return total watch time today in seconds (all users combined).
 
         Returns:
             Total seconds of video watched today.
         """
-        return self._daily_watch_time
+        return sum(self._user_watch_times.values())
+
+    @property
+    def user_watch_times(self) -> dict[str, int]:
+        """Return per-user watch times.
+
+        Returns:
+            Dictionary mapping user_id to seconds watched today.
+        """
+        return self._user_watch_times
+
+    def get_user_watch_time(self, user_id: str) -> int:
+        """Return watch time for a specific user.
+
+        Args:
+            user_id: The Emby user ID.
+
+        Returns:
+            Seconds watched today by the specified user.
+        """
+        return self._user_watch_times.get(user_id, 0)
 
     @property
     def playback_sessions(self) -> dict[str, dict[str, int | str]]:
@@ -188,7 +210,7 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
         return any(web_client.lower() in client_name for web_client in WEB_PLAYER_CLIENTS)
 
     def _track_playback_progress(self, data: Mapping[str, Any]) -> None:
-        """Track playback progress for watch time statistics.
+        """Track playback progress for watch time statistics (per user).
 
         Calculates watch time from position deltas, ignoring backward seeks
         and large forward jumps (which indicate seeks rather than actual playback).
@@ -196,16 +218,24 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
         Args:
             data: PlaybackProgress WebSocket event data or session data with PlayState.
         """
-        # Reset daily counter if it's a new day
+        # Reset daily counters if it's a new day
         today = date.today()
         if today != self._last_reset_date:
-            self._daily_watch_time = 0
+            self._user_watch_times.clear()
             self._last_reset_date = today
+
+        # Extract user ID - required for per-user tracking
+        user_id = str(data.get("UserId") or "")
+        if not user_id:
+            return
 
         # Extract session ID - use PlaySessionId, DeviceId, or Id as fallback
         session_id = str(data.get("PlaySessionId") or data.get("DeviceId") or data.get("Id") or "")
         if not session_id:
             return
+
+        # Create a unique key combining user and session
+        tracking_key = f"{user_id}:{session_id}"
 
         # Handle both direct PositionTicks and nested PlayState.PositionTicks
         position_ticks = data.get("PositionTicks")
@@ -217,47 +247,55 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
         if not isinstance(position_ticks, int) or position_ticks is None:
             position_ticks = 0
 
+        # Get item info from either direct fields or nested NowPlayingItem
+        now_playing = data.get("NowPlayingItem", {})
+        if not isinstance(now_playing, dict):
+            now_playing = {}
+        item_id = str(data.get("ItemId") or now_playing.get("Id", ""))
+        item_name = str(data.get("ItemName") or now_playing.get("Name", ""))
+        user_name = str(data.get("UserName") or "")
+
         # Skip if paused (from PlayState)
         play_state = data.get("PlayState", {})
         if isinstance(play_state, dict) and play_state.get("IsPaused"):
             # Update position but don't count paused time
-            self._playback_sessions[session_id] = {
+            self._playback_sessions[tracking_key] = {
                 "position_ticks": position_ticks,
                 "last_update": datetime.now().isoformat(),
-                "item_id": str(data.get("ItemId") or data.get("NowPlayingItem", {}).get("Id", "")),
-                "item_name": str(
-                    data.get("ItemName") or data.get("NowPlayingItem", {}).get("Name", "")
-                ),
+                "item_id": item_id,
+                "item_name": item_name,
+                "user_id": user_id,
+                "user_name": user_name,
             }
             return
 
         # Calculate watch time since last update (only for existing sessions)
-        if session_id in self._playback_sessions:
-            last_position = self._playback_sessions[session_id].get("position_ticks", 0)
+        if tracking_key in self._playback_sessions:
+            last_position = self._playback_sessions[tracking_key].get("position_ticks", 0)
             if isinstance(last_position, int) and position_ticks > last_position:
                 # Only count forward progress
                 ticks_delta = position_ticks - last_position
                 seconds_delta = ticks_delta // EMBY_TICKS_PER_SECOND
                 # Sanity check: don't count huge jumps (likely seeks)
                 if seconds_delta <= MAX_PLAYBACK_DELTA_SECONDS:
-                    self._daily_watch_time += seconds_delta
+                    # Add to user's watch time
+                    current_user_time = self._user_watch_times.get(user_id, 0)
+                    self._user_watch_times[user_id] = current_user_time + seconds_delta
                     _LOGGER.debug(
-                        "Watch time added: %d seconds (total: %d)",
+                        "Watch time added for user %s: %d seconds (user total: %d)",
+                        user_name or user_id,
                         seconds_delta,
-                        self._daily_watch_time,
+                        self._user_watch_times[user_id],
                     )
 
         # Update session tracking
-        # Get item info from either direct fields or nested NowPlayingItem
-        now_playing = data.get("NowPlayingItem", {})
-        item_id = str(data.get("ItemId") or now_playing.get("Id", ""))
-        item_name = str(data.get("ItemName") or now_playing.get("Name", ""))
-
-        self._playback_sessions[session_id] = {
+        self._playback_sessions[tracking_key] = {
             "position_ticks": position_ticks,
             "last_update": datetime.now().isoformat(),
             "item_id": item_id,
             "item_name": item_name,
+            "user_id": user_id,
+            "user_name": user_name,
         }
 
     async def _async_update_data(self) -> dict[str, EmbySession]:

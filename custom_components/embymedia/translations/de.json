@@ -173,6 +173,21 @@
       },
       "watch_statistics": {
         "name": "Watch Statistics"
+      },
+      "user_watch_statistics": {
+        "name": "Benutzer-Wiedergabezeit"
+      },
+      "user_favorites_count": {
+        "name": "Benutzer-Favoriten"
+      },
+      "user_played_count": {
+        "name": "Benutzer-Angesehen"
+      },
+      "user_in_progress_count": {
+        "name": "Benutzer-In Bearbeitung"
+      },
+      "user_playlist_count": {
+        "name": "Benutzer-Wiedergabelisten"
       }
     },
     "image": {

@@ -173,6 +173,21 @@
       },
       "watch_statistics": {
         "name": "Watch Statistics"
+      },
+      "user_watch_statistics": {
+        "name": "用户观看时间"
+      },
+      "user_favorites_count": {
+        "name": "用户收藏"
+      },
+      "user_played_count": {
+        "name": "用户已观看"
+      },
+      "user_in_progress_count": {
+        "name": "用户进行中"
+      },
+      "user_playlist_count": {
+        "name": "用户播放列表"
       }
     },
     "image": {

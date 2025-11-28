@@ -26,6 +26,10 @@ from .sensor_discovery import (
     EmbyNextUpSensor,
     EmbyRecentlyAddedSensor,
     EmbySuggestionsSensor,
+    EmbyUserFavoritesCountSensor,
+    EmbyUserInProgressCountSensor,
+    EmbyUserPlayedCountSensor,
+    EmbyUserPlaylistCountSensor,
 )
 
 if TYPE_CHECKING:
@@ -89,11 +93,28 @@ async def async_setup_entry(
     for coordinator in discovery_coordinators.values():
         entities.extend(
             [
+                # Discovery content sensors
                 EmbyNextUpSensor(coordinator, server_name),
                 EmbyContinueWatchingSensor(coordinator, server_name),
                 EmbyRecentlyAddedSensor(coordinator, server_name),
                 EmbySuggestionsSensor(coordinator, server_name),
+                # Per-user count sensors
+                EmbyUserFavoritesCountSensor(coordinator, server_name),
+                EmbyUserPlayedCountSensor(coordinator, server_name),
+                EmbyUserInProgressCountSensor(coordinator, server_name),
+                EmbyUserPlaylistCountSensor(coordinator, server_name),
             ]
+        )
+
+    # Add per-user watch statistics sensors
+    # Uses session_coordinator for playback tracking, discovery_coordinators for user info
+    for user_id, user_coordinator in discovery_coordinators.items():
+        entities.append(
+            EmbyUserWatchStatisticsSensor(
+                coordinator=session_coordinator,
+                user_id=user_id,
+                user_name=user_coordinator.user_name,
+            )
         )
 
     async_add_entities(entities)
@@ -706,6 +727,55 @@ class EmbyWatchStatisticsSensor(EmbySessionSensorBase):
         }
 
 
+class EmbyUserWatchStatisticsSensor(EmbySessionSensorBase):
+    """Sensor for per-user daily watch time statistics.
+
+    Shows the watch time for a specific user today in minutes.
+    Uses TOTAL_INCREASING state class for Home Assistant statistics.
+
+    When connected as admin: creates one sensor per user.
+    When connected as specific user: creates sensor for that user only.
+    """
+
+    _attr_icon = "mdi:account-clock"
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_native_unit_of_measurement = "min"
+    _attr_translation_key = "user_watch_statistics"
+
+    def __init__(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        user_id: str,
+        user_name: str,
+    ) -> None:
+        """Initialize the per-user watch statistics sensor.
+
+        Args:
+            coordinator: Session coordinator with playback tracking.
+            user_id: The Emby user ID to track.
+            user_name: The user name for display.
+        """
+        super().__init__(coordinator)
+        self._user_id = user_id
+        self._user_name = user_name
+        self._attr_unique_id = f"{coordinator.server_id}_{user_id}_watch_statistics"
+        self._attr_name = f"{user_name} Watch Time"
+
+    @property
+    def native_value(self) -> int:
+        """Return the user's watch time today in minutes."""
+        watch_time_seconds: int = self.coordinator.get_user_watch_time(self._user_id)
+        return watch_time_seconds // 60
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str | int]:
+        """Return extra state attributes."""
+        return {
+            "user_id": self._user_id,
+            "daily_watch_time_seconds": self.coordinator.get_user_watch_time(self._user_id),
+        }
+
+
 __all__ = [
     "EmbyActiveRecordingsSensor",
     "EmbyActiveSessionsSensor",
@@ -722,6 +792,7 @@ __all__ = [
     "EmbySeriesCountSensor",
     "EmbySeriesTimerCountSensor",
     "EmbySongCountSensor",
+    "EmbyUserWatchStatisticsSensor",
     "EmbyVersionSensor",
     "EmbyWatchStatisticsSensor",
     "async_setup_entry",

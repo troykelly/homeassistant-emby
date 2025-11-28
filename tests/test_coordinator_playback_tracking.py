@@ -70,13 +70,13 @@ class TestPlaybackTrackingInitialization:
         assert isinstance(coordinator._playback_sessions, dict)
         assert len(coordinator._playback_sessions) == 0
 
-    def test_coordinator_has_daily_watch_time_attribute(
+    def test_coordinator_has_user_watch_times_attribute(
         self,
         mock_hass: MagicMock,
         mock_client: MagicMock,
         mock_config_entry: MagicMock,
     ) -> None:
-        """Test coordinator has _daily_watch_time counter."""
+        """Test coordinator has _user_watch_times for per-user tracking."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
         coordinator = EmbyDataUpdateCoordinator(
@@ -87,8 +87,11 @@ class TestPlaybackTrackingInitialization:
             config_entry=mock_config_entry,
         )
 
-        assert hasattr(coordinator, "_daily_watch_time")
-        assert coordinator._daily_watch_time == 0
+        assert hasattr(coordinator, "_user_watch_times")
+        assert isinstance(coordinator._user_watch_times, dict)
+        assert len(coordinator._user_watch_times) == 0
+        # daily_watch_time property returns sum of user watch times
+        assert coordinator.daily_watch_time == 0
 
     def test_coordinator_has_last_reset_date_attribute(
         self,
@@ -154,6 +157,8 @@ class TestPlaybackProgressTracking:
 
         data = {
             "PlaySessionId": "session-123",
+            "UserId": "user-abc",
+            "UserName": "TestUser",
             "PositionTicks": 300 * EMBY_TICKS_PER_SECOND,  # 5 minutes
             "ItemId": "item-456",
             "ItemName": "Test Movie",
@@ -161,11 +166,13 @@ class TestPlaybackProgressTracking:
 
         coordinator._track_playback_progress(data)
 
-        assert "session-123" in coordinator._playback_sessions
-        session = coordinator._playback_sessions["session-123"]
+        # Key is now "user_id:session_id"
+        assert "user-abc:session-123" in coordinator._playback_sessions
+        session = coordinator._playback_sessions["user-abc:session-123"]
         assert session["position_ticks"] == 300 * EMBY_TICKS_PER_SECOND
         assert session["item_id"] == "item-456"
         assert session["item_name"] == "Test Movie"
+        assert session["user_id"] == "user-abc"
 
     def test_track_playback_progress_calculates_watch_time(
         self,
@@ -187,22 +194,25 @@ class TestPlaybackProgressTracking:
         # First update - establishes baseline
         data1 = {
             "PlaySessionId": "session-123",
+            "UserId": "user-abc",
             "PositionTicks": 0,
             "ItemId": "item-456",
         }
         coordinator._track_playback_progress(data1)
-        assert coordinator._daily_watch_time == 0
+        assert coordinator.daily_watch_time == 0
 
         # Second update - 30 seconds later
         data2 = {
             "PlaySessionId": "session-123",
+            "UserId": "user-abc",
             "PositionTicks": 30 * EMBY_TICKS_PER_SECOND,
             "ItemId": "item-456",
         }
         coordinator._track_playback_progress(data2)
 
-        # Should have added 30 seconds
-        assert coordinator._daily_watch_time == 30
+        # Should have added 30 seconds to user's watch time
+        assert coordinator.daily_watch_time == 30
+        assert coordinator.get_user_watch_time("user-abc") == 30
 
     def test_track_playback_progress_ignores_backward_seeks(
         self,
@@ -225,6 +235,7 @@ class TestPlaybackProgressTracking:
         coordinator._track_playback_progress(
             {
                 "PlaySessionId": "session-123",
+                "UserId": "user-abc",
                 "PositionTicks": 300 * EMBY_TICKS_PER_SECOND,
             }
         )
@@ -233,12 +244,13 @@ class TestPlaybackProgressTracking:
         coordinator._track_playback_progress(
             {
                 "PlaySessionId": "session-123",
+                "UserId": "user-abc",
                 "PositionTicks": 60 * EMBY_TICKS_PER_SECOND,
             }
         )
 
         # Watch time should still be 0 (no forward progress counted)
-        assert coordinator._daily_watch_time == 0
+        assert coordinator.daily_watch_time == 0
 
     def test_track_playback_progress_ignores_large_jumps(
         self,
@@ -261,6 +273,7 @@ class TestPlaybackProgressTracking:
         coordinator._track_playback_progress(
             {
                 "PlaySessionId": "session-123",
+                "UserId": "user-abc",
                 "PositionTicks": 0,
             }
         )
@@ -269,20 +282,21 @@ class TestPlaybackProgressTracking:
         coordinator._track_playback_progress(
             {
                 "PlaySessionId": "session-123",
+                "UserId": "user-abc",
                 "PositionTicks": 300 * EMBY_TICKS_PER_SECOND,
             }
         )
 
         # Should not count large jumps (>60s between updates is suspicious)
-        assert coordinator._daily_watch_time == 0
+        assert coordinator.daily_watch_time == 0
 
-    def test_track_playback_progress_handles_missing_session_id(
+    def test_track_playback_progress_handles_missing_user_id(
         self,
         mock_hass: MagicMock,
         mock_client: MagicMock,
         mock_config_entry: MagicMock,
     ) -> None:
-        """Test graceful handling of missing PlaySessionId."""
+        """Test graceful handling of missing UserId."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
         coordinator = EmbyDataUpdateCoordinator(
@@ -293,14 +307,15 @@ class TestPlaybackProgressTracking:
             config_entry=mock_config_entry,
         )
 
-        # No PlaySessionId
+        # No UserId - should not track
         coordinator._track_playback_progress(
             {
+                "PlaySessionId": "session-123",
                 "PositionTicks": 100 * EMBY_TICKS_PER_SECOND,
             }
         )
 
-        # Should not crash, and no sessions tracked
+        # Should not crash, and no sessions tracked (UserId required)
         assert len(coordinator._playback_sessions) == 0
 
 
@@ -324,20 +339,21 @@ class TestDailyWatchTimeReset:
             config_entry=mock_config_entry,
         )
 
-        # Simulate some watch time
-        coordinator._daily_watch_time = 3600  # 1 hour
+        # Simulate some watch time for a user
+        coordinator._user_watch_times["user-abc"] = 3600  # 1 hour
         coordinator._last_reset_date = date.today() - timedelta(days=1)  # Yesterday
 
         # Process a playback event (should trigger reset)
         coordinator._track_playback_progress(
             {
                 "PlaySessionId": "session-123",
+                "UserId": "user-abc",
                 "PositionTicks": 0,
             }
         )
 
         # Watch time should be reset to 0
-        assert coordinator._daily_watch_time == 0
+        assert coordinator.daily_watch_time == 0
         assert coordinator._last_reset_date == date.today()
 
     def test_no_reset_on_same_day(
@@ -358,19 +374,20 @@ class TestDailyWatchTimeReset:
         )
 
         # Set some watch time for today
-        coordinator._daily_watch_time = 1800  # 30 minutes
+        coordinator._user_watch_times["user-abc"] = 1800  # 30 minutes
         coordinator._last_reset_date = date.today()
 
         # Process a playback event
         coordinator._track_playback_progress(
             {
                 "PlaySessionId": "session-123",
+                "UserId": "user-abc",
                 "PositionTicks": 0,
             }
         )
 
         # Watch time should NOT be reset
-        assert coordinator._daily_watch_time == 1800
+        assert coordinator.daily_watch_time == 1800
 
 
 class TestWebSocketIntegration:
@@ -414,7 +431,7 @@ class TestPublicAccessors:
         mock_client: MagicMock,
         mock_config_entry: MagicMock,
     ) -> None:
-        """Test daily_watch_time property is accessible."""
+        """Test daily_watch_time property returns sum of all user watch times."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
         coordinator = EmbyDataUpdateCoordinator(
@@ -425,9 +442,12 @@ class TestPublicAccessors:
             config_entry=mock_config_entry,
         )
 
-        coordinator._daily_watch_time = 3600
+        # Set per-user watch times
+        coordinator._user_watch_times["user-abc"] = 1800  # 30 min
+        coordinator._user_watch_times["user-xyz"] = 1800  # 30 min
 
         assert hasattr(coordinator, "daily_watch_time")
+        # Total should be sum of all users
         assert coordinator.daily_watch_time == 3600
 
     def test_playback_sessions_property(
@@ -447,7 +467,56 @@ class TestPublicAccessors:
             config_entry=mock_config_entry,
         )
 
-        coordinator._playback_sessions = {"session-1": {"position_ticks": 100}}
+        # Key format is now "user_id:session_id"
+        coordinator._playback_sessions = {"user-abc:session-1": {"position_ticks": 100}}
 
         assert hasattr(coordinator, "playback_sessions")
-        assert coordinator.playback_sessions == {"session-1": {"position_ticks": 100}}
+        assert coordinator.playback_sessions == {"user-abc:session-1": {"position_ticks": 100}}
+
+    def test_user_watch_times_property(
+        self,
+        mock_hass: MagicMock,
+        mock_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test user_watch_times property returns per-user watch times."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=mock_hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        coordinator._user_watch_times["user-abc"] = 1800
+        coordinator._user_watch_times["user-xyz"] = 3600
+
+        assert hasattr(coordinator, "user_watch_times")
+        assert coordinator.user_watch_times == {"user-abc": 1800, "user-xyz": 3600}
+
+    def test_get_user_watch_time_method(
+        self,
+        mock_hass: MagicMock,
+        mock_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test get_user_watch_time returns time for specific user."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=mock_hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        coordinator._user_watch_times["user-abc"] = 1800
+        coordinator._user_watch_times["user-xyz"] = 3600
+
+        assert coordinator.get_user_watch_time("user-abc") == 1800
+        assert coordinator.get_user_watch_time("user-xyz") == 3600
+        # Unknown user returns 0
+        assert coordinator.get_user_watch_time("unknown-user") == 0

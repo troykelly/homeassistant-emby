@@ -29,6 +29,22 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
+class EmbyUserCounts(TypedDict):
+    """Type definition for user-specific item counts.
+
+    Contains counts of items for a specific user:
+    - favorites_count: Number of favorited items
+    - played_count: Number of watched/played items
+    - resumable_count: Number of in-progress items
+    - playlist_count: Number of user's playlists
+    """
+
+    favorites_count: int
+    played_count: int
+    resumable_count: int
+    playlist_count: int
+
+
 class EmbyDiscoveryData(TypedDict):
     """Type definition for discovery coordinator data.
 
@@ -37,12 +53,14 @@ class EmbyDiscoveryData(TypedDict):
     - continue_watching: Partially watched items
     - recently_added: Recently added content
     - suggestions: Personalized recommendations
+    - user_counts: User-specific item counts
     """
 
     next_up: list[NextUpItem]
     continue_watching: list[ResumableItem]
     recently_added: list[LatestMediaItem]
     suggestions: list[SuggestionItem]
+    user_counts: EmbyUserCounts
 
 
 class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
@@ -118,7 +136,7 @@ class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
 
         Returns:
             Discovery data including next up, continue watching,
-            recently added, and suggestions.
+            recently added, suggestions, and user-specific counts.
 
         Raises:
             UpdateFailed: If fetching data fails.
@@ -130,11 +148,37 @@ class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
             recently_added = await self.client.async_get_latest_media(user_id=self._user_id)
             suggestions = await self.client.async_get_suggestions(user_id=self._user_id)
 
+            # Fetch user-specific item counts
+            favorites_count = await self.client.async_get_user_item_count(
+                user_id=self._user_id,
+                filters="IsFavorite",
+            )
+            played_count = await self.client.async_get_user_item_count(
+                user_id=self._user_id,
+                filters="IsPlayed",
+            )
+            resumable_count = await self.client.async_get_user_item_count(
+                user_id=self._user_id,
+                filters="IsResumable",
+            )
+
+            # Fetch playlist count
+            playlists = await self.client.async_get_playlists(user_id=self._user_id)
+            playlist_count = len(playlists)
+
+            user_counts = EmbyUserCounts(
+                favorites_count=favorites_count,
+                played_count=played_count,
+                resumable_count=resumable_count,
+                playlist_count=playlist_count,
+            )
+
             return EmbyDiscoveryData(
                 next_up=next_up,
                 continue_watching=continue_watching,
                 recently_added=recently_added,
                 suggestions=suggestions,
+                user_counts=user_counts,
             )
 
         except EmbyConnectionError as err:
@@ -146,4 +190,5 @@ class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
 __all__ = [
     "EmbyDiscoveryCoordinator",
     "EmbyDiscoveryData",
+    "EmbyUserCounts",
 ]
