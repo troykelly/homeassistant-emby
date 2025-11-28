@@ -1215,6 +1215,21 @@ class EmbyDevicesResponse(TypedDict):
 
 
 # =============================================================================
+# TypedDicts for Collection Management API (Phase 19)
+# =============================================================================
+
+
+class EmbyCollectionCreateResponse(TypedDict):
+    """Response from POST /Collections endpoint.
+
+    Returns the newly created collection (BoxSet) information.
+    """
+
+    Id: str  # The created collection ID
+    Name: str  # The collection name
+
+
+# =============================================================================
 # Utility Functions
 # =============================================================================
 

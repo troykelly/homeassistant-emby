@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from .const import (
         EmbyActivityLogResponse,
         EmbyBrowseItem,
+        EmbyCollectionCreateResponse,
         EmbyDevicesResponse,
         EmbyItemCounts,
         EmbyItemsResponse,
@@ -2521,6 +2522,102 @@ class EmbyClient:
             endpoint = f"{endpoint}?UserId={user_id}"
         response = await self._request(HTTP_GET, endpoint)
         return response  # type: ignore[return-value]
+
+    # =========================================================================
+    # Collection Management API Methods (Phase 19)
+    # =========================================================================
+
+    async def async_create_collection(
+        self,
+        name: str,
+        item_ids: list[str] | None = None,
+    ) -> EmbyCollectionCreateResponse:
+        """Create a new collection (BoxSet).
+
+        Args:
+            name: Collection name.
+            item_ids: Optional list of item IDs to add initially.
+
+        Returns:
+            Collection response with new collection ID and name.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        from urllib.parse import quote
+
+        params = [f"Name={quote(name)}"]
+        if item_ids:
+            params.append(f"Ids={','.join(item_ids)}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Collections?{query_string}"
+        response = await self._request_post_json(endpoint)
+        return response  # type: ignore[return-value]
+
+    async def async_add_to_collection(
+        self,
+        collection_id: str,
+        item_ids: list[str],
+    ) -> None:
+        """Add items to a collection.
+
+        Args:
+            collection_id: The collection ID.
+            item_ids: List of item IDs to add.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        ids_param = ",".join(item_ids)
+        endpoint = f"/Collections/{collection_id}/Items?Ids={ids_param}"
+        await self._request_post(endpoint)
+
+    async def async_remove_from_collection(
+        self,
+        collection_id: str,
+        item_ids: list[str],
+    ) -> None:
+        """Remove items from a collection.
+
+        Args:
+            collection_id: The collection ID.
+            item_ids: List of item IDs to remove.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        ids_param = ",".join(item_ids)
+        endpoint = f"/Collections/{collection_id}/Items?Ids={ids_param}"
+        await self._request_delete(endpoint)
+
+    async def async_get_collections(
+        self,
+        user_id: str,
+    ) -> list[EmbyBrowseItem]:
+        """Get all collections (BoxSets) for a user.
+
+        Args:
+            user_id: The user ID.
+
+        Returns:
+            List of collection items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        result = await self.async_get_items(
+            user_id,
+            include_item_types="BoxSet",
+            recursive=True,
+            sort_by="SortName",
+            sort_order="Ascending",
+        )
+        return result.get("Items", [])
 
     async def close(self) -> None:
         """Close the client session.
