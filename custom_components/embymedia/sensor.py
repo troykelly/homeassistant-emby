@@ -79,7 +79,8 @@ async def async_setup_entry(
         # Activity & Device sensors (Phase 18)
         EmbyLastActivitySensor(server_coordinator),
         EmbyConnectedDevicesSensor(server_coordinator),
-        EmbyWatchStatisticsSensor(server_coordinator),
+        # Watch Statistics uses session coordinator for playback tracking
+        EmbyWatchStatisticsSensor(session_coordinator),
     ]
 
     # Add discovery sensors for each user's coordinator
@@ -656,12 +657,14 @@ class EmbyConnectedDevicesSensor(EmbyServerSensorBase):
         return {"devices": device_list}
 
 
-class EmbyWatchStatisticsSensor(EmbyServerSensorBase):
+class EmbyWatchStatisticsSensor(EmbySessionSensorBase):
     """Sensor for daily watch time statistics.
 
     Shows the total watch time for today in minutes.
     Uses TOTAL_INCREASING state class for Home Assistant statistics.
     Extra attributes contain active session details.
+
+    Uses session coordinator since playback tracking happens via WebSocket.
     """
 
     _attr_icon = "mdi:chart-timeline-variant"
@@ -669,7 +672,7 @@ class EmbyWatchStatisticsSensor(EmbyServerSensorBase):
     _attr_native_unit_of_measurement = "min"
     _attr_translation_key = "watch_statistics"
 
-    def __init__(self, coordinator: EmbyServerCoordinator) -> None:
+    def __init__(self, coordinator: EmbyDataUpdateCoordinator) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.server_id}_watch_statistics"

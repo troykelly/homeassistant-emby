@@ -16,8 +16,12 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def mock_server_coordinator() -> MagicMock:
-    """Create a mock server coordinator with watch statistics data."""
+def mock_session_coordinator() -> MagicMock:
+    """Create a mock session coordinator with watch statistics data.
+
+    Note: EmbyWatchStatisticsSensor uses session coordinator (EmbyDataUpdateCoordinator)
+    since playback tracking happens via WebSocket messages.
+    """
     coordinator = MagicMock()
     coordinator.server_id = "test-server-id"
     coordinator.server_name = "Test Server"
@@ -35,25 +39,8 @@ def mock_server_coordinator() -> MagicMock:
             "position_ticks": 600 * 10_000_000,  # 10 minutes
         },
     }
-    coordinator.data = {
-        "server_version": "4.9.1.90",
-        "has_pending_restart": False,
-        "has_update_available": False,
-        "scheduled_tasks": [],
-        "running_tasks_count": 0,
-        "library_scan_active": False,
-        "library_scan_progress": None,
-        "live_tv_enabled": False,
-        "live_tv_tuner_count": 0,
-        "live_tv_active_recordings": 0,
-        "recording_count": 0,
-        "scheduled_timer_count": 0,
-        "series_timer_count": 0,
-        "recent_activities": [],
-        "activity_count": 0,
-        "devices": [],
-        "device_count": 0,
-    }
+    # Session coordinator returns list of sessions, not server data dict
+    coordinator.data = []
     return coordinator
 
 
@@ -68,16 +55,16 @@ class TestEmbyWatchStatisticsSensorExists:
 
     def test_sensor_inherits_from_base(
         self,
-        mock_server_coordinator: MagicMock,
+        mock_session_coordinator: MagicMock,
     ) -> None:
-        """Test sensor inherits from EmbyServerSensorBase."""
+        """Test sensor inherits from EmbySessionSensorBase."""
         from custom_components.embymedia.sensor import (
-            EmbyServerSensorBase,
+            EmbySessionSensorBase,
             EmbyWatchStatisticsSensor,
         )
 
-        sensor = EmbyWatchStatisticsSensor(mock_server_coordinator)
-        assert isinstance(sensor, EmbyServerSensorBase)
+        sensor = EmbyWatchStatisticsSensor(mock_session_coordinator)
+        assert isinstance(sensor, EmbySessionSensorBase)
 
 
 class TestEmbyWatchStatisticsSensorIdentity:
@@ -85,22 +72,22 @@ class TestEmbyWatchStatisticsSensorIdentity:
 
     def test_sensor_unique_id(
         self,
-        mock_server_coordinator: MagicMock,
+        mock_session_coordinator: MagicMock,
     ) -> None:
         """Test sensor has correct unique_id."""
         from custom_components.embymedia.sensor import EmbyWatchStatisticsSensor
 
-        sensor = EmbyWatchStatisticsSensor(mock_server_coordinator)
+        sensor = EmbyWatchStatisticsSensor(mock_session_coordinator)
         assert sensor.unique_id == "test-server-id_watch_statistics"
 
     def test_sensor_translation_key(
         self,
-        mock_server_coordinator: MagicMock,
+        mock_session_coordinator: MagicMock,
     ) -> None:
         """Test sensor has correct translation_key."""
         from custom_components.embymedia.sensor import EmbyWatchStatisticsSensor
 
-        sensor = EmbyWatchStatisticsSensor(mock_server_coordinator)
+        sensor = EmbyWatchStatisticsSensor(mock_session_coordinator)
         assert sensor.translation_key == "watch_statistics"
 
 
@@ -109,12 +96,12 @@ class TestEmbyWatchStatisticsSensorStateClass:
 
     def test_sensor_state_class_is_total_increasing(
         self,
-        mock_server_coordinator: MagicMock,
+        mock_session_coordinator: MagicMock,
     ) -> None:
         """Test sensor has TOTAL_INCREASING state class for HA statistics."""
         from custom_components.embymedia.sensor import EmbyWatchStatisticsSensor
 
-        sensor = EmbyWatchStatisticsSensor(mock_server_coordinator)
+        sensor = EmbyWatchStatisticsSensor(mock_session_coordinator)
         assert sensor.state_class == SensorStateClass.TOTAL_INCREASING
 
 
@@ -123,35 +110,35 @@ class TestEmbyWatchStatisticsSensorNativeValue:
 
     def test_native_value_returns_minutes(
         self,
-        mock_server_coordinator: MagicMock,
+        mock_session_coordinator: MagicMock,
     ) -> None:
         """Test native_value returns daily watch time in minutes."""
         from custom_components.embymedia.sensor import EmbyWatchStatisticsSensor
 
-        sensor = EmbyWatchStatisticsSensor(mock_server_coordinator)
+        sensor = EmbyWatchStatisticsSensor(mock_session_coordinator)
         # 3600 seconds = 60 minutes
         assert sensor.native_value == 60
 
     def test_native_value_rounds_down(
         self,
-        mock_server_coordinator: MagicMock,
+        mock_session_coordinator: MagicMock,
     ) -> None:
         """Test native_value rounds down to whole minutes."""
         from custom_components.embymedia.sensor import EmbyWatchStatisticsSensor
 
-        mock_server_coordinator.daily_watch_time = 3650  # 60.83 minutes
-        sensor = EmbyWatchStatisticsSensor(mock_server_coordinator)
+        mock_session_coordinator.daily_watch_time = 3650  # 60.83 minutes
+        sensor = EmbyWatchStatisticsSensor(mock_session_coordinator)
         assert sensor.native_value == 60  # Rounds down to 60
 
     def test_native_value_zero_when_no_watch_time(
         self,
-        mock_server_coordinator: MagicMock,
+        mock_session_coordinator: MagicMock,
     ) -> None:
         """Test native_value returns 0 when no watch time."""
         from custom_components.embymedia.sensor import EmbyWatchStatisticsSensor
 
-        mock_server_coordinator.daily_watch_time = 0
-        sensor = EmbyWatchStatisticsSensor(mock_server_coordinator)
+        mock_session_coordinator.daily_watch_time = 0
+        sensor = EmbyWatchStatisticsSensor(mock_session_coordinator)
         assert sensor.native_value == 0
 
 
@@ -160,12 +147,12 @@ class TestEmbyWatchStatisticsSensorUnit:
 
     def test_native_unit_of_measurement(
         self,
-        mock_server_coordinator: MagicMock,
+        mock_session_coordinator: MagicMock,
     ) -> None:
         """Test sensor has minutes as unit of measurement."""
         from custom_components.embymedia.sensor import EmbyWatchStatisticsSensor
 
-        sensor = EmbyWatchStatisticsSensor(mock_server_coordinator)
+        sensor = EmbyWatchStatisticsSensor(mock_session_coordinator)
         assert sensor.native_unit_of_measurement == "min"
 
 
@@ -174,35 +161,35 @@ class TestEmbyWatchStatisticsSensorAttributes:
 
     def test_has_extra_state_attributes(
         self,
-        mock_server_coordinator: MagicMock,
+        mock_session_coordinator: MagicMock,
     ) -> None:
         """Test sensor has extra_state_attributes."""
         from custom_components.embymedia.sensor import EmbyWatchStatisticsSensor
 
-        sensor = EmbyWatchStatisticsSensor(mock_server_coordinator)
+        sensor = EmbyWatchStatisticsSensor(mock_session_coordinator)
         attrs = sensor.extra_state_attributes
         assert attrs is not None
 
     def test_extra_state_attributes_has_active_sessions_count(
         self,
-        mock_server_coordinator: MagicMock,
+        mock_session_coordinator: MagicMock,
     ) -> None:
         """Test extra_state_attributes has active_sessions_count."""
         from custom_components.embymedia.sensor import EmbyWatchStatisticsSensor
 
-        sensor = EmbyWatchStatisticsSensor(mock_server_coordinator)
+        sensor = EmbyWatchStatisticsSensor(mock_session_coordinator)
         attrs = sensor.extra_state_attributes
         assert "active_sessions_count" in attrs
         assert attrs["active_sessions_count"] == 2
 
     def test_extra_state_attributes_has_active_sessions_list(
         self,
-        mock_server_coordinator: MagicMock,
+        mock_session_coordinator: MagicMock,
     ) -> None:
         """Test extra_state_attributes has active_sessions list."""
         from custom_components.embymedia.sensor import EmbyWatchStatisticsSensor
 
-        sensor = EmbyWatchStatisticsSensor(mock_server_coordinator)
+        sensor = EmbyWatchStatisticsSensor(mock_session_coordinator)
         attrs = sensor.extra_state_attributes
         assert "active_sessions" in attrs
         assert isinstance(attrs["active_sessions"], list)
@@ -210,12 +197,12 @@ class TestEmbyWatchStatisticsSensorAttributes:
 
     def test_extra_state_attributes_session_details(
         self,
-        mock_server_coordinator: MagicMock,
+        mock_session_coordinator: MagicMock,
     ) -> None:
         """Test active_sessions contains correct details."""
         from custom_components.embymedia.sensor import EmbyWatchStatisticsSensor
 
-        sensor = EmbyWatchStatisticsSensor(mock_server_coordinator)
+        sensor = EmbyWatchStatisticsSensor(mock_session_coordinator)
         attrs = sensor.extra_state_attributes
         sessions = attrs["active_sessions"]
 
@@ -226,25 +213,25 @@ class TestEmbyWatchStatisticsSensorAttributes:
 
     def test_extra_state_attributes_has_daily_watch_time_seconds(
         self,
-        mock_server_coordinator: MagicMock,
+        mock_session_coordinator: MagicMock,
     ) -> None:
         """Test extra_state_attributes has daily_watch_time_seconds."""
         from custom_components.embymedia.sensor import EmbyWatchStatisticsSensor
 
-        sensor = EmbyWatchStatisticsSensor(mock_server_coordinator)
+        sensor = EmbyWatchStatisticsSensor(mock_session_coordinator)
         attrs = sensor.extra_state_attributes
         assert "daily_watch_time_seconds" in attrs
         assert attrs["daily_watch_time_seconds"] == 3600
 
     def test_extra_state_attributes_empty_when_no_sessions(
         self,
-        mock_server_coordinator: MagicMock,
+        mock_session_coordinator: MagicMock,
     ) -> None:
         """Test extra_state_attributes handles empty sessions."""
         from custom_components.embymedia.sensor import EmbyWatchStatisticsSensor
 
-        mock_server_coordinator.playback_sessions = {}
-        sensor = EmbyWatchStatisticsSensor(mock_server_coordinator)
+        mock_session_coordinator.playback_sessions = {}
+        sensor = EmbyWatchStatisticsSensor(mock_session_coordinator)
         attrs = sensor.extra_state_attributes
         assert attrs["active_sessions_count"] == 0
         assert attrs["active_sessions"] == []
@@ -255,10 +242,10 @@ class TestEmbyWatchStatisticsSensorIcon:
 
     def test_sensor_icon(
         self,
-        mock_server_coordinator: MagicMock,
+        mock_session_coordinator: MagicMock,
     ) -> None:
         """Test sensor has appropriate icon."""
         from custom_components.embymedia.sensor import EmbyWatchStatisticsSensor
 
-        sensor = EmbyWatchStatisticsSensor(mock_server_coordinator)
+        sensor = EmbyWatchStatisticsSensor(mock_session_coordinator)
         assert sensor.icon == "mdi:chart-timeline-variant"
