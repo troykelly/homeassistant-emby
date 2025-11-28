@@ -168,6 +168,55 @@ class TestEmbyLastActivitySensor:
         sensor = EmbyLastActivitySensor(mock_server_coordinator)
         assert sensor.native_value is None
 
+    def test_sensor_native_value_none_when_no_date(
+        self,
+        mock_server_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns None when activity has no Date field."""
+        from custom_components.embymedia.sensor import EmbyLastActivitySensor
+
+        mock_server_coordinator.data["recent_activities"] = [
+            {
+                "Id": 6612,
+                "Name": "Activity without date",
+                "Type": "test.type",
+                "Severity": "Info",
+                # No "Date" field
+            }
+        ]
+        sensor = EmbyLastActivitySensor(mock_server_coordinator)
+        assert sensor.native_value is None
+
+    def test_sensor_native_value_none_on_invalid_date(
+        self,
+        mock_server_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns None when date is invalid."""
+        from custom_components.embymedia.sensor import EmbyLastActivitySensor
+
+        mock_server_coordinator.data["recent_activities"] = [
+            {
+                "Id": 6612,
+                "Name": "Activity with invalid date",
+                "Type": "test.type",
+                "Severity": "Info",
+                "Date": "not-a-valid-date",
+            }
+        ]
+        sensor = EmbyLastActivitySensor(mock_server_coordinator)
+        assert sensor.native_value is None
+
+    def test_sensor_extra_state_attributes_none_when_no_data(
+        self,
+        mock_server_coordinator: MagicMock,
+    ) -> None:
+        """Test extra_state_attributes returns None when no coordinator data."""
+        from custom_components.embymedia.sensor import EmbyLastActivitySensor
+
+        mock_server_coordinator.data = None
+        sensor = EmbyLastActivitySensor(mock_server_coordinator)
+        assert sensor.extra_state_attributes is None
+
     def test_sensor_has_extra_state_attributes(
         self,
         mock_server_coordinator: MagicMock,
@@ -282,6 +331,17 @@ class TestEmbyConnectedDevicesSensor:
         mock_server_coordinator.data = None
         sensor = EmbyConnectedDevicesSensor(mock_server_coordinator)
         assert sensor.native_value is None
+
+    def test_sensor_extra_state_attributes_none_when_no_data(
+        self,
+        mock_server_coordinator: MagicMock,
+    ) -> None:
+        """Test extra_state_attributes returns None when no coordinator data."""
+        from custom_components.embymedia.sensor import EmbyConnectedDevicesSensor
+
+        mock_server_coordinator.data = None
+        sensor = EmbyConnectedDevicesSensor(mock_server_coordinator)
+        assert sensor.extra_state_attributes is None
 
     def test_sensor_has_extra_state_attributes(
         self,
