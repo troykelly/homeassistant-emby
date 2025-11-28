@@ -147,6 +147,20 @@
       "suggestions": {
         "name": "Suggestions"
       }
+    },
+    "image": {
+      "next_up_image": {
+        "name": "Next Up"
+      },
+      "continue_watching_image": {
+        "name": "Continue Watching"
+      },
+      "recently_added_image": {
+        "name": "Recently Added"
+      },
+      "suggestions_image": {
+        "name": "Suggestions"
+      }
     }
   },
   "options": {
