@@ -12,7 +12,7 @@ from aiohttp import web
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.embymedia.const import DOMAIN
-from custom_components.embymedia.image import (
+from custom_components.embymedia.image_proxy import (
     CACHE_TIME_WITH_TAG,
     CACHE_TIME_WITHOUT_TAG,
     EmbyImageProxyView,
@@ -125,7 +125,7 @@ class TestImageProxyGet:
         mock_session.get.return_value.__aexit__ = AsyncMock(return_value=None)
 
         with patch(
-            "custom_components.embymedia.image.async_get_clientsession",
+            "custom_components.embymedia.image_proxy.async_get_clientsession",
             return_value=mock_session,
         ):
             view = EmbyImageProxyView()
@@ -176,7 +176,7 @@ class TestImageProxyGet:
         mock_session.get = capture_url
 
         with patch(
-            "custom_components.embymedia.image.async_get_clientsession",
+            "custom_components.embymedia.image_proxy.async_get_clientsession",
             return_value=mock_session,
         ):
             view = EmbyImageProxyView()
@@ -237,7 +237,7 @@ class TestImageProxyGet:
         mock_session.get.return_value.__aexit__ = AsyncMock(return_value=None)
 
         with patch(
-            "custom_components.embymedia.image.async_get_clientsession",
+            "custom_components.embymedia.image_proxy.async_get_clientsession",
             return_value=mock_session,
         ):
             view = EmbyImageProxyView()
@@ -277,7 +277,7 @@ class TestImageProxyGet:
         mock_session.get.return_value.__aexit__ = AsyncMock(return_value=None)
 
         with patch(
-            "custom_components.embymedia.image.async_get_clientsession",
+            "custom_components.embymedia.image_proxy.async_get_clientsession",
             return_value=mock_session,
         ):
             view = EmbyImageProxyView()
@@ -316,7 +316,7 @@ class TestImageProxyGet:
         mock_session.get.return_value.__aexit__ = AsyncMock(return_value=None)
 
         with patch(
-            "custom_components.embymedia.image.async_get_clientsession",
+            "custom_components.embymedia.image_proxy.async_get_clientsession",
             return_value=mock_session,
         ):
             view = EmbyImageProxyView()
@@ -347,7 +347,7 @@ class TestImageProxyGet:
         mock_session.get = MagicMock(side_effect=aiohttp.ClientError("Network error"))
 
         with patch(
-            "custom_components.embymedia.image.async_get_clientsession",
+            "custom_components.embymedia.image_proxy.async_get_clientsession",
             return_value=mock_session,
         ):
             view = EmbyImageProxyView()
@@ -401,7 +401,7 @@ class TestImageProxyGet:
         mock_session.get.return_value.__aexit__ = AsyncMock(return_value=None)
 
         with patch(
-            "custom_components.embymedia.image.async_get_clientsession",
+            "custom_components.embymedia.image_proxy.async_get_clientsession",
             return_value=mock_session,
         ):
             view = EmbyImageProxyView()
@@ -475,7 +475,7 @@ class TestImageProxyResize:
         mock_session.get = capture_url
 
         with patch(
-            "custom_components.embymedia.image.async_get_clientsession",
+            "custom_components.embymedia.image_proxy.async_get_clientsession",
             return_value=mock_session,
         ):
             view = EmbyImageProxyView()
@@ -537,7 +537,7 @@ class TestImageProxyErrors:
         mock_session.get = MagicMock(side_effect=TimeoutError("Request timed out"))
 
         with patch(
-            "custom_components.embymedia.image.async_get_clientsession",
+            "custom_components.embymedia.image_proxy.async_get_clientsession",
             return_value=mock_session,
         ):
             view = EmbyImageProxyView()
@@ -569,7 +569,7 @@ class TestImageProxyErrors:
         mock_session.get = MagicMock(side_effect=OSError("Connection reset"))
 
         with patch(
-            "custom_components.embymedia.image.async_get_clientsession",
+            "custom_components.embymedia.image_proxy.async_get_clientsession",
             return_value=mock_session,
         ):
             view = EmbyImageProxyView()

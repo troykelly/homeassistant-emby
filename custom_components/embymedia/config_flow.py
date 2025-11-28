@@ -20,6 +20,7 @@ from .api import EmbyClient
 from .const import (
     CONF_API_KEY,
     CONF_DIRECT_PLAY,
+    CONF_ENABLE_DISCOVERY_SENSORS,
     CONF_ENABLE_WEBSOCKET,
     CONF_IGNORE_WEB_PLAYERS,
     CONF_IGNORED_DEVICES,
@@ -35,6 +36,7 @@ from .const import (
     CONF_VERIFY_SSL,
     CONF_VIDEO_CONTAINER,
     DEFAULT_DIRECT_PLAY,
+    DEFAULT_ENABLE_DISCOVERY_SENSORS,
     DEFAULT_ENABLE_WEBSOCKET,
     DEFAULT_IGNORE_WEB_PLAYERS,
     DEFAULT_PORT,
@@ -788,6 +790,13 @@ class EmbyOptionsFlowHandler(OptionsFlow):
                         CONF_PREFIX_BUTTON,
                         default=self.config_entry.options.get(
                             CONF_PREFIX_BUTTON, DEFAULT_PREFIX_BUTTON
+                        ),
+                    ): bool,
+                    # Phase 15: Discovery sensors toggle
+                    vol.Optional(
+                        CONF_ENABLE_DISCOVERY_SENSORS,
+                        default=self.config_entry.options.get(
+                            CONF_ENABLE_DISCOVERY_SENSORS, DEFAULT_ENABLE_DISCOVERY_SENSORS
                         ),
                     ): bool,
                 }

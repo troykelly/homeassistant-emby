@@ -35,15 +35,19 @@ from .api import EmbyClient
 from .const import (
     CONF_API_KEY,
     CONF_DIRECT_PLAY,
+    CONF_ENABLE_DISCOVERY_SENSORS,
     CONF_ENABLE_WEBSOCKET,
     CONF_IGNORE_WEB_PLAYERS,
     CONF_IGNORED_DEVICES,
     CONF_MAX_AUDIO_BITRATE,
     CONF_MAX_VIDEO_BITRATE,
     CONF_SCAN_INTERVAL,
+    CONF_USER_ID,
     CONF_VERIFY_SSL,
     CONF_VIDEO_CONTAINER,
     DEFAULT_DIRECT_PLAY,
+    DEFAULT_DISCOVERY_SCAN_INTERVAL,
+    DEFAULT_ENABLE_DISCOVERY_SENSORS,
     DEFAULT_ENABLE_WEBSOCKET,
     DEFAULT_IGNORE_WEB_PLAYERS,
     DEFAULT_LIBRARY_SCAN_INTERVAL,
@@ -62,9 +66,10 @@ from .const import (
     EmbyRuntimeData,
 )
 from .coordinator import EmbyDataUpdateCoordinator
+from .coordinator_discovery import EmbyDiscoveryCoordinator
 from .coordinator_sensors import EmbyLibraryCoordinator, EmbyServerCoordinator
 from .exceptions import EmbyAuthenticationError, EmbyConnectionError
-from .image import async_setup_image_proxy
+from .image_proxy import async_setup_image_proxy
 from .services import async_setup_services, async_unload_services
 
 if TYPE_CHECKING:
@@ -216,16 +221,66 @@ async def async_setup_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> bool
         scan_interval=DEFAULT_LIBRARY_SCAN_INTERVAL,
     )
 
+    # Create discovery coordinators if enabled
+    # When a specific user is selected: create coordinator for that user only
+    # When admin context (no user_id): create coordinators for ALL users
+    discovery_coordinators: dict[str, EmbyDiscoveryCoordinator] = {}
+    user_id = entry.data.get(CONF_USER_ID) or entry.options.get(CONF_USER_ID)
+    enable_discovery = entry.options.get(
+        CONF_ENABLE_DISCOVERY_SENSORS, DEFAULT_ENABLE_DISCOVERY_SENSORS
+    )
+
+    if enable_discovery:
+        if user_id:
+            # Single user mode - create coordinator for selected user only
+            discovery_coordinators[str(user_id)] = EmbyDiscoveryCoordinator(
+                hass=hass,
+                client=client,
+                server_id=server_id,
+                config_entry=entry,
+                user_id=str(user_id),
+                scan_interval=DEFAULT_DISCOVERY_SCAN_INTERVAL,
+            )
+        else:
+            # Admin context - create coordinators for ALL users
+            try:
+                users = await client.async_get_users()
+                for user in users:
+                    uid = str(user.get("Id", ""))
+                    uname = str(user.get("Name", "Unknown"))
+                    if uid:
+                        discovery_coordinators[uid] = EmbyDiscoveryCoordinator(
+                            hass=hass,
+                            client=client,
+                            server_id=server_id,
+                            config_entry=entry,
+                            user_id=uid,
+                            scan_interval=DEFAULT_DISCOVERY_SCAN_INTERVAL,
+                            user_name=uname,
+                        )
+                _LOGGER.debug(
+                    "Created discovery coordinators for %d users",
+                    len(discovery_coordinators),
+                )
+            except Exception:  # pylint: disable=broad-exception-caught
+                _LOGGER.warning(
+                    "Failed to fetch users for discovery sensors. "
+                    "Discovery sensors will not be available."
+                )
+
     # Fetch initial data from all coordinators
     await session_coordinator.async_config_entry_first_refresh()
     await server_coordinator.async_config_entry_first_refresh()
     await library_coordinator.async_config_entry_first_refresh()
+    for coordinator in discovery_coordinators.values():
+        await coordinator.async_config_entry_first_refresh()
 
     # Store runtime data with all coordinators
     entry.runtime_data = EmbyRuntimeData(
         session_coordinator=session_coordinator,
         server_coordinator=server_coordinator,
         library_coordinator=library_coordinator,
+        discovery_coordinators=discovery_coordinators if discovery_coordinators else None,
     )
 
     # Register server device BEFORE forwarding to platforms

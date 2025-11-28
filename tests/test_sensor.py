@@ -355,6 +355,10 @@ class TestAsyncSetupEntry:
             library_coordinator = mock_library_coordinator
             session_coordinator = mock_session_coordinator
 
+            @property
+            def discovery_coordinators(self) -> dict[str, object]:
+                return {}
+
         mock_config_entry.runtime_data = RuntimeData()
 
         entities_added: list[object] = []

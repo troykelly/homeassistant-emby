@@ -19,6 +19,12 @@ from .coordinator_sensors import (
     EmbyLibraryCoordinator,
     EmbyServerCoordinator,
 )
+from .sensor_discovery import (
+    EmbyContinueWatchingSensor,
+    EmbyNextUpSensor,
+    EmbyRecentlyAddedSensor,
+    EmbySuggestionsSensor,
+)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -45,6 +51,7 @@ async def async_setup_entry(
     server_coordinator: EmbyServerCoordinator = runtime_data.server_coordinator
     library_coordinator: EmbyLibraryCoordinator = runtime_data.library_coordinator
     session_coordinator: EmbyDataUpdateCoordinator = runtime_data.session_coordinator
+    discovery_coordinators = runtime_data.discovery_coordinators
     server_name = server_coordinator.server_name
 
     entities: list[SensorEntity] = [
@@ -61,6 +68,19 @@ async def async_setup_entry(
         EmbyAlbumCountSensor(library_coordinator, server_name),
         EmbyArtistCountSensor(library_coordinator, server_name),
     ]
+
+    # Add discovery sensors for each user's coordinator
+    # When admin context: creates sensors for ALL users (e.g., "troy Next Up", "matty Next Up")
+    # When specific user: creates sensors for that user only
+    for coordinator in discovery_coordinators.values():
+        entities.extend(
+            [
+                EmbyNextUpSensor(coordinator, server_name),
+                EmbyContinueWatchingSensor(coordinator, server_name),
+                EmbyRecentlyAddedSensor(coordinator, server_name),
+                EmbySuggestionsSensor(coordinator, server_name),
+            ]
+        )
 
     async_add_entities(entities)
 

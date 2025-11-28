@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
 
     from .coordinator import EmbyDataUpdateCoordinator
+    from .coordinator_discovery import EmbyDiscoveryCoordinator
     from .coordinator_sensors import EmbyLibraryCoordinator, EmbyServerCoordinator
 
 # Integration domain
@@ -28,6 +29,7 @@ class EmbyRuntimeData:
         session_coordinator: EmbyDataUpdateCoordinator,
         server_coordinator: EmbyServerCoordinator,
         library_coordinator: EmbyLibraryCoordinator,
+        discovery_coordinators: dict[str, EmbyDiscoveryCoordinator] | None = None,
     ) -> None:
         """Initialize runtime data.
 
@@ -35,16 +37,26 @@ class EmbyRuntimeData:
             session_coordinator: Coordinator for session/media player data.
             server_coordinator: Coordinator for server status data.
             library_coordinator: Coordinator for library counts data.
+            discovery_coordinators: Optional dict of user_id -> coordinator for discovery data.
         """
         self.session_coordinator = session_coordinator
         self.server_coordinator = server_coordinator
         self.library_coordinator = library_coordinator
+        self.discovery_coordinators = discovery_coordinators or {}
 
     # Provide backward compatibility as the old coordinator
     @property
     def coordinator(self) -> EmbyDataUpdateCoordinator:
         """Return the session coordinator (for backward compatibility)."""
         return self.session_coordinator
+
+    # Backward compatibility for single discovery coordinator
+    @property
+    def discovery_coordinator(self) -> EmbyDiscoveryCoordinator | None:
+        """Return the first discovery coordinator (for backward compatibility)."""
+        if self.discovery_coordinators:
+            return next(iter(self.discovery_coordinators.values()))
+        return None
 
 
 # Type alias for config entry with runtime data
@@ -143,6 +155,7 @@ ENDPOINT_SESSIONS: Final = "/Sessions"
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
+    Platform.IMAGE,
     Platform.MEDIA_PLAYER,
     Platform.NOTIFY,
     Platform.REMOTE,
@@ -661,6 +674,207 @@ TRANSCODING_PROFILES: Final[list[str]] = [
     "appletv",
     "audio_only",
 ]
+
+
+# =============================================================================
+# TypedDicts for Discovery API (Phase 15)
+# =============================================================================
+
+
+class EmbyUserData(TypedDict, total=False):
+    """User data embedded in item responses.
+
+    Contains playback state, favorites, and play history for an item.
+    """
+
+    PlaybackPositionTicks: int
+    PlayedPercentage: float
+    PlayCount: int
+    IsFavorite: bool
+    Played: bool
+    LastPlayedDate: str
+
+
+class NextUpItem(TypedDict, total=False):
+    """Next up episode item from /Shows/NextUp.
+
+    Represents the next episode to watch in a TV series.
+    """
+
+    # Standard item fields
+    Id: str
+    Name: str
+    Type: str  # "Episode"
+    ServerId: str
+
+    # Series context
+    SeriesName: str
+    SeasonName: str
+    IndexNumber: int  # Episode number
+    ParentIndexNumber: int  # Season number
+    SeriesId: str
+    SeasonId: str
+
+    # Metadata
+    Overview: str
+    RunTimeTicks: int
+    ProductionYear: int
+    PremiereDate: str
+
+    # Images
+    ImageTags: dict[str, str]
+    BackdropImageTags: list[str]
+    SeriesPrimaryImageTag: str
+    ParentBackdropItemId: str
+    ParentBackdropImageTags: list[str]
+    ParentLogoItemId: str
+    ParentLogoImageTag: str
+    ParentThumbItemId: str
+    ParentThumbImageTag: str
+
+    # User data
+    UserData: EmbyUserData
+
+    # Media info
+    MediaType: str  # "Video"
+
+
+class ResumableItem(TypedDict, total=False):
+    """Resumable item from Continue Watching.
+
+    Represents a partially watched movie or episode.
+    """
+
+    # Standard item fields
+    Id: str
+    Name: str
+    Type: str  # "Movie" or "Episode"
+    ServerId: str
+    IsFolder: bool
+
+    # TV-specific (only for episodes)
+    SeriesName: str
+    SeasonName: str
+    IndexNumber: int
+    ParentIndexNumber: int
+    SeriesId: str
+    SeasonId: str
+    SeriesPrimaryImageTag: str
+
+    # Metadata
+    Overview: str
+    RunTimeTicks: int
+    ProductionYear: int
+
+    # Images
+    ImageTags: dict[str, str]
+    BackdropImageTags: list[str]
+    ParentBackdropItemId: str
+    ParentBackdropImageTags: list[str]
+    ParentLogoItemId: str
+    ParentLogoImageTag: str
+    ParentThumbItemId: str
+    ParentThumbImageTag: str
+
+    # User data with progress
+    UserData: EmbyUserData
+
+    # Media info
+    MediaType: str  # "Video"
+
+
+class LatestMediaItem(TypedDict, total=False):
+    """Latest media item from /Users/{id}/Items/Latest.
+
+    Represents recently added content (movie, episode, album, etc.).
+    """
+
+    # Standard item fields
+    Id: str
+    Name: str
+    Type: str  # "Movie", "Episode", "Audio", etc.
+    ServerId: str
+    IsFolder: bool
+
+    # TV-specific
+    SeriesName: str
+    SeasonName: str
+    IndexNumber: int
+    ParentIndexNumber: int
+
+    # Music-specific
+    Album: str
+    AlbumId: str
+    AlbumArtist: str
+    Artists: list[str]
+
+    # Metadata
+    Overview: str
+    RunTimeTicks: int
+    ProductionYear: int
+    DateCreated: str
+
+    # Images
+    ImageTags: dict[str, str]
+    BackdropImageTags: list[str]
+
+    # User data
+    UserData: EmbyUserData
+
+    # Media info
+    MediaType: str
+
+
+class SuggestionItem(TypedDict, total=False):
+    """Suggestion item from /Users/{id}/Suggestions.
+
+    Represents a personalized recommendation.
+    """
+
+    # Standard item fields
+    Id: str
+    Name: str
+    Type: str  # "Movie", "Series", "Audio", "Folder", etc.
+    ServerId: str
+    IsFolder: bool
+
+    # Metadata
+    Overview: str
+    RunTimeTicks: int
+    ProductionYear: int
+    CommunityRating: float
+    CriticRating: int
+
+    # Music-specific
+    Album: str
+    AlbumId: str
+    AlbumArtist: str
+    Artists: list[str]
+
+    # Images
+    ImageTags: dict[str, str]
+    BackdropImageTags: list[str]
+    ParentBackdropItemId: str
+    ParentBackdropImageTags: list[str]
+
+    # User data
+    UserData: EmbyUserData
+
+    # Media info
+    MediaType: str
+
+
+# =============================================================================
+# Discovery Sensor Configuration Constants (Phase 15)
+# =============================================================================
+
+# Discovery sensor option keys
+CONF_ENABLE_DISCOVERY_SENSORS: Final = "enable_discovery_sensors"
+CONF_DISCOVERY_SCAN_INTERVAL: Final = "discovery_scan_interval"
+
+# Default discovery values
+DEFAULT_ENABLE_DISCOVERY_SENSORS: Final = True
+DEFAULT_DISCOVERY_SCAN_INTERVAL: Final = 900  # 15 minutes in seconds
 
 
 # =============================================================================
