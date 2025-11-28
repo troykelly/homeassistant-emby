@@ -316,6 +316,16 @@ class EmbyPlayState(TypedDict):
     RepeatMode: NotRequired[str]
 
 
+class EmbyQueueItem(TypedDict):
+    """Type definition for a queue item in NowPlayingQueue.
+
+    Represents a single item in the playback queue.
+    """
+
+    Id: str
+    PlaylistItemId: NotRequired[str]
+
+
 class EmbySessionResponse(TypedDict):
     """Type definition for /Sessions endpoint response item.
 
@@ -337,6 +347,7 @@ class EmbySessionResponse(TypedDict):
     LastActivityDate: NotRequired[str]
     PlayableMediaTypes: NotRequired[list[str]]
     SupportedCommands: NotRequired[list[str]]
+    NowPlayingQueue: NotRequired[list[EmbyQueueItem]]
 
 
 # =============================================================================

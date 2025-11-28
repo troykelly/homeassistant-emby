@@ -584,3 +584,115 @@ class TestParseSession:
         assert session.app_version == "4.9.2.0"
         assert session.playable_media_types == ("Video", "Audio")
         assert session.supported_commands == ("PlayPause", "Stop", "Seek")
+
+
+class TestQueueDataInSession:
+    """Tests for queue data parsing in EmbySession."""
+
+    def test_session_with_queue(self) -> None:
+        """Test parsing session data with NowPlayingQueue."""
+        from custom_components.embymedia.const import EmbySessionResponse
+        from custom_components.embymedia.models import parse_session
+
+        data: EmbySessionResponse = {
+            "Id": "session-123",
+            "Client": "Emby",
+            "DeviceId": "device-abc",
+            "DeviceName": "TV",
+            "SupportsRemoteControl": True,
+            "NowPlayingQueue": [
+                {"Id": "item1", "PlaylistItemId": "q1"},
+                {"Id": "item2", "PlaylistItemId": "q2"},
+                {"Id": "item3", "PlaylistItemId": "q3"},
+            ],
+            "NowPlayingItem": {
+                "Id": "item2",
+                "Name": "Current Track",
+                "Type": "Audio",
+            },
+        }
+        session = parse_session(data)
+        assert session.queue_item_ids == ("item1", "item2", "item3")
+        assert session.queue_position == 1  # item2 is at index 1
+
+    def test_session_with_queue_first_item(self) -> None:
+        """Test queue position when first item is playing."""
+        from custom_components.embymedia.const import EmbySessionResponse
+        from custom_components.embymedia.models import parse_session
+
+        data: EmbySessionResponse = {
+            "Id": "session-123",
+            "Client": "Emby",
+            "DeviceId": "device-abc",
+            "DeviceName": "TV",
+            "SupportsRemoteControl": True,
+            "NowPlayingQueue": [
+                {"Id": "item1", "PlaylistItemId": "q1"},
+                {"Id": "item2", "PlaylistItemId": "q2"},
+            ],
+            "NowPlayingItem": {
+                "Id": "item1",
+                "Name": "First Track",
+                "Type": "Audio",
+            },
+        }
+        session = parse_session(data)
+        assert session.queue_position == 0
+
+    def test_session_without_queue(self) -> None:
+        """Test session without NowPlayingQueue has empty queue."""
+        from custom_components.embymedia.const import EmbySessionResponse
+        from custom_components.embymedia.models import parse_session
+
+        data: EmbySessionResponse = {
+            "Id": "session-123",
+            "Client": "Emby",
+            "DeviceId": "device-abc",
+            "DeviceName": "TV",
+            "SupportsRemoteControl": True,
+        }
+        session = parse_session(data)
+        assert session.queue_item_ids == ()
+        assert session.queue_position == 0
+
+    def test_session_with_empty_queue(self) -> None:
+        """Test session with empty NowPlayingQueue array."""
+        from custom_components.embymedia.const import EmbySessionResponse
+        from custom_components.embymedia.models import parse_session
+
+        data: EmbySessionResponse = {
+            "Id": "session-123",
+            "Client": "Emby",
+            "DeviceId": "device-abc",
+            "DeviceName": "TV",
+            "SupportsRemoteControl": True,
+            "NowPlayingQueue": [],
+        }
+        session = parse_session(data)
+        assert session.queue_item_ids == ()
+        assert session.queue_position == 0
+
+    def test_session_queue_item_not_in_queue(self) -> None:
+        """Test queue position when playing item is not found in queue."""
+        from custom_components.embymedia.const import EmbySessionResponse
+        from custom_components.embymedia.models import parse_session
+
+        data: EmbySessionResponse = {
+            "Id": "session-123",
+            "Client": "Emby",
+            "DeviceId": "device-abc",
+            "DeviceName": "TV",
+            "SupportsRemoteControl": True,
+            "NowPlayingQueue": [
+                {"Id": "item1", "PlaylistItemId": "q1"},
+                {"Id": "item2", "PlaylistItemId": "q2"},
+            ],
+            "NowPlayingItem": {
+                "Id": "different-item",
+                "Name": "Not in queue",
+                "Type": "Audio",
+            },
+        }
+        session = parse_session(data)
+        assert session.queue_item_ids == ("item1", "item2")
+        assert session.queue_position == 0  # Default to 0 when not found
