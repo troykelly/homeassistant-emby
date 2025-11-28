@@ -1950,6 +1950,66 @@ class EmbyClient:
         items: list[SuggestionItem] = response.get("Items", [])  # type: ignore[assignment]
         return items
 
+    # =========================================================================
+    # Instant Mix & Similar Items API Methods (Phase 14)
+    # =========================================================================
+
+    async def async_get_instant_mix(
+        self,
+        user_id: str,
+        item_id: str,
+        limit: int = 100,
+    ) -> list[EmbyBrowseItem]:
+        """Get instant mix based on item.
+
+        Creates a dynamic playlist of similar items to the seed item.
+
+        Args:
+            user_id: User ID.
+            item_id: Seed item ID (song, album, artist, etc.).
+            limit: Maximum number of items to return.
+
+        Returns:
+            List of items for the instant mix.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+            EmbyNotFoundError: Item not found.
+        """
+        endpoint = f"/Items/{item_id}/InstantMix?UserId={user_id}&Limit={limit}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    async def async_get_artist_instant_mix(
+        self,
+        user_id: str,
+        artist_id: str,
+        limit: int = 100,
+    ) -> list[EmbyBrowseItem]:
+        """Get instant mix based on artist.
+
+        Creates a dynamic playlist based on artist's catalog and similar artists.
+
+        Args:
+            user_id: User ID.
+            artist_id: Artist ID.
+            limit: Maximum number of items to return.
+
+        Returns:
+            List of items for the instant mix.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+            EmbyNotFoundError: Artist not found.
+        """
+        endpoint = f"/Artists/InstantMix?UserId={user_id}&Id={artist_id}&Limit={limit}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
     async def close(self) -> None:
         """Close the client session.
 
