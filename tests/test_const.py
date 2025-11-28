@@ -240,3 +240,50 @@ class TestPrefixConstants:
         assert DEFAULT_PREFIX_NOTIFY is True
         assert DEFAULT_PREFIX_REMOTE is True
         assert DEFAULT_PREFIX_BUTTON is True
+
+
+class TestPlaylistTypedDicts:
+    """Test TypedDicts for Playlist API (Phase 17)."""
+
+    def test_playlist_create_response_types(self) -> None:
+        """Test EmbyPlaylistCreateResponse TypedDict structure."""
+        from custom_components.embymedia.const import EmbyPlaylistCreateResponse
+
+        # Verify TypedDict can be instantiated with required fields
+        response: EmbyPlaylistCreateResponse = {
+            "Id": "playlist123",
+            "Name": "Test Playlist",
+            "ItemAddedCount": 5,
+        }
+        assert response["Id"] == "playlist123"
+        assert response["Name"] == "Test Playlist"
+        assert response["ItemAddedCount"] == 5
+
+    def test_playlist_item_types(self) -> None:
+        """Test EmbyPlaylistItem TypedDict structure."""
+        from custom_components.embymedia.const import EmbyPlaylistItem
+
+        # Verify TypedDict can be instantiated with all expected fields
+        item: EmbyPlaylistItem = {
+            "Id": "item123",
+            "PlaylistItemId": "1",
+            "Name": "Test Track",
+            "Type": "Audio",
+        }
+        assert item["Id"] == "item123"
+        assert item["PlaylistItemId"] == "1"
+        assert item["Name"] == "Test Track"
+        assert item["Type"] == "Audio"
+
+    def test_playlist_item_with_image_tags(self) -> None:
+        """Test EmbyPlaylistItem with optional ImageTags field."""
+        from custom_components.embymedia.const import EmbyPlaylistItem
+
+        item: EmbyPlaylistItem = {
+            "Id": "item456",
+            "PlaylistItemId": "2",
+            "Name": "Another Track",
+            "Type": "Audio",
+            "ImageTags": {"Primary": "abc123"},
+        }
+        assert item["ImageTags"] == {"Primary": "abc123"}
