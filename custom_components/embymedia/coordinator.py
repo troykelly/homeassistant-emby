@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
@@ -35,6 +35,13 @@ if TYPE_CHECKING:
 
 # Minimum time between WebSocket-triggered refreshes (debouncing)
 WEBSOCKET_REFRESH_DEBOUNCE = timedelta(seconds=2)
+
+# Emby uses ticks (100 nanoseconds) for time tracking
+EMBY_TICKS_PER_SECOND = 10_000_000
+
+# Maximum seconds between playback progress updates to count as real playback
+# Larger gaps indicate seeks rather than actual watch time
+MAX_PLAYBACK_DELTA_SECONDS = 60
 
 # Client names that indicate web browser sessions
 WEB_PLAYER_CLIENTS: frozenset[str] = frozenset(
@@ -118,6 +125,10 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
         self._max_consecutive_failures: int = 5
         # Debouncing for WebSocket-triggered refreshes
         self._last_websocket_refresh: datetime | None = None
+        # Playback tracking (Phase 18)
+        self._playback_sessions: dict[str, dict[str, int | str]] = {}
+        self._daily_watch_time: int = 0  # Total seconds watched today
+        self._last_reset_date: date = date.today()
 
     @property
     def user_id(self) -> str | None:
@@ -145,6 +156,24 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
             self.config_entry.options.get(CONF_IGNORE_WEB_PLAYERS, DEFAULT_IGNORE_WEB_PLAYERS)
         )
 
+    @property
+    def daily_watch_time(self) -> int:
+        """Return total watch time today in seconds.
+
+        Returns:
+            Total seconds of video watched today.
+        """
+        return self._daily_watch_time
+
+    @property
+    def playback_sessions(self) -> dict[str, dict[str, int | str]]:
+        """Return currently tracked playback sessions.
+
+        Returns:
+            Dictionary mapping session IDs to session tracking data.
+        """
+        return self._playback_sessions
+
     def _is_web_player(self, session: EmbySession) -> bool:
         """Check if a session is from a web browser.
 
@@ -156,6 +185,49 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
         """
         client_name = session.client_name.lower()
         return any(web_client.lower() in client_name for web_client in WEB_PLAYER_CLIENTS)
+
+    def _track_playback_progress(self, data: dict[str, Any]) -> None:
+        """Track playback progress for watch time statistics.
+
+        Calculates watch time from position deltas, ignoring backward seeks
+        and large forward jumps (which indicate seeks rather than actual playback).
+
+        Args:
+            data: PlaybackProgress WebSocket event data.
+        """
+        # Reset daily counter if it's a new day
+        today = date.today()
+        if today != self._last_reset_date:
+            self._daily_watch_time = 0
+            self._last_reset_date = today
+
+        # Extract session ID - required for tracking
+        session_id = str(data.get("PlaySessionId", ""))
+        if not session_id:
+            return
+
+        position_ticks = data.get("PositionTicks", 0)
+        if not isinstance(position_ticks, int):
+            position_ticks = 0
+
+        # Calculate watch time since last update (only for existing sessions)
+        if session_id in self._playback_sessions:
+            last_position = self._playback_sessions[session_id].get("position_ticks", 0)
+            if isinstance(last_position, int) and position_ticks > last_position:
+                # Only count forward progress
+                ticks_delta = position_ticks - last_position
+                seconds_delta = ticks_delta // EMBY_TICKS_PER_SECOND
+                # Sanity check: don't count huge jumps (likely seeks)
+                if seconds_delta <= MAX_PLAYBACK_DELTA_SECONDS:
+                    self._daily_watch_time += seconds_delta
+
+        # Update session tracking
+        self._playback_sessions[session_id] = {
+            "position_ticks": position_ticks,
+            "last_update": datetime.now().isoformat(),
+            "item_id": str(data.get("ItemId", "")),
+            "item_name": str(data.get("ItemName", "")),
+        }
 
     async def _async_update_data(self) -> dict[str, EmbySession]:
         """Fetch session data from Emby server with graceful degradation.
@@ -369,10 +441,14 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
         if message_type == "Sessions":
             # Direct session update from WebSocket
             self._process_sessions_data(data)
+        elif message_type == "PlaybackProgress":
+            # Track playback progress for watch time statistics (Phase 18)
+            self._track_playback_progress(data)
+            # Also trigger a refresh to get latest session state
+            self._trigger_debounced_refresh()
         elif message_type in (
             "PlaybackStarted",
             "PlaybackStopped",
-            "PlaybackProgress",
             "SessionEnded",
         ):
             # Trigger a refresh to get latest session state (with debouncing)
