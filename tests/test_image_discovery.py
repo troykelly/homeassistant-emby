@@ -61,6 +61,14 @@ def mock_coordinator_with_data() -> MagicMock:
     coordinator.user_id = "user456"
     coordinator.user_name = "testuser"
     coordinator.last_update_success = True
+    coordinator.client = MagicMock()
+    coordinator.client.get_image_url = MagicMock(
+        side_effect=lambda item_id,
+        image_type="Primary",
+        max_width=None,
+        max_height=None,
+        tag=None: f"https://emby.local/Items/{item_id}/Images/{image_type}?tag={tag}"
+    )
     coordinator.data = EmbyDiscoveryData(
         next_up=[
             {
@@ -131,25 +139,26 @@ class TestEmbyNextUpImage:
         image = EmbyNextUpImage(mock_hass, mock_coordinator, "Emby Server")
         assert image._attr_name == "testuser Next Up"
 
-    def test_image_url_empty_data(
+    def test_no_image_when_empty_data(
         self,
         mock_hass: MagicMock,
         mock_coordinator: MagicMock,
     ) -> None:
-        """Test image_url is None when no data."""
+        """Test _current_image_id is None when no data."""
         image = EmbyNextUpImage(mock_hass, mock_coordinator, "Emby Server")
-        assert image._attr_image_url is None
+        assert image._current_image_id is None
 
-    def test_image_url_with_data(
+    def test_image_id_with_data(
         self,
         mock_hass: MagicMock,
         mock_coordinator_with_data: MagicMock,
     ) -> None:
-        """Test image_url points to proxy with first item."""
+        """Test image uses series ID for episodes."""
         image = EmbyNextUpImage(mock_hass, mock_coordinator_with_data, "Emby Server")
         # For episodes, should use series image
-        expected_url = "/api/embymedia/image/server123/series1/Primary?maxWidth=300&maxHeight=450&tag=seriestag1"
-        assert image._attr_image_url == expected_url
+        target_id, tag = image._get_image_info()
+        assert target_id == "series1"
+        assert tag == "seriestag1"
 
     def test_image_last_updated_set(
         self,
@@ -173,14 +182,14 @@ class TestEmbyNextUpImage:
         assert device_info["identifiers"] == {(DOMAIN, "server123")}
         assert device_info["name"] == "Emby Server"
 
-    def test_coordinator_update_changes_url(
+    def test_coordinator_update_detects_change(
         self,
         mock_hass: MagicMock,
         mock_coordinator_with_data: MagicMock,
     ) -> None:
-        """Test that coordinator update changes image URL when data changes."""
+        """Test that coordinator update detects image changes."""
         image = EmbyNextUpImage(mock_hass, mock_coordinator_with_data, "Emby Server")
-        old_url = image._attr_image_url
+        old_image_id = image._current_image_id
 
         # Change the data
         mock_coordinator_with_data.data = EmbyDiscoveryData(
@@ -199,11 +208,11 @@ class TestEmbyNextUpImage:
             suggestions=[],
         )
 
-        # Manually test the URL update logic (without calling parent which needs full HA context)
-        new_url = image._get_image_url()
-        assert new_url != old_url
-        assert "series2" in str(new_url)
-        assert "newseriestag" in str(new_url)
+        # Manually test the image info update logic
+        new_target_id, new_tag = image._get_image_info()
+        assert new_target_id != old_image_id
+        assert new_target_id == "series2"
+        assert new_tag == "newseriestag"
 
 
 class TestEmbyContinueWatchingImage:
@@ -218,18 +227,17 @@ class TestEmbyContinueWatchingImage:
         image = EmbyContinueWatchingImage(mock_hass, mock_coordinator, "Emby Server")
         assert image._attr_unique_id == "server123_user456_continue_watching_image"
 
-    def test_image_url_with_movie(
+    def test_image_info_for_movie(
         self,
         mock_hass: MagicMock,
         mock_coordinator_with_data: MagicMock,
     ) -> None:
-        """Test image_url for movie uses item image."""
+        """Test image info for movie uses item image."""
         image = EmbyContinueWatchingImage(mock_hass, mock_coordinator_with_data, "Emby Server")
         # Movies use their own primary image
-        expected_url = (
-            "/api/embymedia/image/server123/movie1/Primary?maxWidth=300&maxHeight=450&tag=movietag1"
-        )
-        assert image._attr_image_url == expected_url
+        target_id, tag = image._get_image_info()
+        assert target_id == "movie1"
+        assert tag == "movietag1"
 
 
 class TestEmbyRecentlyAddedImage:
@@ -244,17 +252,16 @@ class TestEmbyRecentlyAddedImage:
         image = EmbyRecentlyAddedImage(mock_hass, mock_coordinator, "Emby Server")
         assert image._attr_unique_id == "server123_user456_recently_added_image"
 
-    def test_image_url_with_data(
+    def test_image_info_with_data(
         self,
         mock_hass: MagicMock,
         mock_coordinator_with_data: MagicMock,
     ) -> None:
-        """Test image_url for recently added."""
+        """Test image info for recently added."""
         image = EmbyRecentlyAddedImage(mock_hass, mock_coordinator_with_data, "Emby Server")
-        expected_url = (
-            "/api/embymedia/image/server123/new1/Primary?maxWidth=300&maxHeight=450&tag=newtag1"
-        )
-        assert image._attr_image_url == expected_url
+        target_id, tag = image._get_image_info()
+        assert target_id == "new1"
+        assert tag == "newtag1"
 
 
 class TestEmbySuggestionsImage:
@@ -269,15 +276,16 @@ class TestEmbySuggestionsImage:
         image = EmbySuggestionsImage(mock_hass, mock_coordinator, "Emby Server")
         assert image._attr_unique_id == "server123_user456_suggestions_image"
 
-    def test_image_url_with_data(
+    def test_image_info_with_data(
         self,
         mock_hass: MagicMock,
         mock_coordinator_with_data: MagicMock,
     ) -> None:
-        """Test image_url for suggestions."""
+        """Test image info for suggestions."""
         image = EmbySuggestionsImage(mock_hass, mock_coordinator_with_data, "Emby Server")
-        expected_url = "/api/embymedia/image/server123/suggest1/Primary?maxWidth=300&maxHeight=450&tag=suggesttag1"
-        assert image._attr_image_url == expected_url
+        target_id, tag = image._get_image_info()
+        assert target_id == "suggest1"
+        assert tag == "suggesttag1"
 
 
 class TestDiscoveryImageNoData:
@@ -288,17 +296,17 @@ class TestDiscoveryImageNoData:
         mock_hass: MagicMock,
         mock_coordinator: MagicMock,
     ) -> None:
-        """Test image_url is None when coordinator.data is None."""
+        """Test image_id is None when coordinator.data is None."""
         mock_coordinator.data = None
         image = EmbyNextUpImage(mock_hass, mock_coordinator, "Emby Server")
-        assert image._attr_image_url is None
+        assert image._current_image_id is None
 
     def test_available_when_no_data(
         self,
         mock_hass: MagicMock,
         mock_coordinator: MagicMock,
     ) -> None:
-        """Test entity is unavailable when no data."""
+        """Test entity is available when coordinator successful."""
         mock_coordinator.data = None
         mock_coordinator.last_update_success = True
         image = EmbyNextUpImage(mock_hass, mock_coordinator, "Emby Server")

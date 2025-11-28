@@ -10,6 +10,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from homeassistant.components.image import ImageEntity
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
@@ -37,7 +38,7 @@ class EmbyDiscoveryImageBase(
     """Base class for Emby discovery image entities.
 
     Shows the cover art for the first item in a discovery category.
-    Uses the HA image proxy to serve images without exposing API keys.
+    Fetches images directly from Emby server using the coordinator's client.
     """
 
     _attr_has_entity_name = True
@@ -59,8 +60,9 @@ class EmbyDiscoveryImageBase(
         CoordinatorEntity.__init__(self, coordinator)
         ImageEntity.__init__(self, hass)
         self._server_name = server_name
-        self._attr_image_url = self._get_image_url()
-        if self._attr_image_url:
+        self._current_image_id: str | None = None
+        self._update_image_id()
+        if self._current_image_id:
             self._attr_image_last_updated = dt_util.utcnow()
         else:
             self._attr_image_last_updated = None
@@ -90,20 +92,20 @@ class EmbyDiscoveryImageBase(
         items: list[dict[str, Any]] = self.coordinator.data.get(self._discovery_key, [])
         return items
 
-    def _get_image_url(self) -> str | None:
-        """Generate the proxy image URL for the first item.
+    def _get_image_info(self) -> tuple[str | None, str | None]:
+        """Get the item ID and image tag for the first item.
 
         Returns:
-            Proxy URL string or None if no items.
+            Tuple of (item_id, tag) or (None, None) if no items.
         """
         items = self._get_items()
         if not items:
-            return None
+            return None, None
 
         item = items[0]
         item_id = str(item.get("Id", ""))
         if not item_id:
-            return None
+            return None, None
 
         item_type = str(item.get("Type", ""))
         series_id = item.get("SeriesId")
@@ -113,25 +115,61 @@ class EmbyDiscoveryImageBase(
         # For episodes, prefer series image
         if item_type == "Episode" and series_id:
             target_id = str(series_id)
-            tag = series_primary_tag
+            tag = str(series_primary_tag) if series_primary_tag else None
         else:
             target_id = item_id
             tag = image_tags.get("Primary")
 
-        # Build proxy URL
-        url = f"/api/embymedia/image/{self.coordinator.server_id}/{target_id}/Primary"
-        params: list[str] = ["maxWidth=300", "maxHeight=450"]
-        if tag:
-            params.append(f"tag={tag}")
+        return target_id, tag
 
-        return f"{url}?{'&'.join(params)}"
+    def _update_image_id(self) -> None:
+        """Update the current image ID from coordinator data."""
+        target_id, _ = self._get_image_info()
+        self._current_image_id = target_id
+
+    async def async_image(self) -> bytes | None:
+        """Return bytes of image by fetching from Emby server.
+
+        This fetches the image directly from Emby using the client's
+        credentials, avoiding the need for external URL access.
+        """
+        target_id, tag = self._get_image_info()
+        if not target_id:
+            return None
+
+        # Build the Emby image URL
+        image_url = self.coordinator.client.get_image_url(
+            item_id=target_id,
+            image_type="Primary",
+            max_width=300,
+            max_height=450,
+            tag=tag,
+        )
+
+        # Fetch the image
+        session = async_get_clientsession(self.hass)
+        try:
+            async with session.get(image_url) as response:
+                if response.status == 200:
+                    content_type = response.headers.get("Content-Type", "image/jpeg")
+                    self._attr_content_type = content_type
+                    return await response.read()
+                _LOGGER.debug(
+                    "Failed to fetch image for %s: HTTP %s",
+                    self.entity_id,
+                    response.status,
+                )
+                return None
+        except Exception as err:  # pylint: disable=broad-exception-caught
+            _LOGGER.debug("Error fetching image for %s: %s", self.entity_id, err)
+            return None
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        new_url = self._get_image_url()
+        old_image_id = self._current_image_id
+        self._update_image_id()
 
-        if new_url != self._attr_image_url:
-            self._attr_image_url = new_url
+        if self._current_image_id != old_image_id:
             self._cached_image = None
             self._attr_image_last_updated = dt_util.utcnow()
 
