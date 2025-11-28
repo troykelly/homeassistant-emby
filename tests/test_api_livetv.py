@@ -206,6 +206,18 @@ class TestTimers:
             call_args = mock_req.call_args
             assert "ChannelId=ch1" in call_args[0][1]
 
+    async def test_get_timers_with_series_timer_filter(self, emby_client: EmbyClient) -> None:
+        """Test timers retrieval filtered by series timer ID."""
+        mock_response = {"Items": []}
+
+        with patch.object(emby_client, "_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = mock_response
+
+            await emby_client.async_get_timers(series_timer_id="st123")
+
+            call_args = mock_req.call_args
+            assert "SeriesTimerId=st123" in call_args[0][1]
+
     async def test_get_timer_defaults_success(self, emby_client: EmbyClient) -> None:
         """Test getting timer defaults for a program."""
         mock_response: EmbyTimerDefaults = {
@@ -384,6 +396,28 @@ class TestPrograms:
 
             call_args = mock_req.call_args
             assert "IsAiring=true" in call_args[0][1]
+
+    async def test_get_programs_has_aired_filter(self, emby_client: EmbyClient) -> None:
+        """Test programs retrieval filtering by has_aired status."""
+        mock_response = {"Items": [], "TotalRecordCount": 0}
+
+        with patch.object(emby_client, "_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = mock_response
+
+            # Test with has_aired=True
+            await emby_client.async_get_programs(user_id="user1", has_aired=True)
+
+            call_args = mock_req.call_args
+            assert "HasAired=true" in call_args[0][1]
+
+        with patch.object(emby_client, "_request", new_callable=AsyncMock) as mock_req:
+            mock_req.return_value = mock_response
+
+            # Test with has_aired=False
+            await emby_client.async_get_programs(user_id="user1", has_aired=False)
+
+            call_args = mock_req.call_args
+            assert "HasAired=false" in call_args[0][1]
 
     async def test_get_recommended_programs_success(self, emby_client: EmbyClient) -> None:
         """Test getting recommended programs."""

@@ -31,6 +31,10 @@ SERVICE_REMOVE_FAVORITE = "remove_favorite"
 SERVICE_REFRESH_LIBRARY = "refresh_library"
 SERVICE_PLAY_INSTANT_MIX = "play_instant_mix"
 SERVICE_PLAY_SIMILAR = "play_similar"
+# Live TV services (Phase 16)
+SERVICE_SCHEDULE_RECORDING = "schedule_recording"
+SERVICE_CANCEL_RECORDING = "cancel_recording"
+SERVICE_CANCEL_SERIES_TIMER = "cancel_series_timer"
 
 # Service attributes
 ATTR_MESSAGE = "message"
@@ -40,6 +44,12 @@ ATTR_COMMAND = "command"
 ATTR_ITEM_ID = "item_id"
 ATTR_LIBRARY_ID = "library_id"
 ATTR_USER_ID = "user_id"
+# Live TV service attributes (Phase 16)
+ATTR_PROGRAM_ID = "program_id"
+ATTR_TIMER_ID = "timer_id"
+ATTR_SERIES_TIMER_ID = "series_timer_id"
+ATTR_PRE_PADDING_SECONDS = "pre_padding_seconds"
+ATTR_POST_PADDING_SECONDS = "post_padding_seconds"
 
 # Service schemas - support both entity_id and device_id targeting
 SEND_MESSAGE_SCHEMA = vol.Schema(
@@ -85,6 +95,37 @@ PLAY_MIX_SCHEMA = vol.Schema(
         vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
         vol.Required(ATTR_ITEM_ID): cv.string,
         vol.Optional(ATTR_USER_ID): cv.string,
+    }
+)
+
+# Live TV service schemas (Phase 16)
+SCHEDULE_RECORDING_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
+        vol.Required(ATTR_PROGRAM_ID): cv.string,
+        vol.Optional(ATTR_PRE_PADDING_SECONDS): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=3600)
+        ),
+        vol.Optional(ATTR_POST_PADDING_SECONDS): vol.All(
+            vol.Coerce(int), vol.Range(min=0, max=3600)
+        ),
+    }
+)
+
+CANCEL_RECORDING_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
+        vol.Required(ATTR_TIMER_ID): cv.string,
+    }
+)
+
+CANCEL_SERIES_TIMER_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
+        vol.Required(ATTR_SERIES_TIMER_ID): cv.string,
     }
 )
 
@@ -495,6 +536,89 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to play similar items for {entity_id}: {err}"
                 ) from err
 
+    # Live TV Services (Phase 16)
+    async def async_schedule_recording(call: ServiceCall) -> None:
+        """Schedule a one-time recording."""
+        entity_ids = _get_entity_ids_from_call(hass, call)
+        program_id: str = call.data[ATTR_PROGRAM_ID]
+        pre_padding: int | None = call.data.get(ATTR_PRE_PADDING_SECONDS)
+        post_padding: int | None = call.data.get(ATTR_POST_PADDING_SECONDS)
+
+        # Validate program ID
+        _validate_emby_id(program_id, "program_id")
+
+        for entity_id in entity_ids:
+            coordinator = _get_coordinator_for_entity(hass, entity_id)
+
+            try:
+                # Get default timer settings from server
+                timer_defaults = await coordinator.client.async_get_timer_defaults(
+                    program_id=program_id
+                )
+
+                # Convert to mutable dict and override with user-provided values
+                timer_data: dict[str, object] = dict(timer_defaults)
+                if pre_padding is not None:
+                    timer_data["PrePaddingSeconds"] = pre_padding
+                if post_padding is not None:
+                    timer_data["PostPaddingSeconds"] = post_padding
+
+                # Create the timer
+                await coordinator.client.async_create_timer(timer_data=timer_data)
+
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to schedule recording for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(
+                    f"Failed to schedule recording for {entity_id}: {err}"
+                ) from err
+
+    async def async_cancel_recording(call: ServiceCall) -> None:
+        """Cancel a scheduled recording."""
+        entity_ids = _get_entity_ids_from_call(hass, call)
+        timer_id: str = call.data[ATTR_TIMER_ID]
+
+        # Validate timer ID
+        _validate_emby_id(timer_id, "timer_id")
+
+        for entity_id in entity_ids:
+            coordinator = _get_coordinator_for_entity(hass, entity_id)
+
+            try:
+                await coordinator.client.async_cancel_timer(timer_id=timer_id)
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to cancel recording for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(
+                    f"Failed to cancel recording for {entity_id}: {err}"
+                ) from err
+
+    async def async_cancel_series_timer(call: ServiceCall) -> None:
+        """Cancel a series recording timer."""
+        entity_ids = _get_entity_ids_from_call(hass, call)
+        series_timer_id: str = call.data[ATTR_SERIES_TIMER_ID]
+
+        # Validate series timer ID
+        _validate_emby_id(series_timer_id, "series_timer_id")
+
+        for entity_id in entity_ids:
+            coordinator = _get_coordinator_for_entity(hass, entity_id)
+
+            try:
+                await coordinator.client.async_cancel_series_timer(series_timer_id=series_timer_id)
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to cancel series timer for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(
+                    f"Failed to cancel series timer for {entity_id}: {err}"
+                ) from err
+
     # Register services
     hass.services.async_register(
         DOMAIN,
@@ -550,6 +674,25 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         async_play_similar,
         schema=PLAY_MIX_SCHEMA,
     )
+    # Live TV services (Phase 16)
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SCHEDULE_RECORDING,
+        async_schedule_recording,
+        schema=SCHEDULE_RECORDING_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CANCEL_RECORDING,
+        async_cancel_recording,
+        schema=CANCEL_RECORDING_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CANCEL_SERIES_TIMER,
+        async_cancel_series_timer,
+        schema=CANCEL_SERIES_TIMER_SCHEMA,
+    )
 
     _LOGGER.debug("Emby services registered")
 
@@ -572,6 +715,10 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_REFRESH_LIBRARY)
     hass.services.async_remove(DOMAIN, SERVICE_PLAY_INSTANT_MIX)
     hass.services.async_remove(DOMAIN, SERVICE_PLAY_SIMILAR)
+    # Live TV services (Phase 16)
+    hass.services.async_remove(DOMAIN, SERVICE_SCHEDULE_RECORDING)
+    hass.services.async_remove(DOMAIN, SERVICE_CANCEL_RECORDING)
+    hass.services.async_remove(DOMAIN, SERVICE_CANCEL_SERIES_TIMER)
 
     _LOGGER.debug("Emby services unregistered")
 

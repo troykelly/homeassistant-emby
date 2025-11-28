@@ -105,6 +105,9 @@
       },
       "library_scan_active": {
         "name": "Library Scan Active"
+      },
+      "live_tv_enabled": {
+        "name": "Live TV Enabled"
       }
     },
     "sensor": {
@@ -146,6 +149,18 @@
       },
       "suggestions": {
         "name": "Suggestions"
+      },
+      "recording_count": {
+        "name": "Recordings"
+      },
+      "active_recordings": {
+        "name": "Active Recordings"
+      },
+      "scheduled_timer_count": {
+        "name": "Scheduled Recordings"
+      },
+      "series_timer_count": {
+        "name": "Series Recording Rules"
       }
     },
     "image": {
@@ -283,6 +298,44 @@
         "user_id": {
           "name": "User ID",
           "description": "Optional user ID (uses session user if not specified)."
+        }
+      }
+    },
+    "schedule_recording": {
+      "name": "Schedule Recording",
+      "description": "Schedule a one-time recording for a Live TV program.",
+      "fields": {
+        "program_id": {
+          "name": "Program ID",
+          "description": "The Emby program ID to record."
+        },
+        "pre_padding_seconds": {
+          "name": "Pre-padding",
+          "description": "Seconds to start recording before the program begins (0-3600)."
+        },
+        "post_padding_seconds": {
+          "name": "Post-padding",
+          "description": "Seconds to continue recording after the program ends (0-3600)."
+        }
+      }
+    },
+    "cancel_recording": {
+      "name": "Cancel Recording",
+      "description": "Cancel a scheduled recording timer.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer ID",
+          "description": "The Emby timer ID to cancel."
+        }
+      }
+    },
+    "cancel_series_timer": {
+      "name": "Cancel Series Timer",
+      "description": "Cancel a series recording timer (stops all future recordings in the series).",
+      "fields": {
+        "series_timer_id": {
+          "name": "Series Timer ID",
+          "description": "The Emby series timer ID to cancel."
         }
       }
     }
