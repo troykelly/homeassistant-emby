@@ -876,6 +876,211 @@ class SuggestionItem(TypedDict, total=False):
 
 
 # =============================================================================
+# TypedDicts for Live TV API (Phase 16)
+# =============================================================================
+
+
+class EmbyLiveTvInfo(TypedDict, total=False):
+    """Response from /LiveTv/Info endpoint.
+
+    Contains Live TV configuration and status information.
+    """
+
+    # Required fields (use NotRequired for optional)
+    IsEnabled: bool
+    EnabledUsers: list[str]  # User IDs with Live TV access
+
+    # Optional fields
+    Services: list[dict[str, object]]
+    TunerCount: int  # Number of available tuners
+    ActiveRecordingCount: int
+    HomePageUrl: str
+    Status: str  # "Ok", "LiveTvNotConfigured", etc.
+    StatusMessage: str
+
+
+class EmbyRecording(TypedDict, total=False):
+    """Recorded program information from /LiveTv/Recordings.
+
+    Recordings are library items with additional Live TV-specific fields.
+    """
+
+    # Standard item fields
+    Id: str
+    Name: str
+    Type: str  # "Episode", "Movie", "Recording"
+    ServerId: str
+    IsFolder: bool
+
+    # Recording-specific fields
+    ChannelId: str
+    ChannelName: str
+    StartDate: str  # ISO 8601 datetime
+    EndDate: str  # ISO 8601 datetime
+    Status: str  # "Completed", "Recording", "Error", "Cancelled"
+    IsRepeat: bool
+    EpisodeTitle: str
+    SeriesTimerId: str  # If part of series recording
+    TimerId: str  # Original timer that created this recording
+    RunTimeTicks: int
+
+    # Program metadata
+    Overview: str
+    SeriesName: str
+    SeasonNumber: int
+    EpisodeNumber: int
+    ProductionYear: int
+    ImageTags: dict[str, str]
+    BackdropImageTags: list[str]
+    MediaType: str
+
+
+class EmbyTimer(TypedDict, total=False):
+    """Timer (scheduled recording) from /LiveTv/Timers."""
+
+    # Required fields
+    Id: str
+    Type: str  # "Timer"
+    ChannelId: str
+    ChannelName: str
+    ProgramId: str
+    Name: str
+    StartDate: str  # ISO 8601 datetime
+    EndDate: str  # ISO 8601 datetime
+    Status: str  # "New", "InProgress", "Completed", "Cancelled", "ConflictedNotOk"
+
+    # Optional fields
+    SeriesTimerId: str  # If created by series timer
+    PrePaddingSeconds: int  # Recording starts early
+    PostPaddingSeconds: int  # Recording ends late
+    Priority: int  # Higher priority wins conflicts
+    IsManual: bool  # User-created vs auto-created
+    IsPrePaddingRequired: bool
+    IsPostPaddingRequired: bool
+    KeepUntil: str  # "UntilDeleted", "UntilSpaceNeeded", etc.
+
+    # Program metadata
+    Overview: str
+    EpisodeTitle: str
+    SeriesName: str
+    SeasonNumber: int
+    EpisodeNumber: int
+    RunTimeTicks: int
+    ImageTags: dict[str, str]
+    ChannelNumber: str
+    ChannelPrimaryImageTag: str
+    ProgramInfo: dict[str, object]  # Full program info nested object
+
+
+class EmbySeriesTimer(TypedDict, total=False):
+    """Series timer (recording rule) from /LiveTv/SeriesTimers."""
+
+    # Required fields
+    Id: str
+    Type: str  # "SeriesTimer"
+    Name: str
+    ChannelId: str
+    ChannelName: str
+    ProgramId: str
+
+    # Recording rules
+    RecordAnyTime: bool  # Record regardless of time slot
+    RecordAnyChannel: bool  # Record on any channel
+    RecordNewOnly: bool  # Skip repeats
+    SkipEpisodesInLibrary: bool  # Don't record episodes already in library
+    MatchExistingItemsWithAnyLibrary: bool
+
+    # Keep settings
+    KeepUpTo: int  # Number of recordings to keep
+    KeepUntil: str  # "UntilDeleted", "UntilSpaceNeeded"
+    MaxRecordingSeconds: int
+
+    # Timing
+    Days: list[str]  # ["Monday", "Tuesday", ...]
+    ChannelIds: list[str]  # For RecordAnyChannel
+    StartDate: str  # ISO 8601 datetime
+    EndDate: str  # ISO 8601 datetime (when rule expires)
+    PrePaddingSeconds: int
+    PostPaddingSeconds: int
+    Priority: int
+    IsPrePaddingRequired: bool
+    IsPostPaddingRequired: bool
+
+    # Metadata
+    SeriesId: str
+    Overview: str
+    ChannelNumber: str
+    ImageTags: dict[str, str]
+    Keywords: list[str]
+    TimerType: str
+    ServerId: str
+    ParentPrimaryImageItemId: str
+    ParentPrimaryImageTag: str
+
+
+class EmbyTimerDefaults(TypedDict, total=False):
+    """Default timer settings from /LiveTv/Timers/Defaults.
+
+    Used to pre-populate timer creation with server defaults.
+    """
+
+    ProgramId: str
+    ChannelId: str
+    StartDate: str
+    EndDate: str
+    PrePaddingSeconds: int
+    PostPaddingSeconds: int
+    Priority: int
+    IsPrePaddingRequired: bool
+    IsPostPaddingRequired: bool
+
+
+class EmbyProgram(TypedDict, total=False):
+    """EPG program information from /LiveTv/Programs."""
+
+    # Required fields
+    Id: str
+    Type: str  # "Program"
+    Name: str
+    ChannelId: str
+    ChannelName: str
+    StartDate: str  # ISO 8601 datetime
+    EndDate: str  # ISO 8601 datetime
+
+    # Optional fields
+    ServerId: str
+    Overview: str
+    EpisodeTitle: str
+    SeriesName: str
+    SeasonName: str
+    SeasonNumber: int
+    EpisodeNumber: int
+    IndexNumber: int
+    ParentIndexNumber: int
+    IsRepeat: bool
+    IsMovie: bool
+    IsSeries: bool
+    IsSports: bool
+    IsNews: bool
+    IsKids: bool
+    IsLive: bool
+    IsPremiere: bool
+    ImageTags: dict[str, str]
+    BackdropImageTags: list[str]
+    RunTimeTicks: int
+    TimerId: str  # If scheduled to record
+    SeriesTimerId: str  # If part of series timer
+    UserData: dict[str, object]  # Playback state
+    MediaType: str
+
+
+# Live TV configuration constants
+CONF_ENABLE_LIVE_TV_SENSORS: Final = "enable_live_tv_sensors"
+DEFAULT_ENABLE_LIVE_TV_SENSORS: Final = True
+DEFAULT_LIVE_TV_SCAN_INTERVAL: Final = 300  # 5 minutes in seconds
+
+
+# =============================================================================
 # Discovery Sensor Configuration Constants (Phase 15)
 # =============================================================================
 
