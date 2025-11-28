@@ -76,6 +76,9 @@ async def async_setup_entry(
         EmbyActiveRecordingsSensor(server_coordinator),
         EmbyScheduledTimerCountSensor(server_coordinator),
         EmbySeriesTimerCountSensor(server_coordinator),
+        # Activity & Device sensors (Phase 18)
+        EmbyLastActivitySensor(server_coordinator),
+        EmbyConnectedDevicesSensor(server_coordinator),
     ]
 
     # Add discovery sensors for each user's coordinator
