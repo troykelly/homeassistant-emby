@@ -423,10 +423,163 @@ class EmbySuggestionsSensor(EmbyDiscoverySensorBase):
         return {"items": items, "user_id": self.coordinator.user_id}
 
 
+# =============================================================================
+# User Count Sensors (Per-User Statistics)
+# =============================================================================
+
+
+class EmbyUserFavoritesCountSensor(EmbyDiscoverySensorBase):
+    """Sensor showing count of user's favorited items.
+
+    Shows the total number of items the user has marked as favorite.
+    """
+
+    _attr_icon = "mdi:heart"
+    _attr_translation_key = "user_favorites_count"
+
+    def __init__(
+        self,
+        coordinator: EmbyDiscoveryCoordinator,
+        server_name: str,
+    ) -> None:
+        """Initialize the user favorites count sensor."""
+        super().__init__(coordinator, server_name)
+        self._attr_unique_id = f"{coordinator.server_id}_{coordinator.user_id}_favorites_count"
+        self._attr_name = f"{coordinator.user_name} Favorites"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the count of favorited items."""
+        if self.coordinator.data is None:
+            return None
+        user_counts = self.coordinator.data.get("user_counts")
+        if user_counts is None:
+            return None
+        count: int = user_counts.get("favorites_count", 0)
+        return count
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str]:
+        """Return extra state attributes."""
+        return {"user_id": self.coordinator.user_id}
+
+
+class EmbyUserPlayedCountSensor(EmbyDiscoverySensorBase):
+    """Sensor showing count of user's watched/played items.
+
+    Shows the total number of items the user has marked as played.
+    """
+
+    _attr_icon = "mdi:check-circle"
+    _attr_translation_key = "user_played_count"
+
+    def __init__(
+        self,
+        coordinator: EmbyDiscoveryCoordinator,
+        server_name: str,
+    ) -> None:
+        """Initialize the user played count sensor."""
+        super().__init__(coordinator, server_name)
+        self._attr_unique_id = f"{coordinator.server_id}_{coordinator.user_id}_played_count"
+        self._attr_name = f"{coordinator.user_name} Watched"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the count of played items."""
+        if self.coordinator.data is None:
+            return None
+        user_counts = self.coordinator.data.get("user_counts")
+        if user_counts is None:
+            return None
+        count: int = user_counts.get("played_count", 0)
+        return count
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str]:
+        """Return extra state attributes."""
+        return {"user_id": self.coordinator.user_id}
+
+
+class EmbyUserInProgressCountSensor(EmbyDiscoverySensorBase):
+    """Sensor showing count of user's in-progress items.
+
+    Shows the total number of items the user has started but not finished.
+    """
+
+    _attr_icon = "mdi:progress-clock"
+    _attr_translation_key = "user_in_progress_count"
+
+    def __init__(
+        self,
+        coordinator: EmbyDiscoveryCoordinator,
+        server_name: str,
+    ) -> None:
+        """Initialize the user in-progress count sensor."""
+        super().__init__(coordinator, server_name)
+        self._attr_unique_id = f"{coordinator.server_id}_{coordinator.user_id}_in_progress_count"
+        self._attr_name = f"{coordinator.user_name} In Progress"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the count of in-progress items."""
+        if self.coordinator.data is None:
+            return None
+        user_counts = self.coordinator.data.get("user_counts")
+        if user_counts is None:
+            return None
+        count: int = user_counts.get("resumable_count", 0)
+        return count
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str]:
+        """Return extra state attributes."""
+        return {"user_id": self.coordinator.user_id}
+
+
+class EmbyUserPlaylistCountSensor(EmbyDiscoverySensorBase):
+    """Sensor showing count of user's playlists.
+
+    Shows the total number of playlists owned by the user.
+    """
+
+    _attr_icon = "mdi:playlist-music"
+    _attr_translation_key = "user_playlist_count"
+
+    def __init__(
+        self,
+        coordinator: EmbyDiscoveryCoordinator,
+        server_name: str,
+    ) -> None:
+        """Initialize the user playlist count sensor."""
+        super().__init__(coordinator, server_name)
+        self._attr_unique_id = f"{coordinator.server_id}_{coordinator.user_id}_playlist_count"
+        self._attr_name = f"{coordinator.user_name} Playlists"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the count of playlists."""
+        if self.coordinator.data is None:
+            return None
+        user_counts = self.coordinator.data.get("user_counts")
+        if user_counts is None:
+            return None
+        count: int = user_counts.get("playlist_count", 0)
+        return count
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str]:
+        """Return extra state attributes."""
+        return {"user_id": self.coordinator.user_id}
+
+
 __all__ = [
     "EmbyContinueWatchingSensor",
     "EmbyDiscoverySensorBase",
     "EmbyNextUpSensor",
     "EmbyRecentlyAddedSensor",
     "EmbySuggestionsSensor",
+    "EmbyUserFavoritesCountSensor",
+    "EmbyUserInProgressCountSensor",
+    "EmbyUserPlayedCountSensor",
+    "EmbyUserPlaylistCountSensor",
 ]

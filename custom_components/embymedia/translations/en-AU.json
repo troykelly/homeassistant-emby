@@ -164,6 +164,30 @@
       },
       "series_timer_count": {
         "name": "Series Recording Rules"
+      },
+      "last_activity": {
+        "name": "Last Activity"
+      },
+      "connected_devices": {
+        "name": "Connected Devices"
+      },
+      "watch_statistics": {
+        "name": "Watch Statistics"
+      },
+      "user_watch_statistics": {
+        "name": "User Watch Time"
+      },
+      "user_favorites_count": {
+        "name": "User Favourites"
+      },
+      "user_played_count": {
+        "name": "User Watched"
+      },
+      "user_in_progress_count": {
+        "name": "User In Progress"
+      },
+      "user_playlist_count": {
+        "name": "User Playlists"
       }
     },
     "image": {

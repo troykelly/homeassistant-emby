@@ -164,6 +164,30 @@
       },
       "series_timer_count": {
         "name": "Règles d'enregistrement de séries"
+      },
+      "last_activity": {
+        "name": "Last Activity"
+      },
+      "connected_devices": {
+        "name": "Connected Devices"
+      },
+      "watch_statistics": {
+        "name": "Watch Statistics"
+      },
+      "user_watch_statistics": {
+        "name": "Temps de visionnage utilisateur"
+      },
+      "user_favorites_count": {
+        "name": "Favoris utilisateur"
+      },
+      "user_played_count": {
+        "name": "Vus utilisateur"
+      },
+      "user_in_progress_count": {
+        "name": "En cours utilisateur"
+      },
+      "user_playlist_count": {
+        "name": "Playlists utilisateur"
       }
     },
     "image": {

@@ -16,6 +16,8 @@ from .const import (
     DEFAULT_LIBRARY_SCAN_INTERVAL,
     DEFAULT_SERVER_SCAN_INTERVAL,
     DOMAIN,
+    EmbyActivityLogEntry,
+    EmbyDeviceInfo,
     EmbyScheduledTask,
     EmbyVirtualFolder,
 )
@@ -47,6 +49,14 @@ class EmbyServerData(TypedDict, total=False):
     recording_count: int
     scheduled_timer_count: int
     series_timer_count: int
+
+    # Activity log fields (Phase 18)
+    recent_activities: list[EmbyActivityLogEntry]
+    activity_count: int
+
+    # Device fields (Phase 18)
+    devices: list[EmbyDeviceInfo]
+    device_count: int
 
 
 class EmbyLibraryData(TypedDict, total=False):
@@ -192,6 +202,30 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
                 # TypeError/AttributeError can occur if client doesn't have the method (e.g., in tests)
                 _LOGGER.debug("Could not fetch Live TV info, Live TV may not be configured")
 
+            # Fetch Activity Log (Phase 18) - graceful error handling
+            recent_activities: list[EmbyActivityLogEntry] = []
+            activity_count = 0
+            try:
+                activity_response = await self.client.async_get_activity_log(
+                    start_index=0,
+                    limit=20,  # Fetch last 20 entries
+                )
+                recent_activities = activity_response.get("Items", [])
+                activity_count = activity_response.get("TotalRecordCount", 0)
+            except (EmbyError, TypeError, AttributeError):
+                _LOGGER.debug("Could not fetch activity log")
+
+            # Fetch Devices (Phase 18) - graceful error handling
+            devices: list[EmbyDeviceInfo] = []
+            device_count = 0
+            try:
+                devices_response = await self.client.async_get_devices()
+                devices = devices_response.get("Items", [])
+                # Use actual item count (TotalRecordCount may be 0 due to API quirk)
+                device_count = len(devices)
+            except (EmbyError, TypeError, AttributeError):
+                _LOGGER.debug("Could not fetch devices")
+
             return EmbyServerData(
                 server_version=str(server_info.get("Version", "Unknown")),
                 has_pending_restart=bool(server_info.get("HasPendingRestart", False)),
@@ -206,6 +240,10 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
                 recording_count=recording_count,
                 scheduled_timer_count=scheduled_timer_count,
                 series_timer_count=series_timer_count,
+                recent_activities=recent_activities,
+                activity_count=activity_count,
+                devices=devices,
+                device_count=device_count,
             )
 
         except EmbyConnectionError as err:

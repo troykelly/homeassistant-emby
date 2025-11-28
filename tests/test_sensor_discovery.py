@@ -11,12 +11,17 @@ from custom_components.embymedia.const import DOMAIN
 from custom_components.embymedia.coordinator_discovery import (
     EmbyDiscoveryCoordinator,
     EmbyDiscoveryData,
+    EmbyUserCounts,
 )
 from custom_components.embymedia.sensor_discovery import (
     EmbyContinueWatchingSensor,
     EmbyNextUpSensor,
     EmbyRecentlyAddedSensor,
     EmbySuggestionsSensor,
+    EmbyUserFavoritesCountSensor,
+    EmbyUserInProgressCountSensor,
+    EmbyUserPlayedCountSensor,
+    EmbyUserPlaylistCountSensor,
 )
 
 if TYPE_CHECKING:
@@ -584,3 +589,267 @@ class TestImageUrlEdgeCases:
         assert attrs is not None
         # Should use series image for episodes with SeriesId
         assert "parent_series" in attrs["items"][0]["image_url"]
+
+
+class TestEmbyUserFavoritesCountSensor:
+    """Test EmbyUserFavoritesCountSensor."""
+
+    def test_sensor_initialization(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test sensor initializes with correct attributes."""
+        sensor = EmbyUserFavoritesCountSensor(mock_coordinator, "Emby Server")
+        assert sensor._attr_unique_id == "server123_user456_favorites_count"
+        assert sensor._attr_name == "testuser Favorites"
+        assert sensor._attr_icon == "mdi:heart"
+
+    def test_native_value_with_data(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns favorites count when data available."""
+        mock_coordinator.data = EmbyDiscoveryData(
+            next_up=[],
+            continue_watching=[],
+            recently_added=[],
+            suggestions=[],
+            user_counts=EmbyUserCounts(
+                favorites_count=42,
+                played_count=100,
+                resumable_count=5,
+                playlist_count=3,
+            ),
+        )
+        sensor = EmbyUserFavoritesCountSensor(mock_coordinator, "Emby Server")
+        assert sensor.native_value == 42
+
+    def test_native_value_no_data(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns None when no data."""
+        mock_coordinator.data = None
+        sensor = EmbyUserFavoritesCountSensor(mock_coordinator, "Emby Server")
+        assert sensor.native_value is None
+
+    def test_native_value_no_user_counts(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns None when user_counts missing."""
+        mock_coordinator.data = EmbyDiscoveryData(
+            next_up=[],
+            continue_watching=[],
+            recently_added=[],
+            suggestions=[],
+        )
+        sensor = EmbyUserFavoritesCountSensor(mock_coordinator, "Emby Server")
+        assert sensor.native_value is None
+
+    def test_extra_state_attributes(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test extra_state_attributes includes user_id."""
+        sensor = EmbyUserFavoritesCountSensor(mock_coordinator, "Emby Server")
+        attrs = sensor.extra_state_attributes
+        assert attrs == {"user_id": "user456"}
+
+
+class TestEmbyUserPlayedCountSensor:
+    """Test EmbyUserPlayedCountSensor."""
+
+    def test_sensor_initialization(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test sensor initializes with correct attributes."""
+        sensor = EmbyUserPlayedCountSensor(mock_coordinator, "Emby Server")
+        assert sensor._attr_unique_id == "server123_user456_played_count"
+        assert sensor._attr_name == "testuser Watched"
+        assert sensor._attr_icon == "mdi:check-circle"
+
+    def test_native_value_with_data(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns played count when data available."""
+        mock_coordinator.data = EmbyDiscoveryData(
+            next_up=[],
+            continue_watching=[],
+            recently_added=[],
+            suggestions=[],
+            user_counts=EmbyUserCounts(
+                favorites_count=42,
+                played_count=100,
+                resumable_count=5,
+                playlist_count=3,
+            ),
+        )
+        sensor = EmbyUserPlayedCountSensor(mock_coordinator, "Emby Server")
+        assert sensor.native_value == 100
+
+    def test_native_value_no_data(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns None when no data."""
+        mock_coordinator.data = None
+        sensor = EmbyUserPlayedCountSensor(mock_coordinator, "Emby Server")
+        assert sensor.native_value is None
+
+    def test_native_value_no_user_counts(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns None when user_counts missing."""
+        mock_coordinator.data = EmbyDiscoveryData(
+            next_up=[],
+            continue_watching=[],
+            recently_added=[],
+            suggestions=[],
+        )
+        sensor = EmbyUserPlayedCountSensor(mock_coordinator, "Emby Server")
+        assert sensor.native_value is None
+
+    def test_extra_state_attributes(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test extra_state_attributes includes user_id."""
+        sensor = EmbyUserPlayedCountSensor(mock_coordinator, "Emby Server")
+        attrs = sensor.extra_state_attributes
+        assert attrs == {"user_id": "user456"}
+
+
+class TestEmbyUserInProgressCountSensor:
+    """Test EmbyUserInProgressCountSensor."""
+
+    def test_sensor_initialization(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test sensor initializes with correct attributes."""
+        sensor = EmbyUserInProgressCountSensor(mock_coordinator, "Emby Server")
+        assert sensor._attr_unique_id == "server123_user456_in_progress_count"
+        assert sensor._attr_name == "testuser In Progress"
+        assert sensor._attr_icon == "mdi:progress-clock"
+
+    def test_native_value_with_data(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns resumable count when data available."""
+        mock_coordinator.data = EmbyDiscoveryData(
+            next_up=[],
+            continue_watching=[],
+            recently_added=[],
+            suggestions=[],
+            user_counts=EmbyUserCounts(
+                favorites_count=42,
+                played_count=100,
+                resumable_count=5,
+                playlist_count=3,
+            ),
+        )
+        sensor = EmbyUserInProgressCountSensor(mock_coordinator, "Emby Server")
+        assert sensor.native_value == 5
+
+    def test_native_value_no_data(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns None when no data."""
+        mock_coordinator.data = None
+        sensor = EmbyUserInProgressCountSensor(mock_coordinator, "Emby Server")
+        assert sensor.native_value is None
+
+    def test_native_value_no_user_counts(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns None when user_counts missing."""
+        mock_coordinator.data = EmbyDiscoveryData(
+            next_up=[],
+            continue_watching=[],
+            recently_added=[],
+            suggestions=[],
+        )
+        sensor = EmbyUserInProgressCountSensor(mock_coordinator, "Emby Server")
+        assert sensor.native_value is None
+
+    def test_extra_state_attributes(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test extra_state_attributes includes user_id."""
+        sensor = EmbyUserInProgressCountSensor(mock_coordinator, "Emby Server")
+        attrs = sensor.extra_state_attributes
+        assert attrs == {"user_id": "user456"}
+
+
+class TestEmbyUserPlaylistCountSensor:
+    """Test EmbyUserPlaylistCountSensor."""
+
+    def test_sensor_initialization(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test sensor initializes with correct attributes."""
+        sensor = EmbyUserPlaylistCountSensor(mock_coordinator, "Emby Server")
+        assert sensor._attr_unique_id == "server123_user456_playlist_count"
+        assert sensor._attr_name == "testuser Playlists"
+        assert sensor._attr_icon == "mdi:playlist-music"
+
+    def test_native_value_with_data(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns playlist count when data available."""
+        mock_coordinator.data = EmbyDiscoveryData(
+            next_up=[],
+            continue_watching=[],
+            recently_added=[],
+            suggestions=[],
+            user_counts=EmbyUserCounts(
+                favorites_count=42,
+                played_count=100,
+                resumable_count=5,
+                playlist_count=3,
+            ),
+        )
+        sensor = EmbyUserPlaylistCountSensor(mock_coordinator, "Emby Server")
+        assert sensor.native_value == 3
+
+    def test_native_value_no_data(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns None when no data."""
+        mock_coordinator.data = None
+        sensor = EmbyUserPlaylistCountSensor(mock_coordinator, "Emby Server")
+        assert sensor.native_value is None
+
+    def test_native_value_no_user_counts(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test native_value returns None when user_counts missing."""
+        mock_coordinator.data = EmbyDiscoveryData(
+            next_up=[],
+            continue_watching=[],
+            recently_added=[],
+            suggestions=[],
+        )
+        sensor = EmbyUserPlaylistCountSensor(mock_coordinator, "Emby Server")
+        assert sensor.native_value is None
+
+    def test_extra_state_attributes(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test extra_state_attributes includes user_id."""
+        sensor = EmbyUserPlaylistCountSensor(mock_coordinator, "Emby Server")
+        attrs = sensor.extra_state_attributes
+        assert attrs == {"user_id": "user456"}

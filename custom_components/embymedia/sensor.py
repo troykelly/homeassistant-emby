@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from homeassistant.components.sensor import (
+    SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
@@ -24,6 +26,10 @@ from .sensor_discovery import (
     EmbyNextUpSensor,
     EmbyRecentlyAddedSensor,
     EmbySuggestionsSensor,
+    EmbyUserFavoritesCountSensor,
+    EmbyUserInProgressCountSensor,
+    EmbyUserPlayedCountSensor,
+    EmbyUserPlaylistCountSensor,
 )
 
 if TYPE_CHECKING:
@@ -74,6 +80,11 @@ async def async_setup_entry(
         EmbyActiveRecordingsSensor(server_coordinator),
         EmbyScheduledTimerCountSensor(server_coordinator),
         EmbySeriesTimerCountSensor(server_coordinator),
+        # Activity & Device sensors (Phase 18)
+        EmbyLastActivitySensor(server_coordinator),
+        EmbyConnectedDevicesSensor(server_coordinator),
+        # Watch Statistics uses session coordinator for playback tracking
+        EmbyWatchStatisticsSensor(session_coordinator),
     ]
 
     # Add discovery sensors for each user's coordinator
@@ -82,11 +93,28 @@ async def async_setup_entry(
     for coordinator in discovery_coordinators.values():
         entities.extend(
             [
+                # Discovery content sensors
                 EmbyNextUpSensor(coordinator, server_name),
                 EmbyContinueWatchingSensor(coordinator, server_name),
                 EmbyRecentlyAddedSensor(coordinator, server_name),
                 EmbySuggestionsSensor(coordinator, server_name),
+                # Per-user count sensors
+                EmbyUserFavoritesCountSensor(coordinator, server_name),
+                EmbyUserPlayedCountSensor(coordinator, server_name),
+                EmbyUserInProgressCountSensor(coordinator, server_name),
+                EmbyUserPlaylistCountSensor(coordinator, server_name),
             ]
+        )
+
+    # Add per-user watch statistics sensors
+    # Uses session_coordinator for playback tracking, discovery_coordinators for user info
+    for user_id, user_coordinator in discovery_coordinators.items():
+        entities.append(
+            EmbyUserWatchStatisticsSensor(
+                coordinator=session_coordinator,
+                user_id=user_id,
+                user_name=user_coordinator.user_name,
+            )
         )
 
     async_add_entities(entities)
@@ -531,19 +559,241 @@ class EmbySeriesTimerCountSensor(EmbyServerSensorBase):
         return int(self.coordinator.data.get("series_timer_count", 0))
 
 
+# =============================================================================
+# Activity & Device Sensors (Phase 18)
+# =============================================================================
+
+
+class EmbyLastActivitySensor(EmbyServerSensorBase):
+    """Sensor for last activity timestamp.
+
+    Shows when the most recent activity occurred on the server.
+    The state is a timestamp, with extra attributes showing activity details.
+    """
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:history"
+    _attr_translation_key = "last_activity"
+
+    def __init__(self, coordinator: EmbyServerCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.server_id}_last_activity"
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Return the timestamp of the most recent activity."""
+        if self.coordinator.data is None:
+            return None
+
+        activities = self.coordinator.data.get("recent_activities", [])
+        if not activities:
+            return None
+
+        # Parse the ISO 8601 timestamp from the most recent activity
+        date_str = activities[0].get("Date")
+        if not date_str:
+            return None
+
+        try:
+            # Handle Emby's timestamp format with 7-digit microseconds
+            # Remove trailing zeros beyond 6 digits for standard parsing
+            if "." in date_str:
+                main_part, frac_and_tz = date_str.split(".", 1)
+                # Find where the fractional part ends (Z or +/-)
+                for i, char in enumerate(frac_and_tz):
+                    if char in "Z+-":
+                        frac = frac_and_tz[:i][:6]  # Keep max 6 digits
+                        tz = frac_and_tz[i:]
+                        date_str = f"{main_part}.{frac}{tz}"
+                        break
+            return datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+        except (ValueError, AttributeError):
+            return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str | int] | None:
+        """Return extra state attributes."""
+        if self.coordinator.data is None:
+            return None
+
+        activities = self.coordinator.data.get("recent_activities", [])
+        activity_count = self.coordinator.data.get("activity_count", 0)
+
+        if not activities:
+            return {"total_activities": activity_count}
+
+        latest = activities[0]
+        return {
+            "activity_name": latest.get("Name", "Unknown"),
+            "activity_type": latest.get("Type", "Unknown"),
+            "severity": latest.get("Severity", "Info"),
+            "total_activities": activity_count,
+        }
+
+
+class EmbyConnectedDevicesSensor(EmbyServerSensorBase):
+    """Sensor for connected devices count.
+
+    Shows the number of registered devices connected to the server.
+    Extra attributes contain a list of all devices with details.
+    """
+
+    _attr_icon = "mdi:devices"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "connected_devices"
+
+    def __init__(self, coordinator: EmbyServerCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.server_id}_connected_devices"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the number of connected devices."""
+        if self.coordinator.data is None:
+            return None
+        return int(self.coordinator.data.get("device_count", 0))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, list[dict[str, str]]] | None:
+        """Return extra state attributes with device list."""
+        if self.coordinator.data is None:
+            return None
+
+        devices = self.coordinator.data.get("devices", [])
+
+        # Transform device data for attributes
+        device_list = [
+            {
+                "name": device.get("Name", "Unknown"),
+                "app_name": device.get("AppName", "Unknown"),
+                "app_version": device.get("AppVersion", "Unknown"),
+                "last_user": device.get("LastUserName", "Unknown"),
+                "last_activity": device.get("DateLastActivity", ""),
+            }
+            for device in devices
+        ]
+
+        return {"devices": device_list}
+
+
+class EmbyWatchStatisticsSensor(EmbySessionSensorBase):
+    """Sensor for daily watch time statistics.
+
+    Shows the total watch time for today in minutes.
+    Uses TOTAL_INCREASING state class for Home Assistant statistics.
+    Extra attributes contain active session details.
+
+    Uses session coordinator since playback tracking happens via WebSocket.
+    """
+
+    _attr_icon = "mdi:chart-timeline-variant"
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_native_unit_of_measurement = "min"
+    _attr_translation_key = "watch_statistics"
+
+    def __init__(self, coordinator: EmbyDataUpdateCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.server_id}_watch_statistics"
+
+    @property
+    def native_value(self) -> int:
+        """Return the daily watch time in minutes."""
+        # Convert seconds to minutes, rounding down
+        watch_time: int = self.coordinator.daily_watch_time
+        return watch_time // 60
+
+    @property
+    def extra_state_attributes(self) -> dict[str, int | list[dict[str, str | int]]]:
+        """Return extra state attributes with active session details."""
+        sessions = self.coordinator.playback_sessions
+
+        # Transform session data for attributes
+        session_list: list[dict[str, str | int]] = [
+            {
+                "session_id": session_id,
+                "item_name": str(session_data.get("item_name", "Unknown")),
+                "item_id": str(session_data.get("item_id", "")),
+            }
+            for session_id, session_data in sessions.items()
+        ]
+
+        return {
+            "active_sessions_count": len(sessions),
+            "active_sessions": session_list,
+            "daily_watch_time_seconds": self.coordinator.daily_watch_time,
+        }
+
+
+class EmbyUserWatchStatisticsSensor(EmbySessionSensorBase):
+    """Sensor for per-user daily watch time statistics.
+
+    Shows the watch time for a specific user today in minutes.
+    Uses TOTAL_INCREASING state class for Home Assistant statistics.
+
+    When connected as admin: creates one sensor per user.
+    When connected as specific user: creates sensor for that user only.
+    """
+
+    _attr_icon = "mdi:account-clock"
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_native_unit_of_measurement = "min"
+    _attr_translation_key = "user_watch_statistics"
+
+    def __init__(
+        self,
+        coordinator: EmbyDataUpdateCoordinator,
+        user_id: str,
+        user_name: str,
+    ) -> None:
+        """Initialize the per-user watch statistics sensor.
+
+        Args:
+            coordinator: Session coordinator with playback tracking.
+            user_id: The Emby user ID to track.
+            user_name: The user name for display.
+        """
+        super().__init__(coordinator)
+        self._user_id = user_id
+        self._user_name = user_name
+        self._attr_unique_id = f"{coordinator.server_id}_{user_id}_watch_statistics"
+        self._attr_name = f"{user_name} Watch Time"
+
+    @property
+    def native_value(self) -> int:
+        """Return the user's watch time today in minutes."""
+        watch_time_seconds: int = self.coordinator.get_user_watch_time(self._user_id)
+        return watch_time_seconds // 60
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str | int]:
+        """Return extra state attributes."""
+        return {
+            "user_id": self._user_id,
+            "daily_watch_time_seconds": self.coordinator.get_user_watch_time(self._user_id),
+        }
+
+
 __all__ = [
     "EmbyActiveRecordingsSensor",
     "EmbyActiveSessionsSensor",
     "EmbyAlbumCountSensor",
     "EmbyArtistCountSensor",
+    "EmbyConnectedDevicesSensor",
     "EmbyEpisodeCountSensor",
+    "EmbyLastActivitySensor",
     "EmbyMovieCountSensor",
+    "EmbyPlaylistCountSensor",
     "EmbyRecordingCountSensor",
     "EmbyRunningTasksSensor",
     "EmbyScheduledTimerCountSensor",
     "EmbySeriesCountSensor",
     "EmbySeriesTimerCountSensor",
     "EmbySongCountSensor",
+    "EmbyUserWatchStatisticsSensor",
     "EmbyVersionSensor",
+    "EmbyWatchStatisticsSensor",
     "async_setup_entry",
 ]

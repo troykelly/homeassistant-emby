@@ -31,6 +31,9 @@ def mock_client() -> MagicMock:
     client.async_get_resumable_items = AsyncMock(return_value=[])
     client.async_get_latest_media = AsyncMock(return_value=[])
     client.async_get_suggestions = AsyncMock(return_value=[])
+    # User count methods
+    client.async_get_user_item_count = AsyncMock(return_value=0)
+    client.async_get_playlists = AsyncMock(return_value=[])
     return client
 
 
