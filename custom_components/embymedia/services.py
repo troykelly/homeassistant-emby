@@ -35,6 +35,10 @@ SERVICE_PLAY_SIMILAR = "play_similar"
 SERVICE_SCHEDULE_RECORDING = "schedule_recording"
 SERVICE_CANCEL_RECORDING = "cancel_recording"
 SERVICE_CANCEL_SERIES_TIMER = "cancel_series_timer"
+# Playlist services (Phase 17)
+SERVICE_CREATE_PLAYLIST = "create_playlist"
+SERVICE_ADD_TO_PLAYLIST = "add_to_playlist"
+SERVICE_REMOVE_FROM_PLAYLIST = "remove_from_playlist"
 
 # Service attributes
 ATTR_MESSAGE = "message"
@@ -50,6 +54,12 @@ ATTR_TIMER_ID = "timer_id"
 ATTR_SERIES_TIMER_ID = "series_timer_id"
 ATTR_PRE_PADDING_SECONDS = "pre_padding_seconds"
 ATTR_POST_PADDING_SECONDS = "post_padding_seconds"
+# Playlist service attributes (Phase 17)
+ATTR_NAME = "name"
+ATTR_MEDIA_TYPE = "media_type"
+ATTR_ITEM_IDS = "item_ids"
+ATTR_PLAYLIST_ID = "playlist_id"
+ATTR_PLAYLIST_ITEM_IDS = "playlist_item_ids"
 
 # Service schemas - support both entity_id and device_id targeting
 SEND_MESSAGE_SCHEMA = vol.Schema(
@@ -126,6 +136,37 @@ CANCEL_SERIES_TIMER_SCHEMA = vol.Schema(
         vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
         vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
         vol.Required(ATTR_SERIES_TIMER_ID): cv.string,
+    }
+)
+
+# Playlist service schemas (Phase 17)
+CREATE_PLAYLIST_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
+        vol.Required(ATTR_NAME): cv.string,
+        vol.Required(ATTR_MEDIA_TYPE): vol.In(["Audio", "Video"]),
+        vol.Required(ATTR_USER_ID): cv.string,
+        vol.Optional(ATTR_ITEM_IDS): vol.All(cv.ensure_list, [cv.string]),
+    }
+)
+
+ADD_TO_PLAYLIST_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
+        vol.Required(ATTR_PLAYLIST_ID): cv.string,
+        vol.Required(ATTR_ITEM_IDS): vol.All(cv.ensure_list, [cv.string]),
+        vol.Required(ATTR_USER_ID): cv.string,
+    }
+)
+
+REMOVE_FROM_PLAYLIST_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
+        vol.Required(ATTR_PLAYLIST_ID): cv.string,
+        vol.Required(ATTR_PLAYLIST_ITEM_IDS): vol.All(cv.ensure_list, [cv.string]),
     }
 )
 
@@ -619,6 +660,97 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to cancel series timer for {entity_id}: {err}"
                 ) from err
 
+    # Playlist Services (Phase 17)
+    async def async_create_playlist(call: ServiceCall) -> None:
+        """Create a new playlist."""
+        entity_ids = _get_entity_ids_from_call(hass, call)
+        name: str = call.data[ATTR_NAME]
+        media_type: str = call.data[ATTR_MEDIA_TYPE]
+        user_id: str = call.data[ATTR_USER_ID]
+        item_ids: list[str] | None = call.data.get(ATTR_ITEM_IDS)
+
+        # Validate IDs
+        _validate_emby_id(user_id, "user_id")
+        if item_ids:
+            for item_id in item_ids:
+                _validate_emby_id(item_id, "item_id")
+
+        for entity_id in entity_ids:
+            coordinator = _get_coordinator_for_entity(hass, entity_id)
+
+            try:
+                await coordinator.client.async_create_playlist(
+                    name=name,
+                    media_type=media_type,
+                    user_id=user_id,
+                    item_ids=item_ids,
+                )
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to create playlist for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(
+                    f"Failed to create playlist for {entity_id}: {err}"
+                ) from err
+
+    async def async_add_to_playlist(call: ServiceCall) -> None:
+        """Add items to a playlist."""
+        entity_ids = _get_entity_ids_from_call(hass, call)
+        playlist_id: str = call.data[ATTR_PLAYLIST_ID]
+        item_ids: list[str] = call.data[ATTR_ITEM_IDS]
+        user_id: str = call.data[ATTR_USER_ID]
+
+        # Validate IDs
+        _validate_emby_id(playlist_id, "playlist_id")
+        _validate_emby_id(user_id, "user_id")
+        for item_id in item_ids:
+            _validate_emby_id(item_id, "item_id")
+
+        for entity_id in entity_ids:
+            coordinator = _get_coordinator_for_entity(hass, entity_id)
+
+            try:
+                await coordinator.client.async_add_to_playlist(
+                    playlist_id=playlist_id,
+                    item_ids=item_ids,
+                    user_id=user_id,
+                )
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to add to playlist for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(
+                    f"Failed to add to playlist for {entity_id}: {err}"
+                ) from err
+
+    async def async_remove_from_playlist(call: ServiceCall) -> None:
+        """Remove items from a playlist."""
+        entity_ids = _get_entity_ids_from_call(hass, call)
+        playlist_id: str = call.data[ATTR_PLAYLIST_ID]
+        playlist_item_ids: list[str] = call.data[ATTR_PLAYLIST_ITEM_IDS]
+
+        # Validate playlist_id
+        _validate_emby_id(playlist_id, "playlist_id")
+
+        for entity_id in entity_ids:
+            coordinator = _get_coordinator_for_entity(hass, entity_id)
+
+            try:
+                await coordinator.client.async_remove_from_playlist(
+                    playlist_id=playlist_id,
+                    playlist_item_ids=playlist_item_ids,
+                )
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to remove from playlist for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(
+                    f"Failed to remove from playlist for {entity_id}: {err}"
+                ) from err
+
     # Register services
     hass.services.async_register(
         DOMAIN,
@@ -693,6 +825,25 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         async_cancel_series_timer,
         schema=CANCEL_SERIES_TIMER_SCHEMA,
     )
+    # Playlist services (Phase 17)
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CREATE_PLAYLIST,
+        async_create_playlist,
+        schema=CREATE_PLAYLIST_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADD_TO_PLAYLIST,
+        async_add_to_playlist,
+        schema=ADD_TO_PLAYLIST_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_REMOVE_FROM_PLAYLIST,
+        async_remove_from_playlist,
+        schema=REMOVE_FROM_PLAYLIST_SCHEMA,
+    )
 
     _LOGGER.debug("Emby services registered")
 
@@ -719,6 +870,10 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_SCHEDULE_RECORDING)
     hass.services.async_remove(DOMAIN, SERVICE_CANCEL_RECORDING)
     hass.services.async_remove(DOMAIN, SERVICE_CANCEL_SERIES_TIMER)
+    # Playlist services (Phase 17)
+    hass.services.async_remove(DOMAIN, SERVICE_CREATE_PLAYLIST)
+    hass.services.async_remove(DOMAIN, SERVICE_ADD_TO_PLAYLIST)
+    hass.services.async_remove(DOMAIN, SERVICE_REMOVE_FROM_PLAYLIST)
 
     _LOGGER.debug("Emby services unregistered")
 
