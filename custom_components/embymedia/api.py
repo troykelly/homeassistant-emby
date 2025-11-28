@@ -35,6 +35,7 @@ from .exceptions import (
 
 if TYPE_CHECKING:
     from .const import (
+        EmbyActivityLogResponse,
         EmbyBrowseItem,
         EmbyItemCounts,
         EmbyItemsResponse,
@@ -2456,6 +2457,46 @@ class EmbyClient:
         response = await self._request(HTTP_GET, endpoint)
         items: list[EmbyProgram] = response.get("Items", [])  # type: ignore[assignment]
         return items
+
+    # =========================================================================
+    # Activity & Device API Methods (Phase 18)
+    # =========================================================================
+
+    async def async_get_activity_log(
+        self,
+        start_index: int = 0,
+        limit: int = 50,
+        min_date: str | None = None,
+        has_user_id: bool | None = None,
+    ) -> EmbyActivityLogResponse:
+        """Get server activity log entries.
+
+        Args:
+            start_index: Pagination offset. Defaults to 0.
+            limit: Maximum entries to return. Defaults to 50.
+            min_date: ISO 8601 date string to filter entries after.
+            has_user_id: Filter to entries associated with a user.
+
+        Returns:
+            Activity log response with entries and total count.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        params: list[str] = [
+            f"StartIndex={start_index}",
+            f"Limit={limit}",
+        ]
+        if min_date:
+            params.append(f"MinDate={min_date}")
+        if has_user_id is not None:
+            params.append(f"HasUserId={'true' if has_user_id else 'false'}")
+
+        query_string = "&".join(params)
+        endpoint = f"/System/ActivityLog/Entries?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        return response  # type: ignore[return-value]
 
     async def close(self) -> None:
         """Close the client session.
