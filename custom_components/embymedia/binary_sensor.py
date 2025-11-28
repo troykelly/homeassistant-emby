@@ -44,6 +44,7 @@ async def async_setup_entry(
         EmbyPendingRestartBinarySensor(server_coordinator),
         EmbyUpdateAvailableBinarySensor(server_coordinator),
         EmbyLibraryScanActiveBinarySensor(server_coordinator),
+        EmbyLiveTvEnabledBinarySensor(server_coordinator),
     ]
 
     async_add_entities(entities)
@@ -228,8 +229,60 @@ class EmbyLibraryScanActiveBinarySensor(EmbyServerBinarySensorBase):
         return None
 
 
+class EmbyLiveTvEnabledBinarySensor(EmbyServerBinarySensorBase):
+    """Binary sensor for Live TV enabled status.
+
+    Shows whether Live TV is enabled on the server.
+    """
+
+    _attr_translation_key = "live_tv_enabled"
+    _attr_icon = "mdi:television-classic"
+
+    def __init__(self, coordinator: EmbyServerCoordinator) -> None:
+        """Initialize the sensor.
+
+        Args:
+            coordinator: The server data coordinator.
+        """
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.server_id}_live_tv_enabled"
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return True if Live TV is enabled.
+
+        Returns:
+            True if Live TV is enabled, None if unknown.
+        """
+        if self.coordinator.data is None:
+            return None
+        return bool(self.coordinator.data.get("live_tv_enabled", False))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, int] | None:
+        """Return extra state attributes.
+
+        Returns:
+            Tuner count and active recordings if available.
+        """
+        if self.coordinator.data is None:
+            return None
+
+        attrs: dict[str, int] = {}
+        tuner_count = self.coordinator.data.get("live_tv_tuner_count")
+        if tuner_count is not None:
+            attrs["tuner_count"] = tuner_count
+
+        active_recordings = self.coordinator.data.get("live_tv_active_recordings")
+        if active_recordings is not None:
+            attrs["active_recordings"] = active_recordings
+
+        return attrs if attrs else None
+
+
 __all__ = [
     "EmbyLibraryScanActiveBinarySensor",
+    "EmbyLiveTvEnabledBinarySensor",
     "EmbyPendingRestartBinarySensor",
     "EmbyServerConnectedBinarySensor",
     "EmbyUpdateAvailableBinarySensor",

@@ -28,9 +28,10 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
-class EmbyServerData(TypedDict):
+class EmbyServerData(TypedDict, total=False):
     """Type definition for server coordinator data."""
 
+    # Required fields
     server_version: str
     has_pending_restart: bool
     has_update_available: bool
@@ -38,6 +39,11 @@ class EmbyServerData(TypedDict):
     running_tasks_count: int
     library_scan_active: bool
     library_scan_progress: float | None
+
+    # Live TV fields (Phase 16)
+    live_tv_enabled: bool
+    live_tv_tuner_count: int
+    live_tv_active_recordings: int
 
 
 class EmbyLibraryData(TypedDict, total=False):
@@ -145,6 +151,19 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
                     library_scan_progress = task.get("CurrentProgressPercentage")
                     break
 
+            # Fetch Live TV info (Phase 16)
+            live_tv_enabled = False
+            live_tv_tuner_count = 0
+            live_tv_active_recordings = 0
+            try:
+                live_tv_info = await self.client.async_get_live_tv_info()
+                live_tv_enabled = bool(live_tv_info.get("IsEnabled", False))
+                live_tv_tuner_count = live_tv_info.get("TunerCount", 0)
+                live_tv_active_recordings = live_tv_info.get("ActiveRecordingCount", 0)
+            except EmbyError:
+                # Live TV info is optional, don't fail the whole update
+                _LOGGER.debug("Could not fetch Live TV info, Live TV may not be configured")
+
             return EmbyServerData(
                 server_version=str(server_info.get("Version", "Unknown")),
                 has_pending_restart=bool(server_info.get("HasPendingRestart", False)),
@@ -153,6 +172,9 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
                 running_tasks_count=running_tasks_count,
                 library_scan_active=library_scan_active,
                 library_scan_progress=library_scan_progress,
+                live_tv_enabled=live_tv_enabled,
+                live_tv_tuner_count=live_tv_tuner_count,
+                live_tv_active_recordings=live_tv_active_recordings,
             )
 
         except EmbyConnectionError as err:
