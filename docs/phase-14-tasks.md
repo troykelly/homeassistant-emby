@@ -775,215 +775,49 @@ clear_queue:
 
 ## Task 7: Announcement Support (MEDIA_ANNOUNCE)
 
-**Acceptance Criteria:**
-- `MEDIA_ANNOUNCE` feature flag in `supported_features`
-- `async_play_media()` handles `announce=True` parameter
-- Pause/resume logic for announcements
-- Full test coverage
+### ⚠️ NOT IMPLEMENTED - API Limitation
 
-### Implementation Details
+**Status:** Cannot be implemented due to Emby API limitations.
 
-**File:** `/workspaces/homeassistant-emby/custom_components/embymedia/media_player.py`
+### Research Findings
 
-**Update imports (add after line 15):**
+After thorough research of the Emby REST API documentation:
 
-```python
-from homeassistant.components.media_player import (
-    ...
-    MediaPlayerEntityFeature,
-    MediaPlayerState,
-    MediaType,
-    RepeatMode,
-    async_process_play_media_url,  # Add this
-)
-```
+1. **No `PlayUrl` Command Exists** - The Emby API does not have a command to play arbitrary URLs on clients.
 
-**Update `supported_features` property (line 140-180):**
+2. **Play Command Requires Item IDs** - The `/Sessions/{Id}/Playing` endpoint only accepts `ItemIds` parameter, which must reference items already in the Emby library.
 
-Add `MediaPlayerEntityFeature.MEDIA_ANNOUNCE` to the features (line 167):
+3. **Available Remote Control Commands** (from [Emby Remote Control Docs](https://dev.emby.media/doc/restapi/Remote-Control.html)):
+   - Navigation: MoveUp, MoveDown, MoveLeft, MoveRight, PageUp, PageDown, Select, Back, GoHome, GoToSettings
+   - Volume: VolumeUp, VolumeDown, Mute, Unmute, ToggleMute, SetVolume
+   - Playback: SetAudioStreamIndex, SetSubtitleStreamIndex, SetPlaybackRate
+   - Display: DisplayMessage, DisplayContent, ToggleFullscreen
+   - **No PlayUrl, PlayByUrl, or PlayByPath command**
 
-```python
-        features = (
-            MediaPlayerEntityFeature.PAUSE
-            | MediaPlayerEntityFeature.PLAY
-            | MediaPlayerEntityFeature.STOP
-            | MediaPlayerEntityFeature.NEXT_TRACK
-            | MediaPlayerEntityFeature.PREVIOUS_TRACK
-            | MediaPlayerEntityFeature.PLAY_MEDIA
-            | MediaPlayerEntityFeature.BROWSE_MEDIA
-            | MediaPlayerEntityFeature.MEDIA_ENQUEUE
-            | MediaPlayerEntityFeature.SHUFFLE_SET
-            | MediaPlayerEntityFeature.REPEAT_SET
-            | MediaPlayerEntityFeature.SEARCH_MEDIA
-            | MediaPlayerEntityFeature.CLEAR_PLAYLIST
-            | MediaPlayerEntityFeature.MEDIA_ANNOUNCE
-        )
-```
+4. **TTS Requirements** - Home Assistant's TTS system generates audio URLs (e.g., `media-source://tts/...`), which cannot be played through the Emby API.
 
-**Update `async_play_media` method signature (currently at line 566-608):**
+5. **Community Feature Request** - There is an [active feature request](https://emby.media/community/index.php?/topic/142642-add-server-side-audio-mixing-to-inject-%E2%80%9Cnext-up%E2%80%9D-or-emergency-announcements/) on the Emby Community forums for server-side audio mixing/announcement injection, confirming this is not currently supported.
 
-Add `announce` parameter to method signature:
+### Alternatives Considered
 
-```python
-    async def async_play_media(
-        self,
-        media_type: MediaType | str,
-        media_id: str,
-        enqueue: MediaPlayerEnqueue | None = None,
-        announce: bool | None = None,
-        **kwargs: object,
-    ) -> None:
-        """Play media on this player.
+1. **`.strm` Files** - Emby can play URLs via `.strm` files in the library, but this requires pre-creating library items and cannot be used for dynamic TTS content.
 
-        Args:
-            media_type: Type of media to play.
-            media_id: Media ID, may be encoded as type:id from browse.
-            enqueue: Enqueue behavior (play, add, next, replace).
-            announce: If True, pause current playback and resume after announcement.
-            **kwargs: Additional arguments (unused).
-        """
-        session = self.session
-        if session is None:
-            return
+2. **DisplayMessage Command** - Could show text on screen, but this doesn't play audio.
 
-        # Handle announcement mode (TTS integration)
-        if announce:
-            await self._handle_announcement(media_type, media_id)
-            return
+3. **IPTV Plugin** - Requires plugin installation and is designed for live streams, not short announcements.
 
-        # Normal playback continues below...
-        # Determine the play command based on enqueue option
-        play_command = "PlayNow"
-        if enqueue == MediaPlayerEnqueue.ADD:
-            play_command = "PlayLast"
-        elif enqueue == MediaPlayerEnqueue.NEXT:
-            play_command = "PlayNext"
-        # PLAY and REPLACE both use PlayNow
+### Conclusion
 
-        # Parse the content ID format
-        if ":" in media_id:
-            content_type, ids = decode_content_id(media_id)
-        else:
-            content_type = "item"
-            ids = [media_id]
+The `MEDIA_ANNOUNCE` feature cannot be properly implemented for the Emby integration because Emby's API architecture requires all playable content to exist in the media library with an Item ID. External URLs (like TTS audio) cannot be played on Emby clients through the API.
 
-        # Handle container types (albums, seasons, playlists)
-        item_ids = await self._resolve_play_media_ids(content_type, ids)
+This is a fundamental limitation of the Emby platform, not a limitation of this integration.
 
-        await self.coordinator.client.async_play_items(
-            session.session_id,
-            item_ids,
-            start_position_ticks=0,
-            play_command=play_command,
-        )
-```
+### References
 
-**Add announcement handler method after `_resolve_play_media_ids` (after line 653):**
-
-```python
-    async def _handle_announcement(
-        self,
-        media_type: MediaType | str,
-        media_id: str,
-    ) -> None:
-        """Handle announcement (TTS) playback with pause/resume.
-
-        Pauses current playback, plays announcement URL, then resumes.
-
-        Args:
-            media_type: Type of media (usually MUSIC for TTS).
-            media_id: URL to announcement media.
-        """
-        session = self.session
-        if session is None:
-            return
-
-        # Process the media URL (may need authentication)
-        media_url = await async_process_play_media_url(self.hass, media_id)
-
-        # Save current playback state
-        was_playing = (
-            session.is_playing
-            and session.play_state is not None
-            and not session.play_state.is_paused
-        )
-        current_position = (
-            session.play_state.position_seconds if session.play_state else None
-        )
-        current_item = session.now_playing
-
-        # Pause current playback if playing
-        if was_playing:
-            await self.coordinator.client.async_send_playback_command(
-                session.session_id,
-                "Pause",
-            )
-
-        # Play announcement URL
-        # Note: Emby may not support direct URL playback for all session types
-        # This is a best-effort implementation
-        try:
-            # Send the announcement URL as a general command
-            await self.coordinator.client.async_send_general_command(
-                session.session_id,
-                "PlayUrl",
-                {"Url": media_url},
-            )
-
-            # Wait for announcement to complete (simplified - no duration tracking)
-            # In production, would need to track playback state changes
-            import asyncio
-            await asyncio.sleep(5)  # Placeholder - needs improvement
-
-        except Exception as err:
-            _LOGGER.warning(
-                "Announcement playback failed on %s: %s",
-                self.entity_id,
-                err,
-            )
-
-        # Resume previous playback
-        if was_playing and current_item:
-            try:
-                # Resume the item that was playing
-                await self.coordinator.client.async_play_items(
-                    session.session_id,
-                    [current_item.item_id],
-                    start_position_ticks=(
-                        int(current_position * 10_000_000) if current_position else 0
-                    ),
-                    play_command="PlayNow",
-                )
-                # Resume playback
-                await self.coordinator.client.async_send_playback_command(
-                    session.session_id,
-                    "Unpause",
-                )
-            except Exception as err:
-                _LOGGER.warning(
-                    "Failed to resume playback after announcement on %s: %s",
-                    self.entity_id,
-                    err,
-                )
-```
-
-**Pattern Reference:** Based on HA MediaPlayerEntity announcement pattern. See [HA docs](https://developers.home-assistant.io/docs/core/entity/media-player/#announcements).
-
-**Note:** The announcement implementation is simplified. A production version would:
-1. Track announcement completion via playback events
-2. Handle edge cases (announcement longer than original media, etc.)
-3. Support more session types
-4. Have configurable timeout/retry logic
-
-### Tests Required
-
-**File:** `/workspaces/homeassistant-emby/tests/test_media_player.py`
-
-1. `test_media_announce_feature_supported` - Feature flag present
-2. `test_async_play_media_announce_pauses_current` - Pauses playback for announcement
-3. `test_async_play_media_announce_resumes_after` - Resumes after announcement
-4. `test_async_play_media_announce_no_session` - No-op when no session
-5. `test_async_play_media_announce_resume_failure` - Handles resume failure gracefully
+- [Emby Remote Control API](https://dev.emby.media/doc/restapi/Remote-Control.html)
+- [Emby Sessions Playing Endpoint](https://dev.emby.media/reference/RestAPI/SessionsService/postSessionsByIdPlaying.html)
+- [HA Media Player Announce Docs](https://developers.home-assistant.io/docs/core/entity/media-player/#announcements)
+- [Emby Community: URL Playback Discussion](https://emby.media/community/index.php?/topic/52423-url-playable-in-emby-player/)
 
 ---
 
@@ -1241,10 +1075,9 @@ If issues arise:
 
 ## Known Limitations
 
-1. **Announcement Duration** - Current implementation uses fixed 5s delay. Production version needs playback tracking.
-2. **Emby Session Support** - Not all Emby clients support URL playback for announcements.
-3. **Queue API** - Emby's queue API is read-only in some clients. Clear queue uses workaround.
-4. **Session ID Extraction** - Service helper assumes specific format. May need adjustment.
+1. **MEDIA_ANNOUNCE Not Supported** - The Emby API does not support playing external URLs on clients. TTS announcements require URL playback, which is not possible with Emby's current API. See Task 7 for detailed research.
+2. **Queue API** - Emby's queue API is read-only in some clients. Clear queue uses stop playback workaround.
+3. **Session ID Extraction** - Service helper assumes specific format. May need adjustment.
 
 ---
 

@@ -605,6 +605,22 @@ script:
 
 ---
 
+## Limitations
+
+### TTS Announcements (MEDIA_ANNOUNCE) Not Supported
+
+The Emby integration **does not support** the `announce` parameter for TTS (text-to-speech) announcements. This is due to a fundamental limitation in the Emby API:
+
+- **Emby can only play library items** - The Play command (`/Sessions/{Id}/Playing`) requires `ItemIds` referencing items in the Emby media library
+- **No URL playback** - There is no API endpoint to play arbitrary URLs on Emby clients
+- **TTS requires URLs** - Home Assistant's TTS system generates audio URLs (`media-source://tts/...`) that cannot be played through Emby
+
+**Workaround:** Use the `embymedia.send_message` or `notify.send_message` services to display text on screen instead of playing audio announcements.
+
+For more details, see the [Phase 14 documentation](../docs/phase-14-tasks.md#task-7-announcement-support-media_announce).
+
+---
+
 ## Next Steps
 
 - **[Automations](AUTOMATIONS.md)** - Ready-to-use automation examples
