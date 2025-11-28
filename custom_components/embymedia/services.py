@@ -29,6 +29,8 @@ SERVICE_MARK_UNPLAYED = "mark_unplayed"
 SERVICE_ADD_FAVORITE = "add_favorite"
 SERVICE_REMOVE_FAVORITE = "remove_favorite"
 SERVICE_REFRESH_LIBRARY = "refresh_library"
+SERVICE_PLAY_INSTANT_MIX = "play_instant_mix"
+SERVICE_PLAY_SIMILAR = "play_similar"
 
 # Service attributes
 ATTR_MESSAGE = "message"
@@ -74,6 +76,15 @@ REFRESH_LIBRARY_SCHEMA = vol.Schema(
         vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
         vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
         vol.Optional(ATTR_LIBRARY_ID): cv.string,
+    }
+)
+
+PLAY_MIX_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
+        vol.Required(ATTR_ITEM_ID): cv.string,
+        vol.Optional(ATTR_USER_ID): cv.string,
     }
 )
 
@@ -378,6 +389,112 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to refresh library for {entity_id}: {err}"
                 ) from err
 
+    async def async_play_instant_mix(call: ServiceCall) -> None:
+        """Play instant mix based on an item."""
+        entity_ids = _get_entity_ids_from_call(hass, call)
+        item_id: str = call.data[ATTR_ITEM_ID]
+        user_id: str | None = call.data.get(ATTR_USER_ID)
+
+        # Validate IDs
+        _validate_emby_id(item_id, "item_id")
+        if user_id:
+            _validate_emby_id(user_id, "user_id")
+
+        for entity_id in entity_ids:
+            coordinator = _get_coordinator_for_entity(hass, entity_id)
+            effective_user_id = user_id or _get_user_id_for_entity(hass, entity_id, coordinator)
+
+            if not effective_user_id:
+                raise ServiceValidationError(
+                    f"No user_id available for {entity_id}. Please provide user_id parameter."
+                )
+
+            session_id = _get_session_id_for_entity(hass, entity_id, coordinator)
+            if session_id is None:
+                raise ServiceValidationError(
+                    f"No session found for {entity_id}. Is the device active?"
+                )
+
+            try:
+                # Get instant mix items
+                items = await coordinator.client.async_get_instant_mix(
+                    user_id=effective_user_id,
+                    item_id=item_id,
+                )
+
+                if not items:
+                    raise HomeAssistantError(f"No instant mix items found for item {item_id}")
+
+                # Play all items at once (Emby handles queuing internally)
+                item_ids_to_play = [item["Id"] for item in items]
+                await coordinator.client.async_play_items(
+                    session_id=session_id,
+                    item_ids=item_ids_to_play,
+                    start_position_ticks=0,
+                    play_command="PlayNow",
+                )
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to play instant mix for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(
+                    f"Failed to play instant mix for {entity_id}: {err}"
+                ) from err
+
+    async def async_play_similar(call: ServiceCall) -> None:
+        """Play similar items based on an item."""
+        entity_ids = _get_entity_ids_from_call(hass, call)
+        item_id: str = call.data[ATTR_ITEM_ID]
+        user_id: str | None = call.data.get(ATTR_USER_ID)
+
+        # Validate IDs
+        _validate_emby_id(item_id, "item_id")
+        if user_id:
+            _validate_emby_id(user_id, "user_id")
+
+        for entity_id in entity_ids:
+            coordinator = _get_coordinator_for_entity(hass, entity_id)
+            effective_user_id = user_id or _get_user_id_for_entity(hass, entity_id, coordinator)
+
+            if not effective_user_id:
+                raise ServiceValidationError(
+                    f"No user_id available for {entity_id}. Please provide user_id parameter."
+                )
+
+            session_id = _get_session_id_for_entity(hass, entity_id, coordinator)
+            if session_id is None:
+                raise ServiceValidationError(
+                    f"No session found for {entity_id}. Is the device active?"
+                )
+
+            try:
+                # Get similar items
+                items = await coordinator.client.async_get_similar_items(
+                    user_id=effective_user_id,
+                    item_id=item_id,
+                )
+
+                if not items:
+                    raise HomeAssistantError(f"No similar items found for item {item_id}")
+
+                # Play all items at once (Emby handles queuing internally)
+                item_ids_to_play = [item["Id"] for item in items]
+                await coordinator.client.async_play_items(
+                    session_id=session_id,
+                    item_ids=item_ids_to_play,
+                    start_position_ticks=0,
+                    play_command="PlayNow",
+                )
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to play similar items for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(
+                    f"Failed to play similar items for {entity_id}: {err}"
+                ) from err
+
     # Register services
     hass.services.async_register(
         DOMAIN,
@@ -421,6 +538,18 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         async_refresh_library,
         schema=REFRESH_LIBRARY_SCHEMA,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_PLAY_INSTANT_MIX,
+        async_play_instant_mix,
+        schema=PLAY_MIX_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_PLAY_SIMILAR,
+        async_play_similar,
+        schema=PLAY_MIX_SCHEMA,
+    )
 
     _LOGGER.debug("Emby services registered")
 
@@ -441,6 +570,8 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_ADD_FAVORITE)
     hass.services.async_remove(DOMAIN, SERVICE_REMOVE_FAVORITE)
     hass.services.async_remove(DOMAIN, SERVICE_REFRESH_LIBRARY)
+    hass.services.async_remove(DOMAIN, SERVICE_PLAY_INSTANT_MIX)
+    hass.services.async_remove(DOMAIN, SERVICE_PLAY_SIMILAR)
 
     _LOGGER.debug("Emby services unregistered")
 

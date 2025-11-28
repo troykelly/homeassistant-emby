@@ -120,6 +120,8 @@ class EmbySession:
         app_version: Client application version.
         playable_media_types: Tuple of media types this client can play.
         supported_commands: Tuple of commands this client supports.
+        queue_item_ids: Tuple of item IDs in the playback queue.
+        queue_position: Current position in the queue (0-based).
     """
 
     session_id: str
@@ -135,6 +137,8 @@ class EmbySession:
     app_version: str | None = None
     playable_media_types: tuple[str, ...] = field(default_factory=tuple)
     supported_commands: tuple[str, ...] = field(default_factory=tuple)
+    queue_item_ids: tuple[str, ...] = field(default_factory=tuple)
+    queue_position: int = 0
 
     @property
     def is_active(self) -> bool:
@@ -271,6 +275,17 @@ def parse_session(data: EmbySessionResponse) -> EmbySession:
         # Parse ISO format datetime, handle Z suffix
         last_activity = datetime.fromisoformat(last_activity_str.replace("Z", "+00:00"))
 
+    # Parse queue data
+    queue_data = data.get("NowPlayingQueue", [])
+    queue_item_ids: tuple[str, ...] = tuple(item["Id"] for item in queue_data if "Id" in item)
+
+    # Find current position in queue
+    queue_position = 0
+    if now_playing and queue_item_ids:
+        current_item_id = now_playing.item_id
+        if current_item_id in queue_item_ids:
+            queue_position = queue_item_ids.index(current_item_id)
+
     return EmbySession(
         session_id=data["Id"],
         device_id=data["DeviceId"],
@@ -285,6 +300,8 @@ def parse_session(data: EmbySessionResponse) -> EmbySession:
         app_version=data.get("ApplicationVersion"),
         playable_media_types=tuple(data.get("PlayableMediaTypes", [])),
         supported_commands=tuple(data.get("SupportedCommands", [])),
+        queue_item_ids=queue_item_ids,
+        queue_position=queue_position,
     )
 
 

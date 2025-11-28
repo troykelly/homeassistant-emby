@@ -2074,3 +2074,163 @@ class TestEmbyMediaPlayerSearchMedia:
 
         assert isinstance(result, SearchMedia)
         assert len(result.result) == 0
+
+
+class TestQueueAttributes:
+    """Tests for queue attributes in media player."""
+
+    @pytest.mark.asyncio
+    async def test_extra_state_attributes_with_queue(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test extra_state_attributes includes queue data."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.queue_item_ids = ("item1", "item2", "item3")
+        session.queue_position = 1
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        attrs = player.extra_state_attributes
+
+        assert attrs is not None
+        assert attrs["queue_size"] == 3
+        assert attrs["queue_position"] == 2  # 1-based for display
+
+    @pytest.mark.asyncio
+    async def test_extra_state_attributes_without_queue(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test extra_state_attributes is empty when no queue."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.queue_item_ids = ()
+        session.queue_position = 0
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        attrs = player.extra_state_attributes
+
+        assert attrs is not None
+        assert "queue_size" not in attrs
+        assert "queue_position" not in attrs
+
+    @pytest.mark.asyncio
+    async def test_extra_state_attributes_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test extra_state_attributes is empty when no session."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        attrs = player.extra_state_attributes
+
+        assert attrs is not None
+        assert attrs == {}
+
+
+class TestClearPlaylist:
+    """Tests for clear playlist functionality."""
+
+    @pytest.mark.asyncio
+    async def test_supported_features_includes_clear_playlist_when_queue(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test CLEAR_PLAYLIST feature is included when session has queue."""
+        from homeassistant.components.media_player import MediaPlayerEntityFeature
+
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.supports_remote_control = True
+        session.play_state = MagicMock()
+        session.play_state.can_seek = False
+        session.queue_item_ids = ("item1", "item2", "item3")
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        features = player.supported_features
+
+        assert features & MediaPlayerEntityFeature.CLEAR_PLAYLIST
+
+    @pytest.mark.asyncio
+    async def test_supported_features_excludes_clear_playlist_when_no_queue(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test CLEAR_PLAYLIST feature is excluded when no queue."""
+        from homeassistant.components.media_player import MediaPlayerEntityFeature
+
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.supports_remote_control = True
+        session.play_state = MagicMock()
+        session.play_state.can_seek = False
+        session.queue_item_ids = ()
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        features = player.supported_features
+
+        assert not (features & MediaPlayerEntityFeature.CLEAR_PLAYLIST)
+
+    @pytest.mark.asyncio
+    async def test_async_clear_playlist(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_clear_playlist calls stop to clear the queue."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.session_id = "session-abc"
+        session.queue_item_ids = ("item1", "item2", "item3")
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client.async_stop_playback = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        await player.async_clear_playlist()
+
+        mock_coordinator.client.async_stop_playback.assert_called_once_with("session-abc")
+
+    @pytest.mark.asyncio
+    async def test_async_clear_playlist_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_clear_playlist does nothing when no session."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+        mock_coordinator.client.async_stop_playback = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        await player.async_clear_playlist()
+
+        mock_coordinator.client.async_stop_playback.assert_not_called()

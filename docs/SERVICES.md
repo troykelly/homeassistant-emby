@@ -145,6 +145,18 @@ data:
 - `playlist` - Play a playlist
 - `channel` - Play a Live TV channel
 
+### media_player.clear_playlist
+
+Clear the current playback queue and stop playback.
+
+```yaml
+service: media_player.clear_playlist
+target:
+  entity_id: media_player.living_room_tv
+```
+
+> **Note**: This service is only available when the player has an active queue (queue_size > 0).
+
 ---
 
 ## Remote Entity Services
@@ -391,6 +403,78 @@ data:
 |-----------|----------|-------------|
 | `library_id` | No | Specific library to refresh (all if omitted) |
 
+### embymedia.play_instant_mix
+
+Play an instant mix (similar music) based on a song, album, or artist.
+
+```yaml
+service: embymedia.play_instant_mix
+target:
+  entity_id: media_player.living_room_tv
+data:
+  item_id: "abc123"      # Emby item ID (song, album, or artist)
+  user_id: "xyz789"      # Optional, uses session user if not specified
+```
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `item_id` | Yes | Emby item ID to use as seed for instant mix |
+| `user_id` | No | User ID (defaults to session user) |
+
+**Example - Play music similar to current song:**
+
+```yaml
+automation:
+  - alias: "Instant Mix from Now Playing"
+    trigger:
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: instant_mix
+    action:
+      - service: embymedia.play_instant_mix
+        target:
+          entity_id: media_player.living_room_tv
+        data:
+          item_id: "{{ state_attr('media_player.living_room_tv', 'media_content_id') }}"
+```
+
+### embymedia.play_similar
+
+Play similar items based on a media item (works for movies, TV shows, or music).
+
+```yaml
+service: embymedia.play_similar
+target:
+  entity_id: media_player.living_room_tv
+data:
+  item_id: "abc123"      # Emby item ID
+  user_id: "xyz789"      # Optional, uses session user if not specified
+```
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `item_id` | Yes | Emby item ID to find similar items for |
+| `user_id` | No | User ID (defaults to session user) |
+
+**Example - Play movies similar to last watched:**
+
+```yaml
+script:
+  play_similar_movies:
+    alias: "Play Similar Movies"
+    sequence:
+      - service: embymedia.play_similar
+        target:
+          entity_id: media_player.living_room_tv
+        data:
+          item_id: "{{ movie_id }}"
+```
+
 ---
 
 ## Service Targeting
@@ -518,6 +602,22 @@ script:
         data:
           item_id: "{{ series_id }}"
 ```
+
+---
+
+## Limitations
+
+### TTS Announcements (MEDIA_ANNOUNCE) Not Supported
+
+The Emby integration **does not support** the `announce` parameter for TTS (text-to-speech) announcements. This is due to a fundamental limitation in the Emby API:
+
+- **Emby can only play library items** - The Play command (`/Sessions/{Id}/Playing`) requires `ItemIds` referencing items in the Emby media library
+- **No URL playback** - There is no API endpoint to play arbitrary URLs on Emby clients
+- **TTS requires URLs** - Home Assistant's TTS system generates audio URLs (`media-source://tts/...`) that cannot be played through Emby
+
+**Workaround:** Use the `embymedia.send_message` or `notify.send_message` services to display text on screen instead of playing audio announcements.
+
+For more details, see the [Phase 14 documentation](../docs/phase-14-tasks.md#task-7-announcement-support-media_announce).
 
 ---
 

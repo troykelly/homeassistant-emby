@@ -645,6 +645,20 @@ class EmbyClient:
         endpoint = f"/Sessions/{session_id}/Playing/{command}"
         await self._request_post(endpoint, data=args)
 
+    async def async_stop_playback(self, session_id: str) -> None:
+        """Stop playback on a session.
+
+        Convenience method that sends the Stop command.
+
+        Args:
+            session_id: The session ID to stop playback on.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        await self.async_send_playback_command(session_id, "Stop")
+
     def get_image_url(
         self,
         item_id: str,
@@ -1948,6 +1962,94 @@ class EmbyClient:
         endpoint = f"/Users/{user_id}/Suggestions?{query_string}"
         response = await self._request(HTTP_GET, endpoint)
         items: list[SuggestionItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    # =========================================================================
+    # Instant Mix & Similar Items API Methods (Phase 14)
+    # =========================================================================
+
+    async def async_get_instant_mix(
+        self,
+        user_id: str,
+        item_id: str,
+        limit: int = 100,
+    ) -> list[EmbyBrowseItem]:
+        """Get instant mix based on item.
+
+        Creates a dynamic playlist of similar items to the seed item.
+
+        Args:
+            user_id: User ID.
+            item_id: Seed item ID (song, album, artist, etc.).
+            limit: Maximum number of items to return.
+
+        Returns:
+            List of items for the instant mix.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+            EmbyNotFoundError: Item not found.
+        """
+        endpoint = f"/Items/{item_id}/InstantMix?UserId={user_id}&Limit={limit}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    async def async_get_artist_instant_mix(
+        self,
+        user_id: str,
+        artist_id: str,
+        limit: int = 100,
+    ) -> list[EmbyBrowseItem]:
+        """Get instant mix based on artist.
+
+        Creates a dynamic playlist based on artist's catalog and similar artists.
+
+        Args:
+            user_id: User ID.
+            artist_id: Artist ID.
+            limit: Maximum number of items to return.
+
+        Returns:
+            List of items for the instant mix.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+            EmbyNotFoundError: Artist not found.
+        """
+        endpoint = f"/Artists/InstantMix?UserId={user_id}&Id={artist_id}&Limit={limit}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    async def async_get_similar_items(
+        self,
+        user_id: str,
+        item_id: str,
+        limit: int = 20,
+    ) -> list[EmbyBrowseItem]:
+        """Get similar items based on item.
+
+        Finds items similar to the seed item based on metadata.
+
+        Args:
+            user_id: User ID.
+            item_id: Seed item ID.
+            limit: Maximum number of items to return.
+
+        Returns:
+            List of similar items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+            EmbyNotFoundError: Item not found.
+        """
+        endpoint = f"/Items/{item_id}/Similar?UserId={user_id}&Limit={limit}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
         return items
 
     async def close(self) -> None:

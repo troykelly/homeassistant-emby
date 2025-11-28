@@ -163,6 +163,130 @@
       }
     }
   },
+  "services": {
+    "send_message": {
+      "name": "Send Message",
+      "description": "Send a message to an Emby client.",
+      "fields": {
+        "message": {
+          "name": "Message",
+          "description": "The message text to display."
+        },
+        "header": {
+          "name": "Header",
+          "description": "Optional header/title for the message."
+        },
+        "timeout_ms": {
+          "name": "Timeout",
+          "description": "How long to display the message (milliseconds)."
+        }
+      }
+    },
+    "send_command": {
+      "name": "Send Command",
+      "description": "Send a general command to an Emby client.",
+      "fields": {
+        "command": {
+          "name": "Command",
+          "description": "The command to send (e.g., MoveUp, MoveDown, Select, Back)."
+        }
+      }
+    },
+    "mark_played": {
+      "name": "Mark Played",
+      "description": "Mark a media item as played.",
+      "fields": {
+        "item_id": {
+          "name": "Item ID",
+          "description": "The Emby item ID to mark as played."
+        },
+        "user_id": {
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
+        }
+      }
+    },
+    "mark_unplayed": {
+      "name": "Mark Unplayed",
+      "description": "Mark a media item as unplayed.",
+      "fields": {
+        "item_id": {
+          "name": "Item ID",
+          "description": "The Emby item ID to mark as unplayed."
+        },
+        "user_id": {
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
+        }
+      }
+    },
+    "add_favorite": {
+      "name": "Add Favorite",
+      "description": "Add a media item to favorites.",
+      "fields": {
+        "item_id": {
+          "name": "Item ID",
+          "description": "The Emby item ID to add to favorites."
+        },
+        "user_id": {
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
+        }
+      }
+    },
+    "remove_favorite": {
+      "name": "Remove Favorite",
+      "description": "Remove a media item from favorites.",
+      "fields": {
+        "item_id": {
+          "name": "Item ID",
+          "description": "The Emby item ID to remove from favorites."
+        },
+        "user_id": {
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
+        }
+      }
+    },
+    "refresh_library": {
+      "name": "Refresh Library",
+      "description": "Trigger a library refresh on the Emby server.",
+      "fields": {
+        "library_id": {
+          "name": "Library ID",
+          "description": "Optional library ID to refresh (refreshes all libraries if not specified)."
+        }
+      }
+    },
+    "play_instant_mix": {
+      "name": "Play Instant Mix",
+      "description": "Play an instant mix based on an item (song, album, artist).",
+      "fields": {
+        "item_id": {
+          "name": "Item ID",
+          "description": "The Emby item ID to use as the seed for the instant mix."
+        },
+        "user_id": {
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
+        }
+      }
+    },
+    "play_similar": {
+      "name": "Play Similar Items",
+      "description": "Play similar items based on a media item.",
+      "fields": {
+        "item_id": {
+          "name": "Item ID",
+          "description": "The Emby item ID to find similar items for."
+        },
+        "user_id": {
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
+        }
+      }
+    }
+  },
   "options": {
     "step": {
       "init": {
