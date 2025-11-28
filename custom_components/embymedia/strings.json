@@ -170,6 +170,9 @@
       },
       "connected_devices": {
         "name": "Connected Devices"
+      },
+      "watch_statistics": {
+        "name": "Watch Statistics"
       }
     },
     "image": {

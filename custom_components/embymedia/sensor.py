@@ -79,6 +79,7 @@ async def async_setup_entry(
         # Activity & Device sensors (Phase 18)
         EmbyLastActivitySensor(server_coordinator),
         EmbyConnectedDevicesSensor(server_coordinator),
+        EmbyWatchStatisticsSensor(server_coordinator),
     ]
 
     # Add discovery sensors for each user's coordinator
@@ -655,6 +656,53 @@ class EmbyConnectedDevicesSensor(EmbyServerSensorBase):
         return {"devices": device_list}
 
 
+class EmbyWatchStatisticsSensor(EmbyServerSensorBase):
+    """Sensor for daily watch time statistics.
+
+    Shows the total watch time for today in minutes.
+    Uses TOTAL_INCREASING state class for Home Assistant statistics.
+    Extra attributes contain active session details.
+    """
+
+    _attr_icon = "mdi:chart-timeline-variant"
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_native_unit_of_measurement = "min"
+    _attr_translation_key = "watch_statistics"
+
+    def __init__(self, coordinator: EmbyServerCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.server_id}_watch_statistics"
+
+    @property
+    def native_value(self) -> int:
+        """Return the daily watch time in minutes."""
+        # Convert seconds to minutes, rounding down
+        watch_time: int = self.coordinator.daily_watch_time
+        return watch_time // 60
+
+    @property
+    def extra_state_attributes(self) -> dict[str, int | list[dict[str, str | int]]]:
+        """Return extra state attributes with active session details."""
+        sessions = self.coordinator.playback_sessions
+
+        # Transform session data for attributes
+        session_list: list[dict[str, str | int]] = [
+            {
+                "session_id": session_id,
+                "item_name": str(session_data.get("item_name", "Unknown")),
+                "item_id": str(session_data.get("item_id", "")),
+            }
+            for session_id, session_data in sessions.items()
+        ]
+
+        return {
+            "active_sessions_count": len(sessions),
+            "active_sessions": session_list,
+            "daily_watch_time_seconds": self.coordinator.daily_watch_time,
+        }
+
+
 __all__ = [
     "EmbyActiveRecordingsSensor",
     "EmbyActiveSessionsSensor",
@@ -672,5 +720,6 @@ __all__ = [
     "EmbySeriesTimerCountSensor",
     "EmbySongCountSensor",
     "EmbyVersionSensor",
+    "EmbyWatchStatisticsSensor",
     "async_setup_entry",
 ]
