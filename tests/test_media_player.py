@@ -2074,3 +2074,70 @@ class TestEmbyMediaPlayerSearchMedia:
 
         assert isinstance(result, SearchMedia)
         assert len(result.result) == 0
+
+
+class TestQueueAttributes:
+    """Tests for queue attributes in media player."""
+
+    @pytest.mark.asyncio
+    async def test_extra_state_attributes_with_queue(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test extra_state_attributes includes queue data."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.queue_item_ids = ("item1", "item2", "item3")
+        session.queue_position = 1
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        attrs = player.extra_state_attributes
+
+        assert attrs is not None
+        assert attrs["queue_size"] == 3
+        assert attrs["queue_position"] == 2  # 1-based for display
+
+    @pytest.mark.asyncio
+    async def test_extra_state_attributes_without_queue(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test extra_state_attributes is empty when no queue."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.queue_item_ids = ()
+        session.queue_position = 0
+
+        mock_coordinator.get_session.return_value = session
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        attrs = player.extra_state_attributes
+
+        assert attrs is not None
+        assert "queue_size" not in attrs
+        assert "queue_position" not in attrs
+
+    @pytest.mark.asyncio
+    async def test_extra_state_attributes_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test extra_state_attributes is empty when no session."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        attrs = player.extra_state_attributes
+
+        assert attrs is not None
+        assert attrs == {}

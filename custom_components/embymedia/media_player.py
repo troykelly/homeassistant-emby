@@ -415,6 +415,26 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
             return None
         return session.play_state.is_muted
 
+    @property
+    def extra_state_attributes(self) -> dict[str, object]:
+        """Return entity specific state attributes.
+
+        Returns:
+            Dictionary of extra attributes including queue information.
+        """
+        session = self.session
+        if session is None:
+            return {}
+
+        attrs: dict[str, object] = {}
+
+        # Queue information
+        if session.queue_item_ids:
+            attrs["queue_size"] = len(session.queue_item_ids)
+            attrs["queue_position"] = session.queue_position + 1  # 1-based for display
+
+        return attrs
+
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level (0.0 to 1.0).
 
