@@ -3236,3 +3236,112 @@ class TestInstantMixAPI:
 
             with pytest.raises(EmbyNotFoundError):
                 await client.async_get_artist_instant_mix("user-123", "nonexistent-artist")
+
+
+class TestSimilarItemsAPI:
+    """Tests for Similar Items API method."""
+
+    @pytest.mark.asyncio
+    async def test_async_get_similar_items_success(self) -> None:
+        """Test getting similar items returns items."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        mock_response = {
+            "Items": [
+                {"Id": "movie1", "Name": "Similar Movie 1", "Type": "Movie"},
+                {"Id": "movie2", "Name": "Similar Movie 2", "Type": "Movie"},
+            ],
+            "TotalRecordCount": 2,
+        }
+
+        with patch.object(client, "_request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = mock_response
+
+            items = await client.async_get_similar_items("user-123", "item-abc", limit=10)
+
+            assert len(items) == 2
+            assert items[0]["Id"] == "movie1"
+            assert items[0]["Name"] == "Similar Movie 1"
+            mock_request.assert_called_once()
+            call_args = mock_request.call_args
+            assert "/Items/item-abc/Similar" in call_args[0][1]
+            assert "UserId=user-123" in call_args[0][1]
+            assert "Limit=10" in call_args[0][1]
+
+    @pytest.mark.asyncio
+    async def test_async_get_similar_items_empty(self) -> None:
+        """Test getting similar items when no results returned."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        mock_response = {
+            "Items": [],
+            "TotalRecordCount": 0,
+        }
+
+        with patch.object(client, "_request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = mock_response
+
+            items = await client.async_get_similar_items("user-123", "item-abc")
+
+            assert items == []
+
+    @pytest.mark.asyncio
+    async def test_async_get_similar_items_custom_limit(self) -> None:
+        """Test getting similar items with custom limit parameter."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        mock_response = {"Items": [], "TotalRecordCount": 0}
+
+        with patch.object(client, "_request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = mock_response
+
+            await client.async_get_similar_items("user-123", "item-abc", limit=50)
+
+            call_args = mock_request.call_args
+            assert "Limit=50" in call_args[0][1]
+
+    @pytest.mark.asyncio
+    async def test_async_get_similar_items_default_limit(self) -> None:
+        """Test getting similar items uses default limit of 20."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        mock_response = {"Items": [], "TotalRecordCount": 0}
+
+        with patch.object(client, "_request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = mock_response
+
+            await client.async_get_similar_items("user-123", "item-abc")
+
+            call_args = mock_request.call_args
+            assert "Limit=20" in call_args[0][1]
+
+    @pytest.mark.asyncio
+    async def test_async_get_similar_items_not_found(self) -> None:
+        """Test getting similar items when item not found raises error."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        with patch.object(client, "_request", new_callable=AsyncMock) as mock_request:
+            mock_request.side_effect = EmbyNotFoundError("Item not found")
+
+            with pytest.raises(EmbyNotFoundError):
+                await client.async_get_similar_items("user-123", "nonexistent-item")

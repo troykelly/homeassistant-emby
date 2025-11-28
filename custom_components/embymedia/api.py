@@ -2010,6 +2010,34 @@ class EmbyClient:
         items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
         return items
 
+    async def async_get_similar_items(
+        self,
+        user_id: str,
+        item_id: str,
+        limit: int = 20,
+    ) -> list[EmbyBrowseItem]:
+        """Get similar items based on item.
+
+        Finds items similar to the seed item based on metadata.
+
+        Args:
+            user_id: User ID.
+            item_id: Seed item ID.
+            limit: Maximum number of items to return.
+
+        Returns:
+            List of similar items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+            EmbyNotFoundError: Item not found.
+        """
+        endpoint = f"/Items/{item_id}/Similar?UserId={user_id}&Limit={limit}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
     async def close(self) -> None:
         """Close the client session.
 
