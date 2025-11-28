@@ -16,13 +16,11 @@ The implementation exposes activity data through sensor entities that provide in
 - [x] Task 18.5: EmbyLastActivitySensor
 - [x] Task 18.6: EmbyConnectedDevicesSensor
 - [x] Task 18.7: Server Coordinator Enhancement
+- [x] Task 18.8: Playback Progress Tracking (WebSocket watch time)
+- [x] Task 18.9: EmbyWatchStatisticsSensor
 - [x] Task 18.10: Translations
 - [x] Task 18.11: Platform Registration
 - [x] Task 18.12: Testing & Documentation (100% coverage)
-
-### Deferred (Future Enhancement):
-- [ ] Task 18.8: Playback Progress Tracking (WebSocket watch time)
-- [ ] Task 18.9: EmbyWatchStatisticsSensor
 
 ---
 
