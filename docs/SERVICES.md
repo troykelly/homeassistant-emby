@@ -145,6 +145,18 @@ data:
 - `playlist` - Play a playlist
 - `channel` - Play a Live TV channel
 
+### media_player.clear_playlist
+
+Clear the current playback queue and stop playback.
+
+```yaml
+service: media_player.clear_playlist
+target:
+  entity_id: media_player.living_room_tv
+```
+
+> **Note**: This service is only available when the player has an active queue (queue_size > 0).
+
 ---
 
 ## Remote Entity Services
@@ -390,6 +402,78 @@ data:
 | Parameter | Required | Description |
 |-----------|----------|-------------|
 | `library_id` | No | Specific library to refresh (all if omitted) |
+
+### embymedia.play_instant_mix
+
+Play an instant mix (similar music) based on a song, album, or artist.
+
+```yaml
+service: embymedia.play_instant_mix
+target:
+  entity_id: media_player.living_room_tv
+data:
+  item_id: "abc123"      # Emby item ID (song, album, or artist)
+  user_id: "xyz789"      # Optional, uses session user if not specified
+```
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `item_id` | Yes | Emby item ID to use as seed for instant mix |
+| `user_id` | No | User ID (defaults to session user) |
+
+**Example - Play music similar to current song:**
+
+```yaml
+automation:
+  - alias: "Instant Mix from Now Playing"
+    trigger:
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: instant_mix
+    action:
+      - service: embymedia.play_instant_mix
+        target:
+          entity_id: media_player.living_room_tv
+        data:
+          item_id: "{{ state_attr('media_player.living_room_tv', 'media_content_id') }}"
+```
+
+### embymedia.play_similar
+
+Play similar items based on a media item (works for movies, TV shows, or music).
+
+```yaml
+service: embymedia.play_similar
+target:
+  entity_id: media_player.living_room_tv
+data:
+  item_id: "abc123"      # Emby item ID
+  user_id: "xyz789"      # Optional, uses session user if not specified
+```
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `item_id` | Yes | Emby item ID to find similar items for |
+| `user_id` | No | User ID (defaults to session user) |
+
+**Example - Play movies similar to last watched:**
+
+```yaml
+script:
+  play_similar_movies:
+    alias: "Play Similar Movies"
+    sequence:
+      - service: embymedia.play_similar
+        target:
+          entity_id: media_player.living_room_tv
+        data:
+          item_id: "{{ movie_id }}"
+```
 
 ---
 
