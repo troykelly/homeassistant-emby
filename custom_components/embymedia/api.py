@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from .const import (
         EmbyActivityLogResponse,
         EmbyBrowseItem,
+        EmbyDevicesResponse,
         EmbyItemCounts,
         EmbyItemsResponse,
         EmbyLibraryItem,
@@ -2495,6 +2496,29 @@ class EmbyClient:
 
         query_string = "&".join(params)
         endpoint = f"/System/ActivityLog/Entries?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        return response  # type: ignore[return-value]
+
+    async def async_get_devices(
+        self,
+        user_id: str | None = None,
+    ) -> EmbyDevicesResponse:
+        """Get registered devices.
+
+        Args:
+            user_id: Optional user ID to filter devices.
+
+        Returns:
+            Devices response with device list and total count.
+            Note: TotalRecordCount may be 0 even with items (Emby API quirk).
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = "/Devices"
+        if user_id:
+            endpoint = f"{endpoint}?UserId={user_id}"
         response = await self._request(HTTP_GET, endpoint)
         return response  # type: ignore[return-value]
 
