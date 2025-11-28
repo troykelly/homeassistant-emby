@@ -144,3 +144,45 @@ refresh_library:
       description: Optional library ID to refresh (refreshes all libraries if not specified).
       selector:
         text:
+
+play_instant_mix:
+  name: Play Instant Mix
+  description: Play an instant mix based on an item (song, album, artist).
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    item_id:
+      name: Item ID
+      description: The Emby item ID to use as the seed for the instant mix.
+      required: true
+      example: "12345"
+      selector:
+        text:
+    user_id:
+      name: User ID
+      description: Optional user ID (uses session user if not specified).
+      selector:
+        text:
+
+play_similar:
+  name: Play Similar Items
+  description: Play similar items based on a media item.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    item_id:
+      name: Item ID
+      description: The Emby item ID to find similar items for.
+      required: true
+      example: "12345"
+      selector:
+        text:
+    user_id:
+      name: User ID
+      description: Optional user ID (uses session user if not specified).
+      selector:
+        text:
