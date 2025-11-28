@@ -1,0 +1,442 @@
+{
+  "exceptions": {
+    "connection_failed": {
+      "message": "Verbinding met Emby-server op {host}:{port} mislukt. Controleer of de server draait en of host/poort correct zijn."
+    },
+    "authentication_failed": {
+      "message": "Authenticatie mislukt. Controleer uw API-sleutel."
+    },
+    "server_error": {
+      "message": "De Emby-server heeft een fout geretourneerd. Controleer de serverlogboeken."
+    },
+    "not_found": {
+      "message": "De gevraagde bron is niet gevonden op de server."
+    },
+    "timeout": {
+      "message": "Verbinding timeout. De server is mogelijk onbereikbaar."
+    },
+    "ssl_error": {
+      "message": "SSL-certificaatverificatie mislukt. Controleer uw certificaat of schakel verificatie uit."
+    },
+    "websocket_error": {
+      "message": "WebSocket-verbindingsfout. Realtime updates zijn mogelijk niet beschikbaar."
+    },
+    "websocket_auth_failed": {
+      "message": "WebSocket-authenticatie mislukt. Controleer uw API-sleutel."
+    }
+  },
+  "config": {
+    "step": {
+      "user": {
+        "title": "Verbinden met Emby-server",
+        "description": "Voer de verbindingsgegevens van uw Emby-server in.",
+        "data": {
+          "host": "Host",
+          "port": "Poort",
+          "ssl": "SSL gebruiken",
+          "api_key": "API-sleutel",
+          "verify_ssl": "SSL-certificaat verifiëren"
+        },
+        "data_description": {
+          "host": "Hostnaam of IP-adres van uw Emby-server (bijv. 192.168.1.100 of emby.local)",
+          "port": "Poortnummer (standaard: 8096, of 8920 voor HTTPS)",
+          "ssl": "HTTPS-verbinding inschakelen",
+          "api_key": "API-sleutel van Emby Dashboard > Geavanceerd > API-sleutels",
+          "verify_ssl": "SSL-certificaat verifiëren (alleen uitschakelen voor zelfondertekende certificaten)"
+        }
+      },
+      "user_select": {
+        "title": "Gebruiker selecteren",
+        "description": "Selecteer een gebruikerscontext voor {server_name}. Kies 'Admin-context gebruiken' om de API-sleutel zonder specifieke gebruiker te gebruiken.",
+        "data": {
+          "user_id": "Gebruiker"
+        },
+        "data_description": {
+          "user_id": "De gebruiker wiens bibliotheken en rechten worden gebruikt"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Emby-server opnieuw authenticeren",
+        "description": "De API-sleutel voor {server_name} is niet meer geldig. Voer een nieuwe API-sleutel in."
+      },
+      "entity_options": {
+        "title": "Entiteitnaamopties",
+        "description": "Configureer hoe entiteitnamen verschijnen voor {server_name}. Standaard hebben apparaatnamen het voorvoegsel 'Emby' (bijv. 'Emby Woonkamer TV'). U kunt dit uitschakelen voor schonere namen.",
+        "data": {
+          "prefix_media_player": "Mediaspelernamen voorvoegen met 'Emby'",
+          "prefix_notify": "Meldingsnamen voorvoegen met 'Emby'",
+          "prefix_remote": "Afstandsbedieningsnamen voorvoegen met 'Emby'",
+          "prefix_button": "Knopnamen voorvoegen met 'Emby'"
+        },
+        "data_description": {
+          "prefix_media_player": "Wanneer ingeschakeld, beginnen mediaspelernamen met 'Emby' (bijv. 'Emby Woonkamer TV')",
+          "prefix_notify": "Wanneer ingeschakeld, hebben meldingsapparaten het voorvoegsel 'Emby'",
+          "prefix_remote": "Wanneer ingeschakeld, hebben afstandsbedieningsapparaten het voorvoegsel 'Emby'",
+          "prefix_button": "Wanneer ingeschakeld, hebben serveractieknoppen het voorvoegsel 'Emby'"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbinding met Emby-server mislukt. Controleer host en poort.",
+      "invalid_auth": "Ongeldige API-sleutel. Controleer uw API-sleutel in Emby Dashboard > Geavanceerd > API-sleutels.",
+      "invalid_host": "Ongeldige hostnaam of IP-adres",
+      "invalid_port": "Poort moet tussen 1 en 65535 zijn",
+      "timeout": "Verbinding timeout. De server is mogelijk onbereikbaar of traag met reageren.",
+      "ssl_error": "SSL-certificaatverificatie mislukt. Schakel de optie 'SSL-certificaat verifiëren' in of controleer uw certificaat.",
+      "unsupported_version": "Deze Emby-serverversie wordt niet ondersteund. Upgrade naar versie 4.9.1.90 of later.",
+      "unknown": "Er is een onverwachte fout opgetreden. Controleer de logboeken voor details."
+    },
+    "abort": {
+      "already_configured": "Deze Emby-server is al geconfigureerd",
+      "reauth_successful": "Herauthenticatie geslaagd",
+      "unsupported_version": "Deze Emby-serverversie wordt niet ondersteund"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "server_connected": {
+        "name": "Server verbonden"
+      },
+      "pending_restart": {
+        "name": "Herstart in behandeling"
+      },
+      "update_available": {
+        "name": "Update beschikbaar"
+      },
+      "library_scan_active": {
+        "name": "Bibliotheekscan actief"
+      },
+      "live_tv_enabled": {
+        "name": "Live TV ingeschakeld"
+      }
+    },
+    "sensor": {
+      "server_version": {
+        "name": "Serverversie"
+      },
+      "running_tasks": {
+        "name": "Actieve taken"
+      },
+      "active_sessions": {
+        "name": "Actieve sessies"
+      },
+      "movie_count": {
+        "name": "Films"
+      },
+      "series_count": {
+        "name": "TV-series"
+      },
+      "episode_count": {
+        "name": "Afleveringen"
+      },
+      "song_count": {
+        "name": "Nummers"
+      },
+      "album_count": {
+        "name": "Albums"
+      },
+      "artist_count": {
+        "name": "Artiesten"
+      },
+      "playlist_count": {
+        "name": "Afspeellijsten"
+      },
+      "next_up": {
+        "name": "Volgende"
+      },
+      "continue_watching": {
+        "name": "Verder kijken"
+      },
+      "recently_added": {
+        "name": "Recent toegevoegd"
+      },
+      "suggestions": {
+        "name": "Suggesties"
+      },
+      "recording_count": {
+        "name": "Opnames"
+      },
+      "active_recordings": {
+        "name": "Actieve opnames"
+      },
+      "scheduled_timer_count": {
+        "name": "Geplande opnames"
+      },
+      "series_timer_count": {
+        "name": "Serie-opnameregels"
+      }
+    },
+    "image": {
+      "next_up_image": {
+        "name": "Volgende"
+      },
+      "continue_watching_image": {
+        "name": "Verder kijken"
+      },
+      "recently_added_image": {
+        "name": "Recent toegevoegd"
+      },
+      "suggestions_image": {
+        "name": "Suggesties"
+      }
+    }
+  },
+  "services": {
+    "send_message": {
+      "name": "Bericht verzenden",
+      "description": "Verzendt een bericht naar een Emby-client.",
+      "fields": {
+        "message": {
+          "name": "Bericht",
+          "description": "De berichttekst om weer te geven."
+        },
+        "header": {
+          "name": "Koptekst",
+          "description": "Optionele koptekst/titel voor het bericht."
+        },
+        "timeout_ms": {
+          "name": "Weergaveduur",
+          "description": "Hoe lang het bericht wordt weergegeven (milliseconden)."
+        }
+      }
+    },
+    "send_command": {
+      "name": "Commando verzenden",
+      "description": "Verzendt een algemeen commando naar een Emby-client.",
+      "fields": {
+        "command": {
+          "name": "Commando",
+          "description": "Het te verzenden commando (bijv. MoveUp, MoveDown, Select, Back)."
+        }
+      }
+    },
+    "mark_played": {
+      "name": "Markeren als bekeken",
+      "description": "Markeert een media-item als bekeken.",
+      "fields": {
+        "item_id": {
+          "name": "Item-ID",
+          "description": "De Emby-item-ID om als bekeken te markeren."
+        },
+        "user_id": {
+          "name": "Gebruikers-ID",
+          "description": "Optionele gebruikers-ID (gebruikt sessiegebruiker indien niet opgegeven)."
+        }
+      }
+    },
+    "mark_unplayed": {
+      "name": "Markeren als niet bekeken",
+      "description": "Markeert een media-item als niet bekeken.",
+      "fields": {
+        "item_id": {
+          "name": "Item-ID",
+          "description": "De Emby-item-ID om als niet bekeken te markeren."
+        },
+        "user_id": {
+          "name": "Gebruikers-ID",
+          "description": "Optionele gebruikers-ID (gebruikt sessiegebruiker indien niet opgegeven)."
+        }
+      }
+    },
+    "add_favorite": {
+      "name": "Toevoegen aan favorieten",
+      "description": "Voegt een media-item toe aan favorieten.",
+      "fields": {
+        "item_id": {
+          "name": "Item-ID",
+          "description": "De Emby-item-ID om toe te voegen aan favorieten."
+        },
+        "user_id": {
+          "name": "Gebruikers-ID",
+          "description": "Optionele gebruikers-ID (gebruikt sessiegebruiker indien niet opgegeven)."
+        }
+      }
+    },
+    "remove_favorite": {
+      "name": "Verwijderen uit favorieten",
+      "description": "Verwijdert een media-item uit favorieten.",
+      "fields": {
+        "item_id": {
+          "name": "Item-ID",
+          "description": "De Emby-item-ID om te verwijderen uit favorieten."
+        },
+        "user_id": {
+          "name": "Gebruikers-ID",
+          "description": "Optionele gebruikers-ID (gebruikt sessiegebruiker indien niet opgegeven)."
+        }
+      }
+    },
+    "refresh_library": {
+      "name": "Bibliotheek vernieuwen",
+      "description": "Start een bibliotheekvernieuwing op de Emby-server.",
+      "fields": {
+        "library_id": {
+          "name": "Bibliotheek-ID",
+          "description": "Optionele bibliotheek-ID om te vernieuwen (vernieuwt alle bibliotheken indien niet opgegeven)."
+        }
+      }
+    },
+    "play_instant_mix": {
+      "name": "Instant mix afspelen",
+      "description": "Speelt een instant mix af gebaseerd op een item (nummer, album, artiest).",
+      "fields": {
+        "item_id": {
+          "name": "Item-ID",
+          "description": "De Emby-item-ID om te gebruiken als basis voor de instant mix."
+        },
+        "user_id": {
+          "name": "Gebruikers-ID",
+          "description": "Optionele gebruikers-ID (gebruikt sessiegebruiker indien niet opgegeven)."
+        }
+      }
+    },
+    "play_similar": {
+      "name": "Vergelijkbare afspelen",
+      "description": "Speelt vergelijkbare items af gebaseerd op een media-item.",
+      "fields": {
+        "item_id": {
+          "name": "Item-ID",
+          "description": "De Emby-item-ID om vergelijkbare items te vinden."
+        },
+        "user_id": {
+          "name": "Gebruikers-ID",
+          "description": "Optionele gebruikers-ID (gebruikt sessiegebruiker indien niet opgegeven)."
+        }
+      }
+    },
+    "schedule_recording": {
+      "name": "Opname plannen",
+      "description": "Plant een eenmalige opname voor een Live TV-programma.",
+      "fields": {
+        "program_id": {
+          "name": "Programma-ID",
+          "description": "De Emby-programma-ID om op te nemen."
+        },
+        "pre_padding_seconds": {
+          "name": "Voorlooptijd",
+          "description": "Seconden om de opname te starten voor het programma begint (0-3600)."
+        },
+        "post_padding_seconds": {
+          "name": "Naloop tijd",
+          "description": "Seconden om door te gaan met opnemen nadat het programma eindigt (0-3600)."
+        }
+      }
+    },
+    "cancel_recording": {
+      "name": "Opname annuleren",
+      "description": "Annuleert een geplande opnametimer.",
+      "fields": {
+        "timer_id": {
+          "name": "Timer-ID",
+          "description": "De Emby-timer-ID om te annuleren."
+        }
+      }
+    },
+    "cancel_series_timer": {
+      "name": "Serietimer annuleren",
+      "description": "Annuleert een serie-opnametimer (stopt alle toekomstige opnames van de serie).",
+      "fields": {
+        "series_timer_id": {
+          "name": "Serietimer-ID",
+          "description": "De Emby-serietimer-ID om te annuleren."
+        }
+      }
+    },
+    "create_playlist": {
+      "name": "Afspeellijst maken",
+      "description": "Maakt een nieuwe afspeellijst op de Emby-server.",
+      "fields": {
+        "name": {
+          "name": "Lijstnaam",
+          "description": "De naam voor de nieuwe afspeellijst."
+        },
+        "media_type": {
+          "name": "Mediatype",
+          "description": "Het mediatype voor de afspeellijst (Audio of Video)."
+        },
+        "user_id": {
+          "name": "Gebruikers-ID",
+          "description": "De gebruikers-ID die eigenaar wordt van de afspeellijst."
+        },
+        "item_ids": {
+          "name": "Item-ID's",
+          "description": "Optionele lijst van item-ID's om toe te voegen aan de afspeellijst."
+        }
+      }
+    },
+    "add_to_playlist": {
+      "name": "Toevoegen aan afspeellijst",
+      "description": "Voegt items toe aan een bestaande afspeellijst.",
+      "fields": {
+        "playlist_id": {
+          "name": "Lijst-ID",
+          "description": "De ID van de afspeellijst om items aan toe te voegen."
+        },
+        "item_ids": {
+          "name": "Item-ID's",
+          "description": "Lijst van item-ID's om toe te voegen aan de afspeellijst."
+        },
+        "user_id": {
+          "name": "Gebruikers-ID",
+          "description": "De gebruikers-ID voor rechtenvalidatie."
+        }
+      }
+    },
+    "remove_from_playlist": {
+      "name": "Verwijderen uit afspeellijst",
+      "description": "Verwijdert items uit een afspeellijst.",
+      "fields": {
+        "playlist_id": {
+          "name": "Lijst-ID",
+          "description": "De ID van de afspeellijst waaruit items worden verwijderd."
+        },
+        "playlist_item_ids": {
+          "name": "Lijstitem-ID's",
+          "description": "Lijst van PlaylistItemId-waarden (van lijstitems, NIET media-item-ID's)."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Emby-opties",
+        "description": "Configureer optionele instellingen voor de Emby-integratie.",
+        "data": {
+          "scan_interval": "Scaninterval (seconden)",
+          "enable_websocket": "WebSocket inschakelen",
+          "ignored_devices": "Genegeerde apparaten",
+          "ignore_web_players": "Webbrowserspelers negeren",
+          "direct_play": "Direct afspelen inschakelen",
+          "video_container": "Videocontainer",
+          "transcoding_profile": "Transcodering profiel",
+          "max_video_bitrate": "Max. videobitrate (kbps)",
+          "max_audio_bitrate": "Max. audiobitrate (kbps)",
+          "prefix_media_player": "Mediaspelernamen voorvoegen met 'Emby'",
+          "prefix_notify": "Meldingsnamen voorvoegen met 'Emby'",
+          "prefix_remote": "Afstandsbedieningsnamen voorvoegen met 'Emby'",
+          "prefix_button": "Knopnamen voorvoegen met 'Emby'",
+          "enable_discovery_sensors": "Ontdekkingssensoren inschakelen",
+          "discovery_scan_interval": "Ontdekkingscaninterval (seconden)"
+        },
+        "data_description": {
+          "scan_interval": "Hoe vaak de Emby-server wordt gepolld voor updates (5-300 seconden)",
+          "enable_websocket": "WebSocket gebruiken voor realtime updates (vermindert polling)",
+          "ignored_devices": "Kommagescheiden lijst van te negeren apparaatnamen (bijv. 'Server, Backupapparaat')",
+          "ignore_web_players": "Mediaspelers van webbrowsersessies verbergen (Emby Web, Chrome, Firefox, enz.)",
+          "direct_play": "Direct afspelen proberen voor transcodering",
+          "video_container": "Voorkeursvideocontainerformaat voor transcodering",
+          "transcoding_profile": "Apparaatprofiel voor formaatonderhandeling (universal, chromecast, roku, appletv, audio_only)",
+          "max_video_bitrate": "Maximale videobitrate voor transcodering (leeg laten voor onbeperkt)",
+          "max_audio_bitrate": "Maximale audiobitrate voor transcodering (leeg laten voor onbeperkt)",
+          "prefix_media_player": "Wanneer ingeschakeld, beginnen apparaatnamen met 'Emby' (bijv. 'Emby Woonkamer TV')",
+          "prefix_notify": "Wanneer ingeschakeld, hebben meldingsentiteiten het voorvoegsel 'Emby' in hun namen",
+          "prefix_remote": "Wanneer ingeschakeld, hebben afstandsbedieningsentiteiten het voorvoegsel 'Emby' in hun namen",
+          "prefix_button": "Wanneer ingeschakeld, hebben knopentiteiten het voorvoegsel 'Emby' in hun namen",
+          "enable_discovery_sensors": "Sensoren maken voor Volgende, Verder kijken, Recent toegevoegd en Suggesties (vereist een geselecteerde gebruiker)",
+          "discovery_scan_interval": "Hoe vaak ontdekkingssensoren worden bijgewerkt (300-3600 seconden, standaard: 900)"
+        }
+      }
+    }
+  }
+}

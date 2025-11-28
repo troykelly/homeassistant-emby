@@ -271,3 +271,66 @@ remove_from_playlist:
       required: true
       selector:
         object:
+
+schedule_recording:
+  name: Schedule Recording
+  description: Schedule a one-time recording for a Live TV program.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    program_id:
+      name: Program ID
+      description: The Emby program ID to record.
+      required: true
+      selector:
+        text:
+    pre_padding_seconds:
+      name: Pre-padding
+      description: Seconds to start recording before the program begins (0-3600).
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 3600
+          unit_of_measurement: "seconds"
+    post_padding_seconds:
+      name: Post-padding
+      description: Seconds to continue recording after the program ends (0-3600).
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 3600
+          unit_of_measurement: "seconds"
+
+cancel_recording:
+  name: Cancel Recording
+  description: Cancel a scheduled recording timer.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    timer_id:
+      name: Timer ID
+      description: The Emby timer ID to cancel.
+      required: true
+      selector:
+        text:
+
+cancel_series_timer:
+  name: Cancel Series Timer
+  description: Cancel a series recording timer (stops all future recordings in the series).
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    series_timer_id:
+      name: Series Timer ID
+      description: The Emby series timer ID to cancel.
+      required: true
+      selector:
+        text:
