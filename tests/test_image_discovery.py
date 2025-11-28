@@ -322,3 +322,194 @@ class TestDiscoveryImageNoData:
         mock_coordinator.last_update_success = False
         image = EmbyNextUpImage(mock_hass, mock_coordinator, "Emby Server")
         assert image.available is False
+
+    def test_item_with_empty_id(
+        self,
+        mock_hass: MagicMock,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test _get_image_info returns None when item has empty Id."""
+        mock_coordinator.data = EmbyDiscoveryData(
+            next_up=[{"Id": "", "Name": "Test"}],
+            continue_watching=[],
+            recently_added=[],
+            suggestions=[],
+        )
+        image = EmbyNextUpImage(mock_hass, mock_coordinator, "Emby Server")
+        target_id, tag = image._get_image_info()
+        assert target_id is None
+        assert tag is None
+
+
+class TestAsyncImage:
+    """Test async_image method."""
+
+    @pytest.mark.asyncio
+    async def test_async_image_success(
+        self,
+        mock_hass: MagicMock,
+        mock_coordinator_with_data: MagicMock,
+    ) -> None:
+        """Test async_image returns bytes on success."""
+        from unittest.mock import AsyncMock, patch
+
+        image = EmbyNextUpImage(mock_hass, mock_coordinator_with_data, "Emby Server")
+
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.headers = {"Content-Type": "image/png"}
+        mock_response.read = AsyncMock(return_value=b"fake image data")
+
+        mock_session = MagicMock()
+        mock_context = AsyncMock()
+        mock_context.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(return_value=mock_context)
+
+        with patch(
+            "custom_components.embymedia.image_discovery.async_get_clientsession",
+            return_value=mock_session,
+        ):
+            result = await image.async_image()
+
+        assert result == b"fake image data"
+        assert image._attr_content_type == "image/png"
+
+    @pytest.mark.asyncio
+    async def test_async_image_no_target_id(
+        self,
+        mock_hass: MagicMock,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test async_image returns None when no target_id."""
+        image = EmbyNextUpImage(mock_hass, mock_coordinator, "Emby Server")
+        result = await image.async_image()
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_async_image_http_error(
+        self,
+        mock_hass: MagicMock,
+        mock_coordinator_with_data: MagicMock,
+    ) -> None:
+        """Test async_image returns None on HTTP error."""
+        from unittest.mock import AsyncMock, patch
+
+        image = EmbyNextUpImage(mock_hass, mock_coordinator_with_data, "Emby Server")
+
+        mock_response = AsyncMock()
+        mock_response.status = 404
+        mock_response.headers = {}
+
+        mock_session = MagicMock()
+        mock_context = AsyncMock()
+        mock_context.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(return_value=mock_context)
+
+        with patch(
+            "custom_components.embymedia.image_discovery.async_get_clientsession",
+            return_value=mock_session,
+        ):
+            result = await image.async_image()
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_async_image_exception(
+        self,
+        mock_hass: MagicMock,
+        mock_coordinator_with_data: MagicMock,
+    ) -> None:
+        """Test async_image returns None on exception."""
+        from unittest.mock import AsyncMock, patch
+
+        image = EmbyNextUpImage(mock_hass, mock_coordinator_with_data, "Emby Server")
+
+        mock_session = MagicMock()
+        mock_context = AsyncMock()
+        mock_context.__aenter__ = AsyncMock(side_effect=Exception("Connection failed"))
+        mock_context.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(return_value=mock_context)
+
+        with patch(
+            "custom_components.embymedia.image_discovery.async_get_clientsession",
+            return_value=mock_session,
+        ):
+            result = await image.async_image()
+
+        assert result is None
+
+
+class TestHandleCoordinatorUpdate:
+    """Test _handle_coordinator_update method."""
+
+    def test_coordinator_update_no_change(
+        self,
+        mock_hass: MagicMock,
+        mock_coordinator_with_data: MagicMock,
+    ) -> None:
+        """Test coordinator update when image doesn't change."""
+        from unittest.mock import patch
+
+        from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+        image = EmbyNextUpImage(mock_hass, mock_coordinator_with_data, "Emby Server")
+        old_timestamp = image._attr_image_last_updated
+        old_image_id = image._current_image_id
+
+        # Mock the super()._handle_coordinator_update to avoid hass issues
+        with patch.object(
+            CoordinatorEntity,
+            "_handle_coordinator_update",
+            return_value=None,
+        ):
+            # Call update without changing data - image should stay the same
+            image._handle_coordinator_update()
+
+        # Timestamp should not change since image didn't change
+        assert image._attr_image_last_updated == old_timestamp
+        assert image._current_image_id == old_image_id
+
+    def test_coordinator_update_image_changed(
+        self,
+        mock_hass: MagicMock,
+        mock_coordinator_with_data: MagicMock,
+    ) -> None:
+        """Test coordinator update when image changes."""
+        from unittest.mock import patch
+
+        from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+        image = EmbyNextUpImage(mock_hass, mock_coordinator_with_data, "Emby Server")
+        old_timestamp = image._attr_image_last_updated
+
+        # Change the data to a different series
+        mock_coordinator_with_data.data = EmbyDiscoveryData(
+            next_up=[
+                {
+                    "Id": "episode999",
+                    "Name": "New Episode",
+                    "Type": "Episode",
+                    "SeriesId": "newseries",
+                    "ImageTags": {"Primary": "newtag"},
+                    "SeriesPrimaryImageTag": "newseriestag",
+                },
+            ],
+            continue_watching=[],
+            recently_added=[],
+            suggestions=[],
+        )
+
+        # Mock the super()._handle_coordinator_update to avoid hass issues
+        with patch.object(
+            CoordinatorEntity,
+            "_handle_coordinator_update",
+            return_value=None,
+        ):
+            # Call update - image should change
+            image._handle_coordinator_update()
+
+        # Timestamp should change and cached image should be cleared
+        assert image._current_image_id == "newseries"
+        assert image._attr_image_last_updated != old_timestamp

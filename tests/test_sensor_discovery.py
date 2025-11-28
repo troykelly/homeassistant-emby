@@ -455,3 +455,132 @@ class TestDiscoverySensorDeviceInfo:
         assert device_info["name"] == "Emby Server"
         assert device_info["manufacturer"] == "Emby"
         assert device_info["model"] == "Emby Server"
+
+
+class TestImageUrlEdgeCases:
+    """Test edge cases for image URL methods."""
+
+    def test_get_image_url_with_none_item_id(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test _get_image_url returns None for empty item_id."""
+        sensor = EmbyNextUpSensor(mock_coordinator, "Emby Server")
+        result = sensor._get_image_url(None, {"Primary": "tag"})
+        assert result is None
+
+    def test_get_series_image_url_with_none_series_id(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test _get_series_image_url returns None for empty series_id."""
+        sensor = EmbyNextUpSensor(mock_coordinator, "Emby Server")
+        result = sensor._get_series_image_url(None, "seriestag")
+        assert result is None
+
+    def test_next_up_episode_fallback_to_item_image(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test Next Up falls back to episode image when no series image."""
+        # Episode without series info should use item image
+        mock_coordinator.data = EmbyDiscoveryData(
+            next_up=[
+                {
+                    "Id": "episode1",
+                    "Name": "Episode Name",
+                    "Type": "Episode",
+                    "SeriesId": None,
+                    "ImageTags": {"Primary": "episodetag"},
+                    "SeriesPrimaryImageTag": None,
+                },
+            ],
+            continue_watching=[],
+            recently_added=[],
+            suggestions=[],
+        )
+        sensor = EmbyNextUpSensor(mock_coordinator, "Emby Server")
+        attrs = sensor.extra_state_attributes
+        # Should fall back to episode image
+        assert attrs is not None
+        assert attrs["items"][0]["image_url"] is not None
+
+    def test_continue_watching_episode_with_series(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test Continue Watching uses series image for episodes."""
+        mock_coordinator.data = EmbyDiscoveryData(
+            next_up=[],
+            continue_watching=[
+                {
+                    "Id": "episode1",
+                    "Name": "Episode Name",
+                    "Type": "Episode",
+                    "SeriesId": "series1",
+                    "SeriesName": "Test Series",
+                    "ImageTags": {"Primary": "episodetag"},
+                    "SeriesPrimaryImageTag": "seriestag",
+                    "UserData": {"PlaybackPositionTicks": 100000000},
+                },
+            ],
+            recently_added=[],
+            suggestions=[],
+        )
+        sensor = EmbyContinueWatchingSensor(mock_coordinator, "Emby Server")
+        attrs = sensor.extra_state_attributes
+        assert attrs is not None
+        # Should use series image for episodes
+        assert "series1" in attrs["items"][0]["image_url"]
+
+    def test_suggestions_series_type_without_series_id(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test Suggestions uses item image for Series without SeriesId."""
+        mock_coordinator.data = EmbyDiscoveryData(
+            next_up=[],
+            continue_watching=[],
+            recently_added=[],
+            suggestions=[
+                {
+                    "Id": "series1",
+                    "Name": "A Series",
+                    "Type": "Series",
+                    "SeriesId": None,
+                    "ImageTags": {"Primary": "seriestag"},
+                    "SeriesPrimaryImageTag": None,
+                },
+            ],
+        )
+        sensor = EmbySuggestionsSensor(mock_coordinator, "Emby Server")
+        attrs = sensor.extra_state_attributes
+        assert attrs is not None
+        # Should use item image since no SeriesId
+        assert "series1" in attrs["items"][0]["image_url"]
+
+    def test_suggestions_episode_with_series_id(
+        self,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test Suggestions uses series image for Episode with SeriesId."""
+        mock_coordinator.data = EmbyDiscoveryData(
+            next_up=[],
+            continue_watching=[],
+            recently_added=[],
+            suggestions=[
+                {
+                    "Id": "episode1",
+                    "Name": "An Episode",
+                    "Type": "Episode",
+                    "SeriesId": "parent_series",
+                    "ImageTags": {"Primary": "episodetag"},
+                    "SeriesPrimaryImageTag": "seriestag",
+                },
+            ],
+        )
+        sensor = EmbySuggestionsSensor(mock_coordinator, "Emby Server")
+        attrs = sensor.extra_state_attributes
+        assert attrs is not None
+        # Should use series image for episodes with SeriesId
+        assert "parent_series" in attrs["items"][0]["image_url"]

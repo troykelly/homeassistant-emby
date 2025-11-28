@@ -728,3 +728,99 @@ class TestBackwardCompatibility:
 
             # The .coordinator property should return session_coordinator
             assert mock_config_entry.runtime_data.coordinator is session_coordinator
+
+
+class TestRuntimeDataDiscoveryCoordinator:
+    """Test EmbyRuntimeData discovery_coordinator property."""
+
+    def test_discovery_coordinator_returns_first_when_exists(self) -> None:
+        """Test discovery_coordinator returns first coordinator from dict."""
+        from custom_components.embymedia.coordinator_discovery import EmbyDiscoveryCoordinator
+
+        mock_coordinator = MagicMock(spec=EmbyDiscoveryCoordinator)
+        runtime_data = EmbyRuntimeData(
+            session_coordinator=MagicMock(),
+            server_coordinator=MagicMock(),
+            library_coordinator=MagicMock(),
+            discovery_coordinators={"user1": mock_coordinator},
+        )
+
+        assert runtime_data.discovery_coordinator is mock_coordinator
+
+    def test_discovery_coordinator_returns_none_when_empty(self) -> None:
+        """Test discovery_coordinator returns None when dict is empty."""
+        runtime_data = EmbyRuntimeData(
+            session_coordinator=MagicMock(),
+            server_coordinator=MagicMock(),
+            library_coordinator=MagicMock(),
+            discovery_coordinators={},
+        )
+
+        assert runtime_data.discovery_coordinator is None
+
+
+class TestAdminContextDiscoverySetup:
+    """Test discovery coordinator setup for admin context."""
+
+    @pytest.mark.asyncio
+    async def test_admin_context_creates_coordinators_for_all_users(
+        self,
+        hass: HomeAssistant,
+        mock_server_info: dict[str, Any],
+    ) -> None:
+        """Test admin context creates discovery coordinators for all users."""
+        # Config entry without user_id (admin context)
+        config_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: False,
+            },
+            options={
+                CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
+                "enable_discovery_sensors": True,
+            },
+        )
+        config_entry.add_to_hass(hass)
+
+        session_coordinator = create_mock_session_coordinator()
+        server_coordinator = create_mock_server_coordinator()
+        library_coordinator = create_mock_library_coordinator()
+
+        mock_users = [
+            {"Id": "user1", "Name": "User One"},
+            {"Id": "user2", "Name": "User Two"},
+            {"Id": "", "Name": "Invalid User"},  # Empty ID should be skipped
+        ]
+
+        with (
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
+            patch(
+                "custom_components.embymedia.EmbyDataUpdateCoordinator",
+            ) as mock_session_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyServerCoordinator",
+            ) as mock_server_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyLibraryCoordinator",
+            ) as mock_library_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyDiscoveryCoordinator",
+            ) as mock_discovery_coordinator_class,
+        ):
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(return_value=mock_server_info)
+            client.async_get_users = AsyncMock(return_value=mock_users)
+
+            mock_session_coordinator_class.return_value = session_coordinator
+            mock_server_coordinator_class.return_value = server_coordinator
+            mock_library_coordinator_class.return_value = library_coordinator
+
+            await hass.config_entries.async_setup(config_entry.entry_id)
+
+            # Should create coordinators for user1 and user2, but not empty ID
+            assert mock_discovery_coordinator_class.call_count == 2
