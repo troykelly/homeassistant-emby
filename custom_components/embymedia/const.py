@@ -1132,6 +1132,52 @@ DEFAULT_DISCOVERY_SCAN_INTERVAL: Final = 900  # 15 minutes in seconds
 
 
 # =============================================================================
+# TypedDicts for Activity Log API (Phase 18)
+# =============================================================================
+
+
+class EmbyActivityLogEntry(TypedDict, total=False):
+    """Response item from /System/ActivityLog/Entries endpoint.
+
+    Represents a single activity log entry from the Emby server.
+    Note: Id is an int in Emby's activity log (unlike other IDs which are strings).
+
+    Activity types include:
+    - UserSignedIn / UserSignedOut
+    - AuthenticationSucceeded / AuthenticationFailed
+    - playback.start / playback.stop
+    - ItemAdded
+    - livetv.recordingerror
+    - SubtitleDownload
+    - PluginInstalled / PluginUpdated
+    """
+
+    # Required fields (present in all entries)
+    Id: int  # Unique entry ID (note: int, not str)
+    Name: str  # Activity description
+    Type: str  # Activity type (e.g., "playback.start", "livetv.recordingerror")
+    Date: str  # ISO 8601 timestamp
+    Severity: str  # "Info", "Warn", "Error"
+
+    # Optional fields (may not be present in all entries)
+    UserId: str  # Associated user ID
+    ItemId: str  # Associated media item ID
+    UserPrimaryImageTag: str  # User avatar image tag
+    ShortOverview: str  # Brief description
+    Overview: str  # Full description
+
+
+class EmbyActivityLogResponse(TypedDict):
+    """Response from /System/ActivityLog/Entries endpoint.
+
+    Contains a paginated list of activity entries and the total count.
+    """
+
+    Items: list[EmbyActivityLogEntry]
+    TotalRecordCount: int
+
+
+# =============================================================================
 # Utility Functions
 # =============================================================================
 
