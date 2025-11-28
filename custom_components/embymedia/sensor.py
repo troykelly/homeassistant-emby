@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from homeassistant.components.sensor import (
+    SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
@@ -531,13 +533,135 @@ class EmbySeriesTimerCountSensor(EmbyServerSensorBase):
         return int(self.coordinator.data.get("series_timer_count", 0))
 
 
+# =============================================================================
+# Activity & Device Sensors (Phase 18)
+# =============================================================================
+
+
+class EmbyLastActivitySensor(EmbyServerSensorBase):
+    """Sensor for last activity timestamp.
+
+    Shows when the most recent activity occurred on the server.
+    The state is a timestamp, with extra attributes showing activity details.
+    """
+
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:history"
+    _attr_translation_key = "last_activity"
+
+    def __init__(self, coordinator: EmbyServerCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.server_id}_last_activity"
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Return the timestamp of the most recent activity."""
+        if self.coordinator.data is None:
+            return None
+
+        activities = self.coordinator.data.get("recent_activities", [])
+        if not activities:
+            return None
+
+        # Parse the ISO 8601 timestamp from the most recent activity
+        date_str = activities[0].get("Date")
+        if not date_str:
+            return None
+
+        try:
+            # Handle Emby's timestamp format with 7-digit microseconds
+            # Remove trailing zeros beyond 6 digits for standard parsing
+            if "." in date_str:
+                main_part, frac_and_tz = date_str.split(".", 1)
+                # Find where the fractional part ends (Z or +/-)
+                for i, char in enumerate(frac_and_tz):
+                    if char in "Z+-":
+                        frac = frac_and_tz[:i][:6]  # Keep max 6 digits
+                        tz = frac_and_tz[i:]
+                        date_str = f"{main_part}.{frac}{tz}"
+                        break
+            return datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+        except (ValueError, AttributeError):
+            return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str | int] | None:
+        """Return extra state attributes."""
+        if self.coordinator.data is None:
+            return None
+
+        activities = self.coordinator.data.get("recent_activities", [])
+        activity_count = self.coordinator.data.get("activity_count", 0)
+
+        if not activities:
+            return {"total_activities": activity_count}
+
+        latest = activities[0]
+        return {
+            "activity_name": latest.get("Name", "Unknown"),
+            "activity_type": latest.get("Type", "Unknown"),
+            "severity": latest.get("Severity", "Info"),
+            "total_activities": activity_count,
+        }
+
+
+class EmbyConnectedDevicesSensor(EmbyServerSensorBase):
+    """Sensor for connected devices count.
+
+    Shows the number of registered devices connected to the server.
+    Extra attributes contain a list of all devices with details.
+    """
+
+    _attr_icon = "mdi:devices"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "connected_devices"
+
+    def __init__(self, coordinator: EmbyServerCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.server_id}_connected_devices"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the number of connected devices."""
+        if self.coordinator.data is None:
+            return None
+        return int(self.coordinator.data.get("device_count", 0))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, list[dict[str, str]]] | None:
+        """Return extra state attributes with device list."""
+        if self.coordinator.data is None:
+            return None
+
+        devices = self.coordinator.data.get("devices", [])
+
+        # Transform device data for attributes
+        device_list = [
+            {
+                "name": device.get("Name", "Unknown"),
+                "app_name": device.get("AppName", "Unknown"),
+                "app_version": device.get("AppVersion", "Unknown"),
+                "last_user": device.get("LastUserName", "Unknown"),
+                "last_activity": device.get("DateLastActivity", ""),
+            }
+            for device in devices
+        ]
+
+        return {"devices": device_list}
+
+
 __all__ = [
     "EmbyActiveRecordingsSensor",
     "EmbyActiveSessionsSensor",
     "EmbyAlbumCountSensor",
     "EmbyArtistCountSensor",
+    "EmbyConnectedDevicesSensor",
     "EmbyEpisodeCountSensor",
+    "EmbyLastActivitySensor",
     "EmbyMovieCountSensor",
+    "EmbyPlaylistCountSensor",
     "EmbyRecordingCountSensor",
     "EmbyRunningTasksSensor",
     "EmbyScheduledTimerCountSensor",
