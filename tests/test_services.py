@@ -201,3 +201,33 @@ class TestDeviceIdTargeting:
                 },
                 blocking=True,
             )
+
+
+class TestPlayInstantMixService:
+    """Tests for play instant mix service."""
+
+    @pytest.mark.asyncio
+    async def test_play_instant_mix_service_registered(self, hass: HomeAssistant) -> None:
+        """Test that play_instant_mix service is registered."""
+        from custom_components.embymedia.services import (
+            SERVICE_PLAY_INSTANT_MIX,
+            async_setup_services,
+        )
+
+        await async_setup_services(hass)
+        assert hass.services.has_service(DOMAIN, SERVICE_PLAY_INSTANT_MIX)
+
+
+class TestPlaySimilarService:
+    """Tests for play similar items service."""
+
+    @pytest.mark.asyncio
+    async def test_play_similar_service_registered(self, hass: HomeAssistant) -> None:
+        """Test that play_similar service is registered."""
+        from custom_components.embymedia.services import (
+            SERVICE_PLAY_SIMILAR,
+            async_setup_services,
+        )
+
+        await async_setup_services(hass)
+        assert hass.services.has_service(DOMAIN, SERVICE_PLAY_SIMILAR)
