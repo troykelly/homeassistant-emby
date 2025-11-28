@@ -1,0 +1,442 @@
+{
+  "exceptions": {
+    "connection_failed": {
+      "message": "无法连接到 {host}:{port} 上的 Emby 服务器。请检查服务器是否正在运行以及主机/端口是否正确。"
+    },
+    "authentication_failed": {
+      "message": "身份验证失败。请检查您的 API 密钥。"
+    },
+    "server_error": {
+      "message": "Emby 服务器返回错误。请检查服务器日志。"
+    },
+    "not_found": {
+      "message": "在服务器上未找到请求的资源。"
+    },
+    "timeout": {
+      "message": "连接超时。服务器可能无法访问。"
+    },
+    "ssl_error": {
+      "message": "SSL 证书验证失败。请检查您的证书或禁用验证。"
+    },
+    "websocket_error": {
+      "message": "WebSocket 连接错误。实时更新可能不可用。"
+    },
+    "websocket_auth_failed": {
+      "message": "WebSocket 身份验证失败。请检查您的 API 密钥。"
+    }
+  },
+  "config": {
+    "step": {
+      "user": {
+        "title": "连接到 Emby 服务器",
+        "description": "输入您的 Emby 服务器连接详情。",
+        "data": {
+          "host": "主机",
+          "port": "端口",
+          "ssl": "使用 SSL",
+          "api_key": "API 密钥",
+          "verify_ssl": "验证 SSL 证书"
+        },
+        "data_description": {
+          "host": "Emby 服务器的主机名或 IP 地址（例如 192.168.1.100 或 emby.local）",
+          "port": "端口号（默认：8096，HTTPS 使用 8920）",
+          "ssl": "启用 HTTPS 连接",
+          "api_key": "来自 Emby 控制面板 > 高级 > API 密钥",
+          "verify_ssl": "验证 SSL 证书（仅对自签名证书禁用）"
+        }
+      },
+      "user_select": {
+        "title": "选择用户",
+        "description": "为 {server_name} 选择用户上下文。选择「使用管理员上下文」以使用 API 密钥而不指定特定用户。",
+        "data": {
+          "user_id": "用户"
+        },
+        "data_description": {
+          "user_id": "将使用其媒体库和权限的用户"
+        }
+      },
+      "reauth_confirm": {
+        "title": "重新验证 Emby 服务器",
+        "description": "{server_name} 的 API 密钥已失效。请输入新的 API 密钥。"
+      },
+      "entity_options": {
+        "title": "实体命名选项",
+        "description": "配置 {server_name} 的实体名称显示方式。默认情况下，设备名称带有「Emby」前缀（例如「Emby 客厅电视」）。您可以禁用此选项以获得更简洁的名称。",
+        "data": {
+          "prefix_media_player": "为媒体播放器名称添加「Emby」前缀",
+          "prefix_notify": "为通知名称添加「Emby」前缀",
+          "prefix_remote": "为遥控器名称添加「Emby」前缀",
+          "prefix_button": "为按钮名称添加「Emby」前缀"
+        },
+        "data_description": {
+          "prefix_media_player": "启用后，媒体播放器设备名称将以「Emby」开头（例如「Emby 客厅电视」）",
+          "prefix_notify": "启用后，通知设备将带有「Emby」前缀",
+          "prefix_remote": "启用后，遥控器设备将带有「Emby」前缀",
+          "prefix_button": "启用后，服务器操作按钮将带有「Emby」前缀"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "无法连接到 Emby 服务器。请检查主机和端口。",
+      "invalid_auth": "无效的 API 密钥。请在 Emby 控制面板 > 高级 > API 密钥中检查您的 API 密钥。",
+      "invalid_host": "无效的主机名或 IP 地址",
+      "invalid_port": "端口必须在 1 到 65535 之间",
+      "timeout": "连接超时。服务器可能无法访问或响应缓慢。",
+      "ssl_error": "SSL 证书验证失败。启用「验证 SSL 证书」选项或检查您的证书。",
+      "unsupported_version": "不支持此 Emby 服务器版本。请升级到 4.9.1.90 或更高版本。",
+      "unknown": "发生意外错误。请查看日志了解详情。"
+    },
+    "abort": {
+      "already_configured": "此 Emby 服务器已配置",
+      "reauth_successful": "重新验证成功",
+      "unsupported_version": "不支持此 Emby 服务器版本"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "server_connected": {
+        "name": "服务器已连接"
+      },
+      "pending_restart": {
+        "name": "等待重启"
+      },
+      "update_available": {
+        "name": "有可用更新"
+      },
+      "library_scan_active": {
+        "name": "媒体库扫描中"
+      },
+      "live_tv_enabled": {
+        "name": "直播电视已启用"
+      }
+    },
+    "sensor": {
+      "server_version": {
+        "name": "服务器版本"
+      },
+      "running_tasks": {
+        "name": "运行中的任务"
+      },
+      "active_sessions": {
+        "name": "活动会话"
+      },
+      "movie_count": {
+        "name": "电影"
+      },
+      "series_count": {
+        "name": "电视剧"
+      },
+      "episode_count": {
+        "name": "剧集"
+      },
+      "song_count": {
+        "name": "歌曲"
+      },
+      "album_count": {
+        "name": "专辑"
+      },
+      "artist_count": {
+        "name": "艺术家"
+      },
+      "playlist_count": {
+        "name": "播放列表"
+      },
+      "next_up": {
+        "name": "接下来"
+      },
+      "continue_watching": {
+        "name": "继续观看"
+      },
+      "recently_added": {
+        "name": "最近添加"
+      },
+      "suggestions": {
+        "name": "推荐"
+      },
+      "recording_count": {
+        "name": "录制"
+      },
+      "active_recordings": {
+        "name": "正在录制"
+      },
+      "scheduled_timer_count": {
+        "name": "计划录制"
+      },
+      "series_timer_count": {
+        "name": "剧集录制规则"
+      }
+    },
+    "image": {
+      "next_up_image": {
+        "name": "接下来"
+      },
+      "continue_watching_image": {
+        "name": "继续观看"
+      },
+      "recently_added_image": {
+        "name": "最近添加"
+      },
+      "suggestions_image": {
+        "name": "推荐"
+      }
+    }
+  },
+  "services": {
+    "send_message": {
+      "name": "发送消息",
+      "description": "向 Emby 客户端发送消息。",
+      "fields": {
+        "message": {
+          "name": "消息",
+          "description": "要显示的消息文本。"
+        },
+        "header": {
+          "name": "标题",
+          "description": "消息的可选标题。"
+        },
+        "timeout_ms": {
+          "name": "显示时长",
+          "description": "消息显示时长（毫秒）。"
+        }
+      }
+    },
+    "send_command": {
+      "name": "发送命令",
+      "description": "向 Emby 客户端发送通用命令。",
+      "fields": {
+        "command": {
+          "name": "命令",
+          "description": "要发送的命令（例如 MoveUp、MoveDown、Select、Back）。"
+        }
+      }
+    },
+    "mark_played": {
+      "name": "标记已播放",
+      "description": "将媒体项目标记为已播放。",
+      "fields": {
+        "item_id": {
+          "name": "项目 ID",
+          "description": "要标记为已播放的 Emby 项目 ID。"
+        },
+        "user_id": {
+          "name": "用户 ID",
+          "description": "可选的用户 ID（如未指定则使用会话用户）。"
+        }
+      }
+    },
+    "mark_unplayed": {
+      "name": "标记未播放",
+      "description": "将媒体项目标记为未播放。",
+      "fields": {
+        "item_id": {
+          "name": "项目 ID",
+          "description": "要标记为未播放的 Emby 项目 ID。"
+        },
+        "user_id": {
+          "name": "用户 ID",
+          "description": "可选的用户 ID（如未指定则使用会话用户）。"
+        }
+      }
+    },
+    "add_favorite": {
+      "name": "添加到收藏",
+      "description": "将媒体项目添加到收藏。",
+      "fields": {
+        "item_id": {
+          "name": "项目 ID",
+          "description": "要添加到收藏的 Emby 项目 ID。"
+        },
+        "user_id": {
+          "name": "用户 ID",
+          "description": "可选的用户 ID（如未指定则使用会话用户）。"
+        }
+      }
+    },
+    "remove_favorite": {
+      "name": "从收藏移除",
+      "description": "从收藏中移除媒体项目。",
+      "fields": {
+        "item_id": {
+          "name": "项目 ID",
+          "description": "要从收藏移除的 Emby 项目 ID。"
+        },
+        "user_id": {
+          "name": "用户 ID",
+          "description": "可选的用户 ID（如未指定则使用会话用户）。"
+        }
+      }
+    },
+    "refresh_library": {
+      "name": "刷新媒体库",
+      "description": "在 Emby 服务器上触发媒体库刷新。",
+      "fields": {
+        "library_id": {
+          "name": "媒体库 ID",
+          "description": "要刷新的可选媒体库 ID（如未指定则刷新所有媒体库）。"
+        }
+      }
+    },
+    "play_instant_mix": {
+      "name": "播放即时混音",
+      "description": "基于项目（歌曲、专辑、艺术家）播放即时混音。",
+      "fields": {
+        "item_id": {
+          "name": "项目 ID",
+          "description": "用作即时混音基础的 Emby 项目 ID。"
+        },
+        "user_id": {
+          "name": "用户 ID",
+          "description": "可选的用户 ID（如未指定则使用会话用户）。"
+        }
+      }
+    },
+    "play_similar": {
+      "name": "播放相似内容",
+      "description": "基于媒体项目播放相似内容。",
+      "fields": {
+        "item_id": {
+          "name": "项目 ID",
+          "description": "用于查找相似内容的 Emby 项目 ID。"
+        },
+        "user_id": {
+          "name": "用户 ID",
+          "description": "可选的用户 ID（如未指定则使用会话用户）。"
+        }
+      }
+    },
+    "schedule_recording": {
+      "name": "计划录制",
+      "description": "为直播电视节目计划一次性录制。",
+      "fields": {
+        "program_id": {
+          "name": "节目 ID",
+          "description": "要录制的 Emby 节目 ID。"
+        },
+        "pre_padding_seconds": {
+          "name": "提前录制",
+          "description": "节目开始前提前录制的秒数（0-3600）。"
+        },
+        "post_padding_seconds": {
+          "name": "延后录制",
+          "description": "节目结束后继续录制的秒数（0-3600）。"
+        }
+      }
+    },
+    "cancel_recording": {
+      "name": "取消录制",
+      "description": "取消计划的录制定时器。",
+      "fields": {
+        "timer_id": {
+          "name": "定时器 ID",
+          "description": "要取消的 Emby 定时器 ID。"
+        }
+      }
+    },
+    "cancel_series_timer": {
+      "name": "取消剧集定时器",
+      "description": "取消剧集录制定时器（停止该剧集的所有未来录制）。",
+      "fields": {
+        "series_timer_id": {
+          "name": "剧集定时器 ID",
+          "description": "要取消的 Emby 剧集定时器 ID。"
+        }
+      }
+    },
+    "create_playlist": {
+      "name": "创建播放列表",
+      "description": "在 Emby 服务器上创建新的播放列表。",
+      "fields": {
+        "name": {
+          "name": "播放列表名称",
+          "description": "新播放列表的名称。"
+        },
+        "media_type": {
+          "name": "媒体类型",
+          "description": "播放列表的媒体类型（音频或视频）。"
+        },
+        "user_id": {
+          "name": "用户 ID",
+          "description": "将拥有播放列表的用户 ID。"
+        },
+        "item_ids": {
+          "name": "项目 ID",
+          "description": "要添加到播放列表的可选项目 ID 列表。"
+        }
+      }
+    },
+    "add_to_playlist": {
+      "name": "添加到播放列表",
+      "description": "将项目添加到现有播放列表。",
+      "fields": {
+        "playlist_id": {
+          "name": "播放列表 ID",
+          "description": "要添加项目的播放列表 ID。"
+        },
+        "item_ids": {
+          "name": "项目 ID",
+          "description": "要添加到播放列表的项目 ID 列表。"
+        },
+        "user_id": {
+          "name": "用户 ID",
+          "description": "用于权限验证的用户 ID。"
+        }
+      }
+    },
+    "remove_from_playlist": {
+      "name": "从播放列表移除",
+      "description": "从播放列表中移除项目。",
+      "fields": {
+        "playlist_id": {
+          "name": "播放列表 ID",
+          "description": "要移除项目的播放列表 ID。"
+        },
+        "playlist_item_ids": {
+          "name": "播放列表项目 ID",
+          "description": "PlaylistItemId 值列表（来自播放列表项目，不是媒体项目 ID）。"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Emby 选项",
+        "description": "配置 Emby 集成的可选设置。",
+        "data": {
+          "scan_interval": "扫描间隔（秒）",
+          "enable_websocket": "启用 WebSocket",
+          "ignored_devices": "忽略的设备",
+          "ignore_web_players": "忽略网页浏览器播放器",
+          "direct_play": "启用直接播放",
+          "video_container": "视频容器",
+          "transcoding_profile": "转码配置",
+          "max_video_bitrate": "最大视频比特率（kbps）",
+          "max_audio_bitrate": "最大音频比特率（kbps）",
+          "prefix_media_player": "为媒体播放器名称添加「Emby」前缀",
+          "prefix_notify": "为通知名称添加「Emby」前缀",
+          "prefix_remote": "为遥控器名称添加「Emby」前缀",
+          "prefix_button": "为按钮名称添加「Emby」前缀",
+          "enable_discovery_sensors": "启用发现传感器",
+          "discovery_scan_interval": "发现扫描间隔（秒）"
+        },
+        "data_description": {
+          "scan_interval": "轮询 Emby 服务器获取更新的频率（5-300 秒）",
+          "enable_websocket": "使用 WebSocket 进行实时更新（减少轮询）",
+          "ignored_devices": "要忽略的设备名称列表，用逗号分隔（例如「服务器, 备份设备」）",
+          "ignore_web_players": "隐藏来自网页浏览器会话的媒体播放器（Emby Web、Chrome、Firefox 等）",
+          "direct_play": "在转码之前尝试直接播放",
+          "video_container": "转码时首选的视频容器格式",
+          "transcoding_profile": "用于格式协商的设备配置（universal、chromecast、roku、appletv、audio_only）",
+          "max_video_bitrate": "转码时的最大视频比特率（留空为无限制）",
+          "max_audio_bitrate": "转码时的最大音频比特率（留空为无限制）",
+          "prefix_media_player": "启用后，设备名称将以「Emby」开头（例如「Emby 客厅电视」）",
+          "prefix_notify": "启用后，通知实体的名称将带有「Emby」前缀",
+          "prefix_remote": "启用后，遥控器实体的名称将带有「Emby」前缀",
+          "prefix_button": "启用后，按钮实体的名称将带有「Emby」前缀",
+          "enable_discovery_sensors": "创建「接下来」、「继续观看」、「最近添加」和「推荐」的传感器（需要选择用户）",
+          "discovery_scan_interval": "更新发现传感器的频率（300-3600 秒，默认：900）"
+        }
+      }
+    }
+  }
+}

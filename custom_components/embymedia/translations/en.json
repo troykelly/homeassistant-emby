@@ -138,6 +138,9 @@
       "artist_count": {
         "name": "Artists"
       },
+      "playlist_count": {
+        "name": "Playlists"
+      },
       "next_up": {
         "name": "Next Up"
       },
@@ -338,6 +341,60 @@
           "description": "The Emby series timer ID to cancel."
         }
       }
+    },
+    "create_playlist": {
+      "name": "Create Playlist",
+      "description": "Create a new playlist on the Emby server.",
+      "fields": {
+        "name": {
+          "name": "Playlist Name",
+          "description": "The name for the new playlist."
+        },
+        "media_type": {
+          "name": "Media Type",
+          "description": "The type of media for the playlist (Audio or Video)."
+        },
+        "user_id": {
+          "name": "User ID",
+          "description": "The user ID who will own the playlist."
+        },
+        "item_ids": {
+          "name": "Item IDs",
+          "description": "Optional list of item IDs to add to the playlist."
+        }
+      }
+    },
+    "add_to_playlist": {
+      "name": "Add to Playlist",
+      "description": "Add items to an existing playlist.",
+      "fields": {
+        "playlist_id": {
+          "name": "Playlist ID",
+          "description": "The ID of the playlist to add items to."
+        },
+        "item_ids": {
+          "name": "Item IDs",
+          "description": "List of item IDs to add to the playlist."
+        },
+        "user_id": {
+          "name": "User ID",
+          "description": "The user ID for permission validation."
+        }
+      }
+    },
+    "remove_from_playlist": {
+      "name": "Remove from Playlist",
+      "description": "Remove items from a playlist.",
+      "fields": {
+        "playlist_id": {
+          "name": "Playlist ID",
+          "description": "The ID of the playlist to remove items from."
+        },
+        "playlist_item_ids": {
+          "name": "Playlist Item IDs",
+          "description": "List of PlaylistItemId values (from playlist items, NOT media item IDs)."
+        }
+      }
     }
   },
   "options": {
@@ -352,6 +409,7 @@
           "ignore_web_players": "Ignore web browser players",
           "direct_play": "Enable direct play",
           "video_container": "Video container",
+          "transcoding_profile": "Transcoding profile",
           "max_video_bitrate": "Max video bitrate (kbps)",
           "max_audio_bitrate": "Max audio bitrate (kbps)",
           "prefix_media_player": "Prefix media player names with 'Emby'",
@@ -368,6 +426,7 @@
           "ignore_web_players": "Hide media players from web browser sessions (Emby Web, Chrome, Firefox, etc.)",
           "direct_play": "Try direct play before transcoding",
           "video_container": "Preferred video container format for transcoding",
+          "transcoding_profile": "Device profile for format negotiation (universal, chromecast, roku, appletv, audio_only)",
           "max_video_bitrate": "Maximum video bitrate for transcoding (leave empty for unlimited)",
           "max_audio_bitrate": "Maximum audio bitrate for transcoding (leave empty for unlimited)",
           "prefix_media_player": "When enabled, device names will start with 'Emby' (e.g., 'Emby Living Room TV')",

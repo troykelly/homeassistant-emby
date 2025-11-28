@@ -1,0 +1,442 @@
+{
+  "exceptions": {
+    "connection_failed": {
+      "message": "No se pudo conectar al servidor Emby en {host}:{port}. Verifique que el servidor esté funcionando y que el host/puerto sean correctos."
+    },
+    "authentication_failed": {
+      "message": "La autenticación falló. Verifique su clave API."
+    },
+    "server_error": {
+      "message": "El servidor Emby devolvió un error. Revise los registros del servidor."
+    },
+    "not_found": {
+      "message": "El recurso solicitado no se encontró en el servidor."
+    },
+    "timeout": {
+      "message": "La conexión agotó el tiempo de espera. El servidor puede estar inaccesible."
+    },
+    "ssl_error": {
+      "message": "La verificación del certificado SSL falló. Verifique su certificado o desactive la verificación."
+    },
+    "websocket_error": {
+      "message": "Error de conexión WebSocket. Las actualizaciones en tiempo real pueden no estar disponibles."
+    },
+    "websocket_auth_failed": {
+      "message": "La autenticación WebSocket falló. Verifique su clave API."
+    }
+  },
+  "config": {
+    "step": {
+      "user": {
+        "title": "Conectar al servidor Emby",
+        "description": "Ingrese los detalles de conexión de su servidor Emby.",
+        "data": {
+          "host": "Host",
+          "port": "Puerto",
+          "ssl": "Usar SSL",
+          "api_key": "Clave API",
+          "verify_ssl": "Verificar certificado SSL"
+        },
+        "data_description": {
+          "host": "Nombre de host o dirección IP de su servidor Emby (ej., 192.168.1.100 o emby.local)",
+          "port": "Número de puerto (predeterminado: 8096, o 8920 para HTTPS)",
+          "ssl": "Habilitar conexión HTTPS",
+          "api_key": "Clave API desde Panel de Emby > Avanzado > Claves API",
+          "verify_ssl": "Verificar certificado SSL (desactive solo para certificados autofirmados)"
+        }
+      },
+      "user_select": {
+        "title": "Seleccionar usuario",
+        "description": "Seleccione un contexto de usuario para {server_name}. Elija 'Usar contexto de administrador' para usar la clave API sin un usuario específico.",
+        "data": {
+          "user_id": "Usuario"
+        },
+        "data_description": {
+          "user_id": "El usuario cuyas bibliotecas y permisos se utilizarán"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reautenticar servidor Emby",
+        "description": "La clave API para {server_name} ya no es válida. Ingrese una nueva clave API."
+      },
+      "entity_options": {
+        "title": "Opciones de nombres de entidades",
+        "description": "Configure cómo aparecen los nombres de entidades para {server_name}. Por defecto, los nombres de dispositivos tienen el prefijo 'Emby' (ej., 'Emby TV Sala'). Puede desactivar esto para nombres más limpios.",
+        "data": {
+          "prefix_media_player": "Prefijar nombres de reproductores con 'Emby'",
+          "prefix_notify": "Prefijar nombres de notificaciones con 'Emby'",
+          "prefix_remote": "Prefijar nombres de controles remotos con 'Emby'",
+          "prefix_button": "Prefijar nombres de botones con 'Emby'"
+        },
+        "data_description": {
+          "prefix_media_player": "Cuando está habilitado, los nombres de reproductores comenzarán con 'Emby' (ej., 'Emby TV Sala')",
+          "prefix_notify": "Cuando está habilitado, los dispositivos de notificación tendrán el prefijo 'Emby'",
+          "prefix_remote": "Cuando está habilitado, los controles remotos tendrán el prefijo 'Emby'",
+          "prefix_button": "Cuando está habilitado, los botones de acciones del servidor tendrán el prefijo 'Emby'"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "No se pudo conectar al servidor Emby. Verifique el host y el puerto.",
+      "invalid_auth": "Clave API inválida. Verifique su clave API en Panel de Emby > Avanzado > Claves API.",
+      "invalid_host": "Nombre de host o dirección IP inválida",
+      "invalid_port": "El puerto debe estar entre 1 y 65535",
+      "timeout": "La conexión agotó el tiempo de espera. El servidor puede estar inaccesible o lento para responder.",
+      "ssl_error": "La verificación del certificado SSL falló. Active la opción 'Verificar certificado SSL' o revise su certificado.",
+      "unsupported_version": "Esta versión del servidor Emby no es compatible. Actualice a la versión 4.9.1.90 o posterior.",
+      "unknown": "Ocurrió un error inesperado. Revise los registros para más detalles."
+    },
+    "abort": {
+      "already_configured": "Este servidor Emby ya está configurado",
+      "reauth_successful": "Reautenticación exitosa",
+      "unsupported_version": "Esta versión del servidor Emby no es compatible"
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "server_connected": {
+        "name": "Servidor conectado"
+      },
+      "pending_restart": {
+        "name": "Reinicio pendiente"
+      },
+      "update_available": {
+        "name": "Actualización disponible"
+      },
+      "library_scan_active": {
+        "name": "Escaneo de biblioteca activo"
+      },
+      "live_tv_enabled": {
+        "name": "TV en vivo habilitada"
+      }
+    },
+    "sensor": {
+      "server_version": {
+        "name": "Versión del servidor"
+      },
+      "running_tasks": {
+        "name": "Tareas en ejecución"
+      },
+      "active_sessions": {
+        "name": "Sesiones activas"
+      },
+      "movie_count": {
+        "name": "Películas"
+      },
+      "series_count": {
+        "name": "Series de TV"
+      },
+      "episode_count": {
+        "name": "Episodios"
+      },
+      "song_count": {
+        "name": "Canciones"
+      },
+      "album_count": {
+        "name": "Álbumes"
+      },
+      "artist_count": {
+        "name": "Artistas"
+      },
+      "playlist_count": {
+        "name": "Listas de reproducción"
+      },
+      "next_up": {
+        "name": "Siguiente"
+      },
+      "continue_watching": {
+        "name": "Continuar viendo"
+      },
+      "recently_added": {
+        "name": "Añadido recientemente"
+      },
+      "suggestions": {
+        "name": "Sugerencias"
+      },
+      "recording_count": {
+        "name": "Grabaciones"
+      },
+      "active_recordings": {
+        "name": "Grabaciones activas"
+      },
+      "scheduled_timer_count": {
+        "name": "Grabaciones programadas"
+      },
+      "series_timer_count": {
+        "name": "Reglas de grabación de series"
+      }
+    },
+    "image": {
+      "next_up_image": {
+        "name": "Siguiente"
+      },
+      "continue_watching_image": {
+        "name": "Continuar viendo"
+      },
+      "recently_added_image": {
+        "name": "Añadido recientemente"
+      },
+      "suggestions_image": {
+        "name": "Sugerencias"
+      }
+    }
+  },
+  "services": {
+    "send_message": {
+      "name": "Enviar mensaje",
+      "description": "Envía un mensaje a un cliente Emby.",
+      "fields": {
+        "message": {
+          "name": "Mensaje",
+          "description": "El texto del mensaje a mostrar."
+        },
+        "header": {
+          "name": "Encabezado",
+          "description": "Encabezado/título opcional para el mensaje."
+        },
+        "timeout_ms": {
+          "name": "Tiempo de espera",
+          "description": "Duración para mostrar el mensaje (milisegundos)."
+        }
+      }
+    },
+    "send_command": {
+      "name": "Enviar comando",
+      "description": "Envía un comando general a un cliente Emby.",
+      "fields": {
+        "command": {
+          "name": "Comando",
+          "description": "El comando a enviar (ej., MoveUp, MoveDown, Select, Back)."
+        }
+      }
+    },
+    "mark_played": {
+      "name": "Marcar como visto",
+      "description": "Marca un elemento multimedia como visto.",
+      "fields": {
+        "item_id": {
+          "name": "ID del elemento",
+          "description": "El ID del elemento Emby a marcar como visto."
+        },
+        "user_id": {
+          "name": "ID de usuario",
+          "description": "ID de usuario opcional (usa el usuario de la sesión si no se especifica)."
+        }
+      }
+    },
+    "mark_unplayed": {
+      "name": "Marcar como no visto",
+      "description": "Marca un elemento multimedia como no visto.",
+      "fields": {
+        "item_id": {
+          "name": "ID del elemento",
+          "description": "El ID del elemento Emby a marcar como no visto."
+        },
+        "user_id": {
+          "name": "ID de usuario",
+          "description": "ID de usuario opcional (usa el usuario de la sesión si no se especifica)."
+        }
+      }
+    },
+    "add_favorite": {
+      "name": "Añadir a favoritos",
+      "description": "Añade un elemento multimedia a favoritos.",
+      "fields": {
+        "item_id": {
+          "name": "ID del elemento",
+          "description": "El ID del elemento Emby a añadir a favoritos."
+        },
+        "user_id": {
+          "name": "ID de usuario",
+          "description": "ID de usuario opcional (usa el usuario de la sesión si no se especifica)."
+        }
+      }
+    },
+    "remove_favorite": {
+      "name": "Quitar de favoritos",
+      "description": "Quita un elemento multimedia de favoritos.",
+      "fields": {
+        "item_id": {
+          "name": "ID del elemento",
+          "description": "El ID del elemento Emby a quitar de favoritos."
+        },
+        "user_id": {
+          "name": "ID de usuario",
+          "description": "ID de usuario opcional (usa el usuario de la sesión si no se especifica)."
+        }
+      }
+    },
+    "refresh_library": {
+      "name": "Actualizar biblioteca",
+      "description": "Inicia una actualización de biblioteca en el servidor Emby.",
+      "fields": {
+        "library_id": {
+          "name": "ID de biblioteca",
+          "description": "ID de biblioteca opcional (actualiza todas las bibliotecas si no se especifica)."
+        }
+      }
+    },
+    "play_instant_mix": {
+      "name": "Reproducir mezcla instantánea",
+      "description": "Reproduce una mezcla instantánea basada en un elemento (canción, álbum, artista).",
+      "fields": {
+        "item_id": {
+          "name": "ID del elemento",
+          "description": "El ID del elemento Emby a usar como semilla para la mezcla instantánea."
+        },
+        "user_id": {
+          "name": "ID de usuario",
+          "description": "ID de usuario opcional (usa el usuario de la sesión si no se especifica)."
+        }
+      }
+    },
+    "play_similar": {
+      "name": "Reproducir similares",
+      "description": "Reproduce elementos similares basados en un elemento multimedia.",
+      "fields": {
+        "item_id": {
+          "name": "ID del elemento",
+          "description": "El ID del elemento Emby para buscar elementos similares."
+        },
+        "user_id": {
+          "name": "ID de usuario",
+          "description": "ID de usuario opcional (usa el usuario de la sesión si no se especifica)."
+        }
+      }
+    },
+    "schedule_recording": {
+      "name": "Programar grabación",
+      "description": "Programa una grabación única para un programa de TV en vivo.",
+      "fields": {
+        "program_id": {
+          "name": "ID del programa",
+          "description": "El ID del programa Emby a grabar."
+        },
+        "pre_padding_seconds": {
+          "name": "Tiempo previo",
+          "description": "Segundos para comenzar la grabación antes de que inicie el programa (0-3600)."
+        },
+        "post_padding_seconds": {
+          "name": "Tiempo posterior",
+          "description": "Segundos para continuar grabando después de que termine el programa (0-3600)."
+        }
+      }
+    },
+    "cancel_recording": {
+      "name": "Cancelar grabación",
+      "description": "Cancela un temporizador de grabación programada.",
+      "fields": {
+        "timer_id": {
+          "name": "ID del temporizador",
+          "description": "El ID del temporizador Emby a cancelar."
+        }
+      }
+    },
+    "cancel_series_timer": {
+      "name": "Cancelar temporizador de serie",
+      "description": "Cancela un temporizador de grabación de serie (detiene todas las grabaciones futuras de la serie).",
+      "fields": {
+        "series_timer_id": {
+          "name": "ID del temporizador de serie",
+          "description": "El ID del temporizador de serie Emby a cancelar."
+        }
+      }
+    },
+    "create_playlist": {
+      "name": "Crear lista de reproducción",
+      "description": "Crea una nueva lista de reproducción en el servidor Emby.",
+      "fields": {
+        "name": {
+          "name": "Nombre de la lista",
+          "description": "El nombre para la nueva lista de reproducción."
+        },
+        "media_type": {
+          "name": "Tipo de medio",
+          "description": "El tipo de medio para la lista de reproducción (Audio o Video)."
+        },
+        "user_id": {
+          "name": "ID de usuario",
+          "description": "El ID del usuario que será propietario de la lista de reproducción."
+        },
+        "item_ids": {
+          "name": "IDs de elementos",
+          "description": "Lista opcional de IDs de elementos para añadir a la lista de reproducción."
+        }
+      }
+    },
+    "add_to_playlist": {
+      "name": "Añadir a lista de reproducción",
+      "description": "Añade elementos a una lista de reproducción existente.",
+      "fields": {
+        "playlist_id": {
+          "name": "ID de la lista",
+          "description": "El ID de la lista de reproducción a la que añadir elementos."
+        },
+        "item_ids": {
+          "name": "IDs de elementos",
+          "description": "Lista de IDs de elementos para añadir a la lista de reproducción."
+        },
+        "user_id": {
+          "name": "ID de usuario",
+          "description": "El ID de usuario para validación de permisos."
+        }
+      }
+    },
+    "remove_from_playlist": {
+      "name": "Quitar de lista de reproducción",
+      "description": "Quita elementos de una lista de reproducción.",
+      "fields": {
+        "playlist_id": {
+          "name": "ID de la lista",
+          "description": "El ID de la lista de reproducción de la que quitar elementos."
+        },
+        "playlist_item_ids": {
+          "name": "IDs de elementos de lista",
+          "description": "Lista de valores PlaylistItemId (de elementos de lista, NO IDs de elementos multimedia)."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opciones de Emby",
+        "description": "Configure los ajustes opcionales para la integración de Emby.",
+        "data": {
+          "scan_interval": "Intervalo de escaneo (segundos)",
+          "enable_websocket": "Habilitar WebSocket",
+          "ignored_devices": "Dispositivos ignorados",
+          "ignore_web_players": "Ignorar reproductores de navegador web",
+          "direct_play": "Habilitar reproducción directa",
+          "video_container": "Contenedor de video",
+          "transcoding_profile": "Perfil de transcodificación",
+          "max_video_bitrate": "Bitrate máximo de video (kbps)",
+          "max_audio_bitrate": "Bitrate máximo de audio (kbps)",
+          "prefix_media_player": "Prefijar nombres de reproductores con 'Emby'",
+          "prefix_notify": "Prefijar nombres de notificaciones con 'Emby'",
+          "prefix_remote": "Prefijar nombres de controles remotos con 'Emby'",
+          "prefix_button": "Prefijar nombres de botones con 'Emby'",
+          "enable_discovery_sensors": "Habilitar sensores de descubrimiento",
+          "discovery_scan_interval": "Intervalo de escaneo de descubrimiento (segundos)"
+        },
+        "data_description": {
+          "scan_interval": "Con qué frecuencia consultar el servidor Emby para actualizaciones (5-300 segundos)",
+          "enable_websocket": "Usar WebSocket para actualizaciones en tiempo real (reduce consultas)",
+          "ignored_devices": "Lista separada por comas de nombres de dispositivos a ignorar (ej., 'Servidor, Dispositivo de respaldo')",
+          "ignore_web_players": "Ocultar reproductores de sesiones de navegador web (Emby Web, Chrome, Firefox, etc.)",
+          "direct_play": "Intentar reproducción directa antes de transcodificar",
+          "video_container": "Formato de contenedor de video preferido para transcodificación",
+          "transcoding_profile": "Perfil de dispositivo para negociación de formato (universal, chromecast, roku, appletv, audio_only)",
+          "max_video_bitrate": "Bitrate máximo de video para transcodificación (dejar vacío para ilimitado)",
+          "max_audio_bitrate": "Bitrate máximo de audio para transcodificación (dejar vacío para ilimitado)",
+          "prefix_media_player": "Cuando está habilitado, los nombres de dispositivos comenzarán con 'Emby' (ej., 'Emby TV Sala')",
+          "prefix_notify": "Cuando está habilitado, las entidades de notificación tendrán el prefijo 'Emby' en sus nombres",
+          "prefix_remote": "Cuando está habilitado, las entidades de control remoto tendrán el prefijo 'Emby' en sus nombres",
+          "prefix_button": "Cuando está habilitado, las entidades de botón tendrán el prefijo 'Emby' en sus nombres",
+          "enable_discovery_sensors": "Crear sensores para Siguiente, Continuar viendo, Añadido recientemente y Sugerencias (requiere un usuario seleccionado)",
+          "discovery_scan_interval": "Con qué frecuencia actualizar los sensores de descubrimiento (300-3600 segundos, predeterminado: 900)"
+        }
+      }
+    }
+  }
+}
