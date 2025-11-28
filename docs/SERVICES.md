@@ -475,6 +475,101 @@ script:
           item_id: "{{ movie_id }}"
 ```
 
+### embymedia.create_playlist
+
+Create a new playlist on the Emby server.
+
+```yaml
+service: embymedia.create_playlist
+target:
+  entity_id: media_player.living_room_tv
+data:
+  name: "Road Trip Mix"
+  media_type: "Audio"     # "Audio" or "Video"
+  user_id: "xyz789"       # Required
+  item_ids:               # Optional - initial items to add
+    - "abc123"
+    - "def456"
+```
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `name` | Yes | Name for the new playlist |
+| `media_type` | Yes | "Audio" or "Video" (playlists can't mix types) |
+| `user_id` | Yes | User ID who will own the playlist |
+| `item_ids` | No | List of item IDs to add initially |
+
+### embymedia.add_to_playlist
+
+Add items to an existing playlist.
+
+```yaml
+service: embymedia.add_to_playlist
+target:
+  entity_id: media_player.living_room_tv
+data:
+  playlist_id: "playlist123"
+  item_ids:
+    - "ghi789"
+    - "jkl012"
+  user_id: "xyz789"       # Required
+```
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `playlist_id` | Yes | Emby playlist ID |
+| `item_ids` | Yes | List of item IDs to add |
+| `user_id` | Yes | User ID (for permission validation) |
+
+### embymedia.remove_from_playlist
+
+Remove items from a playlist.
+
+> **Important:** Use `PlaylistItemId` values (not media item IDs). Get these from the playlist sensor attributes or by browsing the playlist.
+
+```yaml
+service: embymedia.remove_from_playlist
+target:
+  entity_id: media_player.living_room_tv
+data:
+  playlist_id: "playlist123"
+  playlist_item_ids:
+    - "1"    # PlaylistItemId, NOT the media item ID
+    - "2"
+```
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `playlist_id` | Yes | Emby playlist ID |
+| `playlist_item_ids` | Yes | List of PlaylistItemId values (from playlist items) |
+
+**Example - Add currently playing song to a playlist:**
+
+```yaml
+automation:
+  - alias: "Add to Favorites Playlist"
+    trigger:
+      - platform: event
+        event_type: mobile_app_notification_action
+        event_data:
+          action: add_to_playlist
+    action:
+      - service: embymedia.add_to_playlist
+        target:
+          entity_id: media_player.living_room_tv
+        data:
+          playlist_id: "my_favorites_playlist_id"
+          item_ids:
+            - "{{ state_attr('media_player.living_room_tv', 'media_content_id') }}"
+          user_id: "{{ user_id }}"
+```
+
 ---
 
 ## Service Targeting

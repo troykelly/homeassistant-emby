@@ -1081,6 +1081,44 @@ DEFAULT_LIVE_TV_SCAN_INTERVAL: Final = 300  # 5 minutes in seconds
 
 
 # =============================================================================
+# TypedDicts for Playlist API (Phase 17)
+# =============================================================================
+
+
+class EmbyPlaylistCreateResponse(TypedDict):
+    """Response from POST /Playlists endpoint.
+
+    Returns the newly created playlist information.
+    """
+
+    Id: str  # The created playlist ID
+    Name: str  # The playlist name
+    ItemAddedCount: int  # Number of items added (0 if none provided)
+
+
+class EmbyPlaylistItem(TypedDict, total=False):
+    """Playlist item with PlaylistItemId.
+
+    Returned by GET /Playlists/{Id}/Items endpoint.
+    IMPORTANT: PlaylistItemId is needed for removal, not the media item Id.
+    """
+
+    # Required fields (always present)
+    Id: str  # Media item ID
+    PlaylistItemId: str  # Unique ID for this item in the playlist
+    Name: str
+    Type: str  # "Audio", "Episode", "Movie", etc.
+
+    # Optional fields from EmbyBrowseItem
+    ImageTags: dict[str, str]
+    ProductionYear: int
+    SeriesName: str
+    SeasonName: str
+    IndexNumber: int  # Track/episode number
+    ParentIndexNumber: int  # Season number
+
+
+# =============================================================================
 # Discovery Sensor Configuration Constants (Phase 15)
 # =============================================================================
 

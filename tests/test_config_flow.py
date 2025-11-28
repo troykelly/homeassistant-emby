@@ -1541,6 +1541,138 @@ class TestOptionsFlowDiscoverySensors:
         assert result["data"]["scan_interval"] == 25
         assert result["data"][CONF_ENABLE_DISCOVERY_SENSORS] is False
 
+    @pytest.mark.asyncio
+    async def test_options_flow_discovery_scan_interval_present(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test discovery scan interval is available in options flow."""
+        from custom_components.embymedia.const import CONF_DISCOVERY_SCAN_INTERVAL
+
+        mock_config_entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "init"
+
+        # Test setting discovery scan interval
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "scan_interval": 15,
+                CONF_DISCOVERY_SCAN_INTERVAL: 600,  # 10 minutes
+            },
+        )
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"][CONF_DISCOVERY_SCAN_INTERVAL] == 600
+
+    @pytest.mark.asyncio
+    async def test_options_flow_discovery_scan_interval_validation(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test discovery scan interval validates range (300-3600)."""
+        from custom_components.embymedia.const import CONF_DISCOVERY_SCAN_INTERVAL
+
+        mock_config_entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+
+        # Test minimum value (300)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "scan_interval": 15,
+                CONF_DISCOVERY_SCAN_INTERVAL: 300,
+            },
+        )
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"][CONF_DISCOVERY_SCAN_INTERVAL] == 300
+
+        # Test maximum value (3600)
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "scan_interval": 15,
+                CONF_DISCOVERY_SCAN_INTERVAL: 3600,
+            },
+        )
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"][CONF_DISCOVERY_SCAN_INTERVAL] == 3600
+
+    @pytest.mark.asyncio
+    async def test_options_flow_discovery_scan_interval_defaults_to_900(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test discovery scan interval defaults to 900 (15 minutes)."""
+        from custom_components.embymedia.const import (
+            CONF_DISCOVERY_SCAN_INTERVAL,
+            DEFAULT_DISCOVERY_SCAN_INTERVAL,
+        )
+
+        mock_config_entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(mock_config_entry.entry_id)
+
+        # Submit without explicitly setting discovery scan interval
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {"scan_interval": 15},
+        )
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        # When not explicitly set, should use default (900)
+        assert (
+            result["data"].get(CONF_DISCOVERY_SCAN_INTERVAL, DEFAULT_DISCOVERY_SCAN_INTERVAL) == 900
+        )
+
+    @pytest.mark.asyncio
+    async def test_options_flow_preserves_existing_discovery_scan_interval(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test existing discovery scan interval setting is preserved in form."""
+        from custom_components.embymedia.const import CONF_DISCOVERY_SCAN_INTERVAL
+
+        # Create entry with existing discovery scan interval
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_API_KEY: "test-api-key",
+            },
+            options={
+                "scan_interval": 20,
+                CONF_DISCOVERY_SCAN_INTERVAL: 1800,  # 30 minutes
+            },
+            unique_id="test-server-id-12345",
+        )
+        mock_entry.add_to_hass(hass)
+
+        result = await hass.config_entries.options.async_init(mock_entry.entry_id)
+        assert result["type"] is FlowResultType.FORM
+
+        # Update with new scan interval
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            {
+                "scan_interval": 25,
+                CONF_DISCOVERY_SCAN_INTERVAL: 1200,  # 20 minutes
+            },
+        )
+
+        assert result["type"] is FlowResultType.CREATE_ENTRY
+        assert result["data"]["scan_interval"] == 25
+        assert result["data"][CONF_DISCOVERY_SCAN_INTERVAL] == 1200
+
 
 class TestEntityOptionsStep:
     """Test entity_options step in config flow (Phase 11)."""

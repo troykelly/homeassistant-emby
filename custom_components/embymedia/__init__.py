@@ -35,6 +35,7 @@ from .api import EmbyClient
 from .const import (
     CONF_API_KEY,
     CONF_DIRECT_PLAY,
+    CONF_DISCOVERY_SCAN_INTERVAL,
     CONF_ENABLE_DISCOVERY_SENSORS,
     CONF_ENABLE_WEBSOCKET,
     CONF_IGNORE_WEB_PLAYERS,
@@ -229,6 +230,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> bool
     enable_discovery = entry.options.get(
         CONF_ENABLE_DISCOVERY_SENSORS, DEFAULT_ENABLE_DISCOVERY_SENSORS
     )
+    discovery_scan_interval = entry.options.get(
+        CONF_DISCOVERY_SCAN_INTERVAL, DEFAULT_DISCOVERY_SCAN_INTERVAL
+    )
 
     if enable_discovery:
         if user_id:
@@ -239,7 +243,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> bool
                 server_id=server_id,
                 config_entry=entry,
                 user_id=str(user_id),
-                scan_interval=DEFAULT_DISCOVERY_SCAN_INTERVAL,
+                scan_interval=discovery_scan_interval,
             )
         else:
             # Admin context - create coordinators for ALL users
@@ -255,7 +259,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> bool
                             server_id=server_id,
                             config_entry=entry,
                             user_id=uid,
-                            scan_interval=DEFAULT_DISCOVERY_SCAN_INTERVAL,
+                            scan_interval=discovery_scan_interval,
                             user_name=uname,
                         )
                 _LOGGER.debug(

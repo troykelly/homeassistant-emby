@@ -549,3 +549,66 @@ class TestSensorDataNone:
         sensor = EmbyArtistCountSensor(coordinator=mock_coordinator, server_name="Test Server")
 
         assert sensor.native_value is None
+
+
+class TestEmbyPlaylistCountSensor:
+    """Tests for playlist count sensor (Phase 17)."""
+
+    async def test_sensor_value(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test playlist count sensor returns correct value."""
+        from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
+        from custom_components.embymedia.sensor import EmbyPlaylistCountSensor
+
+        mock_coordinator = MagicMock(spec=EmbyLibraryCoordinator)
+        mock_coordinator.data = {"playlist_count": 15}
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyPlaylistCountSensor(coordinator=mock_coordinator, server_name="Test Server")
+
+        assert sensor.unique_id == "test-server-id_playlist_count"
+        assert sensor.native_value == 15
+        assert sensor.icon == "mdi:playlist-music"
+
+    async def test_sensor_returns_none_when_data_none(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test playlist count sensor returns None when data is None."""
+        from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
+        from custom_components.embymedia.sensor import EmbyPlaylistCountSensor
+
+        mock_coordinator = MagicMock(spec=EmbyLibraryCoordinator)
+        mock_coordinator.data = None
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyPlaylistCountSensor(coordinator=mock_coordinator, server_name="Test Server")
+
+        assert sensor.native_value is None
+
+    async def test_sensor_returns_zero_when_no_playlists(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test playlist count sensor returns 0 when no playlists exist."""
+        from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
+        from custom_components.embymedia.sensor import EmbyPlaylistCountSensor
+
+        mock_coordinator = MagicMock(spec=EmbyLibraryCoordinator)
+        mock_coordinator.data = {"playlist_count": 0}
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyPlaylistCountSensor(coordinator=mock_coordinator, server_name="Test Server")
+
+        assert sensor.native_value == 0

@@ -1382,6 +1382,161 @@ class EmbyClient:
         items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
         return items
 
+    # =========================================================================
+    # Playlist Management API Methods (Phase 17)
+    # =========================================================================
+
+    async def async_create_playlist(
+        self,
+        name: str,
+        media_type: str,
+        user_id: str,
+        item_ids: list[str] | None = None,
+    ) -> str:
+        """Create a new playlist.
+
+        Args:
+            name: Playlist name.
+            media_type: "Audio" or "Video".
+            user_id: User ID who owns the playlist.
+            item_ids: Optional list of item IDs to add initially.
+
+        Returns:
+            The newly created playlist ID.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+            ValueError: Invalid media_type.
+
+        Example:
+            >>> playlist_id = await client.async_create_playlist(
+            ...     name="My Favorites",
+            ...     media_type="Audio",
+            ...     user_id="user123",
+            ...     item_ids=["item1", "item2"]
+            ... )
+        """
+        from urllib.parse import quote
+
+        if media_type not in ("Audio", "Video"):
+            raise ValueError(f"Invalid media_type: {media_type}. Must be 'Audio' or 'Video'")
+
+        # Build query parameters
+        params: list[str] = [
+            f"Name={quote(name)}",
+            f"MediaType={media_type}",
+            f"UserId={user_id}",
+        ]
+        if item_ids:
+            params.append(f"Ids={','.join(item_ids)}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Playlists?{query_string}"
+
+        response = await self._request_post_json(endpoint)
+        playlist_id: str = str(response["Id"])
+        return playlist_id
+
+    async def async_add_to_playlist(
+        self,
+        playlist_id: str,
+        item_ids: list[str],
+        user_id: str,
+    ) -> None:
+        """Add items to a playlist.
+
+        Args:
+            playlist_id: The playlist ID.
+            item_ids: List of item IDs to add.
+            user_id: User ID (required for permissions).
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+            EmbyNotFoundError: Playlist not found.
+
+        Example:
+            >>> await client.async_add_to_playlist(
+            ...     playlist_id="playlist123",
+            ...     item_ids=["item1", "item2"],
+            ...     user_id="user123"
+            ... )
+        """
+        # Items are added via query string parameters
+        params: list[str] = [
+            f"Ids={','.join(item_ids)}",
+            f"UserId={user_id}",
+        ]
+        query_string = "&".join(params)
+        endpoint = f"/Playlists/{playlist_id}/Items?{query_string}"
+        await self._request_post(endpoint)
+
+    async def async_remove_from_playlist(
+        self,
+        playlist_id: str,
+        playlist_item_ids: list[str],
+    ) -> None:
+        """Remove items from a playlist.
+
+        IMPORTANT: Use PlaylistItemId from playlist items, NOT the media item ID.
+
+        Args:
+            playlist_id: The playlist ID.
+            playlist_item_ids: List of PlaylistItemId values (from GET /Playlists/{Id}/Items).
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+            EmbyNotFoundError: Playlist not found.
+
+        Example:
+            >>> # First get playlist items to obtain PlaylistItemIds
+            >>> items = await client.async_get_playlist_items("user123", "playlist123")
+            >>> playlist_item_ids = [item["PlaylistItemId"] for item in items]
+            >>>
+            >>> # Then remove by PlaylistItemId
+            >>> await client.async_remove_from_playlist(
+            ...     playlist_id="playlist123",
+            ...     playlist_item_ids=playlist_item_ids[:2]  # Remove first 2 items
+            ... )
+        """
+        # Items are removed via query string with EntryIds
+        entry_ids = ",".join(playlist_item_ids)
+        endpoint = f"/Playlists/{playlist_id}/Items?EntryIds={entry_ids}"
+        await self._request_delete(endpoint)
+
+    async def async_get_playlists(
+        self,
+        user_id: str,
+    ) -> list[EmbyBrowseItem]:
+        """Get user's playlists.
+
+        Args:
+            user_id: The user ID.
+
+        Returns:
+            List of playlist items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+
+        Example:
+            >>> playlists = await client.async_get_playlists("user123")
+            >>> for playlist in playlists:
+            ...     print(f"{playlist['Name']}: {playlist['Id']}")
+        """
+        endpoint = (
+            f"/Users/{user_id}/Items?"
+            f"IncludeItemTypes=Playlist&"
+            f"SortBy=SortName&SortOrder=Ascending&"
+            f"Recursive=true"
+        )
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
     async def async_get_collection_items(
         self,
         user_id: str,

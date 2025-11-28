@@ -3365,3 +3365,175 @@ class TestStopPlaybackAPI:
             await client.async_stop_playback("session-abc")
 
             mock_command.assert_called_once_with("session-abc", "Stop")
+
+
+class TestPlaylistManagementAPI:
+    """Tests for playlist management API methods (Phase 17)."""
+
+    @pytest.mark.asyncio
+    async def test_async_create_playlist(self) -> None:
+        """Test creating a new playlist."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        mock_response = {"Id": "playlist-123", "Name": "My Mix", "ItemAddedCount": 0}
+
+        with patch.object(client, "_request_post_json", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = mock_response
+
+            result = await client.async_create_playlist(
+                name="My Mix",
+                media_type="Audio",
+                user_id="user-123",
+            )
+
+            assert result == "playlist-123"
+            # Verify endpoint has correct parameters
+            call_args = mock_post.call_args
+            endpoint = call_args[0][0]
+            assert "/Playlists?" in endpoint
+            assert "Name=My%20Mix" in endpoint
+            assert "MediaType=Audio" in endpoint
+            assert "UserId=user-123" in endpoint
+
+    @pytest.mark.asyncio
+    async def test_async_create_playlist_with_items(self) -> None:
+        """Test creating a playlist with initial items."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        mock_response = {"Id": "playlist-456", "Name": "Test", "ItemAddedCount": 3}
+
+        with patch.object(client, "_request_post_json", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = mock_response
+
+            result = await client.async_create_playlist(
+                name="Test",
+                media_type="Video",
+                user_id="user-123",
+                item_ids=["item-1", "item-2", "item-3"],
+            )
+
+            assert result == "playlist-456"
+            call_args = mock_post.call_args
+            endpoint = call_args[0][0]
+            assert "Ids=item-1,item-2,item-3" in endpoint
+
+    @pytest.mark.asyncio
+    async def test_async_create_playlist_invalid_type(self) -> None:
+        """Test creating playlist with invalid media type raises error."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        with pytest.raises(ValueError, match="Invalid media_type"):
+            await client.async_create_playlist(
+                name="Test",
+                media_type="Invalid",
+                user_id="user-123",
+            )
+
+    @pytest.mark.asyncio
+    async def test_async_add_to_playlist(self) -> None:
+        """Test adding items to a playlist."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        with patch.object(client, "_request_post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = None
+
+            await client.async_add_to_playlist(
+                playlist_id="playlist-123",
+                item_ids=["item-1", "item-2"],
+                user_id="user-456",
+            )
+
+            call_args = mock_post.call_args
+            endpoint = call_args[0][0]
+            assert "/Playlists/playlist-123/Items?" in endpoint
+            assert "Ids=item-1,item-2" in endpoint
+            assert "UserId=user-456" in endpoint
+
+    @pytest.mark.asyncio
+    async def test_async_remove_from_playlist(self) -> None:
+        """Test removing items from a playlist."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        with patch.object(client, "_request_delete", new_callable=AsyncMock) as mock_delete:
+            mock_delete.return_value = None
+
+            await client.async_remove_from_playlist(
+                playlist_id="playlist-123",
+                playlist_item_ids=["1", "2"],
+            )
+
+            mock_delete.assert_called_once()
+            call_args = mock_delete.call_args
+            endpoint = call_args[0][0]
+            assert "/Playlists/playlist-123/Items?" in endpoint
+            assert "EntryIds=1,2" in endpoint
+
+    @pytest.mark.asyncio
+    async def test_async_get_playlists(self) -> None:
+        """Test getting user's playlists."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        mock_response = {
+            "Items": [
+                {"Id": "pl-1", "Name": "Favorites", "Type": "Playlist"},
+                {"Id": "pl-2", "Name": "Workout", "Type": "Playlist"},
+            ],
+            "TotalRecordCount": 2,
+        }
+
+        with patch.object(client, "_request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = mock_response
+
+            result = await client.async_get_playlists(user_id="user-123")
+
+            assert len(result) == 2
+            assert result[0]["Id"] == "pl-1"
+            assert result[1]["Name"] == "Workout"
+
+            call_args = mock_request.call_args
+            endpoint = call_args[0][1]
+            assert "/Users/user-123/Items?" in endpoint
+            assert "IncludeItemTypes=Playlist" in endpoint
+            assert "Recursive=true" in endpoint
+
+    @pytest.mark.asyncio
+    async def test_async_get_playlists_empty(self) -> None:
+        """Test getting playlists when user has none."""
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-api-key",
+        )
+
+        mock_response = {"Items": [], "TotalRecordCount": 0}
+
+        with patch.object(client, "_request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = mock_response
+
+            result = await client.async_get_playlists(user_id="user-123")
+
+            assert len(result) == 0

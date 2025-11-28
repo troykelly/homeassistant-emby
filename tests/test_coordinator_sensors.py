@@ -282,6 +282,8 @@ class TestEmbyLibraryCoordinator:
         from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
 
         mock_emby_client.async_get_user_item_count = AsyncMock(side_effect=[42, 500, 8])
+        # Phase 17: Add playlist mock
+        mock_emby_client.async_get_playlists = AsyncMock(return_value=[])
 
         coordinator = EmbyLibraryCoordinator(
             hass=hass,
@@ -297,6 +299,7 @@ class TestEmbyLibraryCoordinator:
         assert coordinator.data["user_favorites_count"] == 42
         assert coordinator.data["user_played_count"] == 500
         assert coordinator.data["user_resumable_count"] == 8
+        assert coordinator.data["playlist_count"] == 0
 
     async def test_coordinator_without_user_id(
         self,
