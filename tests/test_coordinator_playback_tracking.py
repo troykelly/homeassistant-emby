@@ -520,3 +520,179 @@ class TestPublicAccessors:
         assert coordinator.get_user_watch_time("user-xyz") == 3600
         # Unknown user returns 0
         assert coordinator.get_user_watch_time("unknown-user") == 0
+
+
+class TestPlaybackTrackingEdgeCases:
+    """Tests for edge cases in playback tracking."""
+
+    def test_track_playback_handles_missing_session_id(
+        self,
+        mock_hass: MagicMock,
+        mock_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test graceful handling of missing session ID."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=mock_hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # No session IDs (PlaySessionId, DeviceId, Id) - should return early
+        coordinator._track_playback_progress(
+            {
+                "UserId": "user-abc",
+                "PositionTicks": 100 * EMBY_TICKS_PER_SECOND,
+            }
+        )
+
+        # Should not crash, and no sessions tracked
+        assert len(coordinator._playback_sessions) == 0
+
+    def test_track_playback_gets_position_from_play_state(
+        self,
+        mock_hass: MagicMock,
+        mock_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test getting PositionTicks from nested PlayState."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=mock_hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # PositionTicks in nested PlayState
+        data = {
+            "PlaySessionId": "session-123",
+            "UserId": "user-abc",
+            "PlayState": {
+                "PositionTicks": 30 * EMBY_TICKS_PER_SECOND,
+            },
+            "ItemId": "item-456",
+        }
+        coordinator._track_playback_progress(data)
+
+        # Should track the session with position from PlayState
+        assert "user-abc:session-123" in coordinator._playback_sessions
+        assert (
+            coordinator._playback_sessions["user-abc:session-123"]["position_ticks"]
+            == 30 * EMBY_TICKS_PER_SECOND
+        )
+
+    def test_track_playback_handles_invalid_position_ticks(
+        self,
+        mock_hass: MagicMock,
+        mock_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test handling of non-integer PositionTicks."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=mock_hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # PositionTicks as string (invalid)
+        data = {
+            "PlaySessionId": "session-123",
+            "UserId": "user-abc",
+            "PositionTicks": "invalid",
+            "ItemId": "item-456",
+        }
+        coordinator._track_playback_progress(data)
+
+        # Should default to 0
+        assert "user-abc:session-123" in coordinator._playback_sessions
+        assert coordinator._playback_sessions["user-abc:session-123"]["position_ticks"] == 0
+
+    def test_track_playback_handles_invalid_now_playing(
+        self,
+        mock_hass: MagicMock,
+        mock_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test handling of non-dict NowPlayingItem."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=mock_hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # NowPlayingItem as string (invalid)
+        data = {
+            "PlaySessionId": "session-123",
+            "UserId": "user-abc",
+            "PositionTicks": 100 * EMBY_TICKS_PER_SECOND,
+            "NowPlayingItem": "invalid",
+        }
+        coordinator._track_playback_progress(data)
+
+        # Should still track the session
+        assert "user-abc:session-123" in coordinator._playback_sessions
+
+    def test_track_playback_paused_updates_position_only(
+        self,
+        mock_hass: MagicMock,
+        mock_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test paused state updates position but doesn't count watch time."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=mock_hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # First update - establish session
+        data1 = {
+            "PlaySessionId": "session-123",
+            "UserId": "user-abc",
+            "PositionTicks": 0,
+            "ItemId": "item-456",
+            "ItemName": "Test Movie",
+            "UserName": "Test User",
+        }
+        coordinator._track_playback_progress(data1)
+
+        # Second update - 30 seconds later but paused
+        data2 = {
+            "PlaySessionId": "session-123",
+            "UserId": "user-abc",
+            "PositionTicks": 30 * EMBY_TICKS_PER_SECOND,
+            "ItemId": "item-456",
+            "ItemName": "Test Movie",
+            "UserName": "Test User",
+            "PlayState": {
+                "IsPaused": True,
+            },
+        }
+        coordinator._track_playback_progress(data2)
+
+        # Position should be updated
+        assert (
+            coordinator._playback_sessions["user-abc:session-123"]["position_ticks"]
+            == 30 * EMBY_TICKS_PER_SECOND
+        )
+        # But watch time should NOT be counted (paused)
+        assert coordinator.daily_watch_time == 0
