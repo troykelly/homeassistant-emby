@@ -1178,6 +1178,43 @@ class EmbyActivityLogResponse(TypedDict):
 
 
 # =============================================================================
+# TypedDicts for Devices API (Phase 18)
+# =============================================================================
+
+
+class EmbyDeviceInfo(TypedDict, total=False):
+    """Response item from /Devices endpoint.
+
+    Represents a registered device on the Emby server.
+    """
+
+    # Required fields (present in all device entries)
+    Id: str  # Device ID
+    Name: str  # Device name
+    LastUserName: str  # Last username that used this device
+    LastUserId: str  # Last user ID
+    DateLastActivity: str  # ISO 8601 timestamp of last activity
+    AppName: str  # Application name (e.g., "Emby for Samsung")
+    AppVersion: str  # Application version
+
+    # Optional fields (may not be present in all entries)
+    ReportedDeviceId: str  # Device-reported unique ID
+    IconUrl: str  # URL to device icon image
+    IpAddress: str  # IP address (IPv4 or IPv6)
+
+
+class EmbyDevicesResponse(TypedDict):
+    """Response from /Devices endpoint.
+
+    Contains a list of registered devices.
+    Note: TotalRecordCount may be 0 even with items (Emby API quirk).
+    """
+
+    Items: list[EmbyDeviceInfo]
+    TotalRecordCount: int
+
+
+# =============================================================================
 # Utility Functions
 # =============================================================================
 
