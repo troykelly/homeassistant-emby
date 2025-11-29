@@ -8,6 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Collection Management** (Phase 19)
+  - New service: `embymedia.create_collection` - Create new collections (BoxSets)
+  - New service: `embymedia.add_to_collection` - Add items to existing collections
+  - New sensor: `sensor.{server}_collections` - Shows collection count (requires user_id configuration)
+  - API methods: `async_create_collection`, `async_add_to_collection`, `async_remove_from_collection`
+  - TypedDicts for collection API type safety
+
+- **Person Browsing** (Phase 19)
+  - Browse actors, directors, writers in movie libraries
+  - View person filmography - see all movies/shows featuring a person
+  - Person images displayed when available
+  - API methods: `async_get_persons`, `async_get_person_items`
+
+- **Tag Browsing** (Phase 19)
+  - Browse user-defined tags in movie libraries
+  - Filter movies by tag to view tagged content
+  - API methods: `async_get_tags`, `async_get_items_by_tag`
+  - Cached tag lists for improved performance
+
+- **Enhanced Movie Library Categories**
+  - "People" category added to movie library browser
+  - "Tags" category added to movie library browser
+
 - **Playlist Management** (Phase 17)
   - New service: `embymedia.create_playlist` - Create new Audio or Video playlists
   - New service: `embymedia.add_to_playlist` - Add items to existing playlists

@@ -141,10 +141,12 @@ entity: media_player.emby_living_room_tv
 3. Navigate: **Libraries** → **Categories** → **Content**
 
 **Available categories:**
-- 🎬 **Movies**: A-Z, Year, Decade, Genre, Studio, Collections
+- 🎬 **Movies**: A-Z, Year, Decade, Genre, Studio, People, Tags, Collections
 - 📺 **TV Shows**: A-Z, Year, Decade, Genre, Studio → Series → Season → Episode
 - 🎵 **Music**: Artists A-Z, Albums A-Z, Genres, Playlists
 - 📡 **Live TV**: Channel listing
+- 👤 **People**: Browse by actors, directors, writers - see their filmography
+- 🏷️ **Tags**: Filter content by user-defined tags
 
 ### Voice Commands
 
@@ -440,6 +442,42 @@ When a user is configured, a playlist count sensor is available:
 **Notes:**
 - Playlists can contain either Audio OR Video items, not mixed
 - Playlists are user-specific - each user has their own playlists
+
+## 📦 Collection Management
+
+Create and manage Emby collections (BoxSets) to organize your media.
+
+### Create a Collection
+
+```yaml
+service: embymedia.create_collection
+target:
+  entity_id: media_player.emby_living_room_tv
+data:
+  collection_name: "Marvel Movies"
+  item_ids:  # Optional - initial items
+    - "abc123"
+    - "def456"
+```
+
+### Add Items to Collection
+
+```yaml
+service: embymedia.add_to_collection
+target:
+  entity_id: media_player.emby_living_room_tv
+data:
+  collection_id: "collection123"
+  item_ids:
+    - "ghi789"
+    - "jkl012"
+```
+
+### Collection Sensor
+
+When a user is configured, a collection count sensor is available:
+
+- `sensor.{server}_collections` - Total collections count
 
 ## 🔧 Advanced Options
 
