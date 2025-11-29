@@ -85,6 +85,8 @@ async def async_setup_entry(
         # Activity & Device sensors (Phase 18)
         EmbyLastActivitySensor(server_coordinator),
         EmbyConnectedDevicesSensor(server_coordinator),
+        # Plugin sensor (Phase 20)
+        EmbyPluginCountSensor(server_coordinator),
         # Watch Statistics uses session coordinator for playback tracking
         EmbyWatchStatisticsSensor(session_coordinator),
     ]
@@ -703,6 +705,59 @@ class EmbyConnectedDevicesSensor(EmbyServerSensorBase):
         return {"devices": device_list}
 
 
+# =============================================================================
+# Plugin Sensors (Phase 20)
+# =============================================================================
+
+
+class EmbyPluginCountSensor(EmbyServerSensorBase):
+    """Sensor for installed plugins count.
+
+    Shows the number of plugins installed on the Emby server.
+    Extra attributes contain a list of all plugins with details.
+    """
+
+    _attr_icon = "mdi:puzzle"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "plugins"
+
+    def __init__(self, coordinator: EmbyServerCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.server_id}_plugins"
+
+    @property
+    def name(self) -> str:
+        """Return the name of the sensor."""
+        return "Plugins"
+
+    @property
+    def native_value(self) -> int:
+        """Return the number of installed plugins."""
+        if self.coordinator.data is None:
+            return 0
+        return int(self.coordinator.data.get("plugin_count", 0))
+
+    @property
+    def extra_state_attributes(self) -> dict[str, list[dict[str, str]]]:
+        """Return extra state attributes with plugin list."""
+        if self.coordinator.data is None:
+            return {"plugins": []}
+
+        plugins = self.coordinator.data.get("plugins", [])
+
+        # Transform plugin data for attributes
+        plugin_list = [
+            {
+                "name": plugin.get("Name", "Unknown"),
+                "version": plugin.get("Version", "Unknown"),
+            }
+            for plugin in plugins
+        ]
+
+        return {"plugins": plugin_list}
+
+
 class EmbyWatchStatisticsSensor(EmbySessionSensorBase):
     """Sensor for daily watch time statistics.
 
@@ -806,11 +861,13 @@ __all__ = [
     "EmbyActiveSessionsSensor",
     "EmbyAlbumCountSensor",
     "EmbyArtistCountSensor",
+    "EmbyCollectionCountSensor",
     "EmbyConnectedDevicesSensor",
     "EmbyEpisodeCountSensor",
     "EmbyLastActivitySensor",
     "EmbyMovieCountSensor",
     "EmbyPlaylistCountSensor",
+    "EmbyPluginCountSensor",
     "EmbyRecordingCountSensor",
     "EmbyRunningTasksSensor",
     "EmbyScheduledTimerCountSensor",

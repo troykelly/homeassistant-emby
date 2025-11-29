@@ -189,16 +189,12 @@ class TestEmbyPluginCountSensor:
         hass: HomeAssistant,
     ) -> None:
         """Test sensor device info."""
-        from custom_components.embymedia.const import CONF_PREFIX_SENSOR, DOMAIN
+        from custom_components.embymedia.const import DOMAIN
         from custom_components.embymedia.sensor import EmbyPluginCountSensor
-
-        mock_config_entry = MagicMock()
-        mock_config_entry.options = {CONF_PREFIX_SENSOR: True}
 
         mock_coordinator = MagicMock()
         mock_coordinator.server_id = "server-123"
         mock_coordinator.server_name = "Test Server"
-        mock_coordinator.config_entry = mock_config_entry
         mock_coordinator.async_add_listener = MagicMock(return_value=MagicMock())
 
         sensor = EmbyPluginCountSensor(mock_coordinator)
