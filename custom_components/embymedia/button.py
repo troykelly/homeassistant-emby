@@ -137,21 +137,14 @@ class EmbyRefreshLibraryButton(CoordinatorEntity["EmbyDataUpdateCoordinator"], B
         """Return device information for the Emby server.
 
         Links this button to the main Emby server device.
-        Phase 11: Supports optional 'Emby' prefix based on user settings.
+        Note: We don't set the device name here as it's already set
+        in __init__.py when the server device is first registered.
 
         Returns:
             DeviceInfo for device registry.
         """
-        # Phase 11: Get prefix toggle from options
-        use_prefix: bool = self.coordinator.config_entry.options.get(
-            CONF_PREFIX_BUTTON, DEFAULT_PREFIX_BUTTON
-        )
-        server_name = self.coordinator.server_name
-        device_name = f"Emby {server_name}" if use_prefix else server_name
-
         return DeviceInfo(
             identifiers={(DOMAIN, self.coordinator.server_id)},
-            name=device_name,
             manufacturer="Emby",
         )
 
@@ -235,20 +228,14 @@ class EmbyRunLibraryScanButton(CoordinatorEntity["EmbyServerCoordinator"], Butto
         """Return device information for the Emby server.
 
         Links this button to the main Emby server device.
-        Supports optional 'Emby' prefix based on user settings.
+        Note: We don't set the device name here as it's already set
+        in __init__.py when the server device is first registered.
 
         Returns:
             DeviceInfo for device registry.
         """
-        use_prefix: bool = self.coordinator.config_entry.options.get(
-            CONF_PREFIX_BUTTON, DEFAULT_PREFIX_BUTTON
-        )
-        server_name = self.coordinator.server_name
-        device_name = f"Emby {server_name}" if use_prefix else server_name
-
         return DeviceInfo(
             identifiers={(DOMAIN, self.coordinator.server_id)},
-            name=device_name,
             manufacturer="Emby",
         )
 

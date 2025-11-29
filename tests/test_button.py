@@ -77,16 +77,21 @@ class TestEmbyRefreshLibraryButton:
 
         assert button.available is True
 
-    def test_button_device_info_with_prefix_enabled(
+    def test_button_device_info_links_to_server(
         self,
         hass: HomeAssistant,
     ) -> None:
-        """Test button device info with 'Emby' prefix enabled (default)."""
+        """Test button device info links to server device without overriding name.
+
+        The button's device_info should only provide identifiers to link to
+        the server device (which is registered in __init__.py). It should NOT
+        set the name field, as that would overwrite the server's device name.
+        """
         from custom_components.embymedia.button import EmbyRefreshLibraryButton
-        from custom_components.embymedia.const import CONF_PREFIX_BUTTON, DOMAIN
+        from custom_components.embymedia.const import DOMAIN
 
         mock_config_entry = MagicMock()
-        mock_config_entry.options = {CONF_PREFIX_BUTTON: True}
+        mock_config_entry.options = {}
 
         mock_coordinator = MagicMock()
         mock_coordinator.server_id = "server-123"
@@ -99,31 +104,9 @@ class TestEmbyRefreshLibraryButton:
 
         assert device_info is not None
         assert (DOMAIN, "server-123") in device_info["identifiers"]
-        assert device_info["name"] == "Emby Test Server"  # Phase 11: Prefixed
-
-    def test_button_device_info_with_prefix_disabled(
-        self,
-        hass: HomeAssistant,
-    ) -> None:
-        """Test button device info without prefix when disabled."""
-        from custom_components.embymedia.button import EmbyRefreshLibraryButton
-        from custom_components.embymedia.const import CONF_PREFIX_BUTTON, DOMAIN
-
-        mock_config_entry = MagicMock()
-        mock_config_entry.options = {CONF_PREFIX_BUTTON: False}
-
-        mock_coordinator = MagicMock()
-        mock_coordinator.server_id = "server-123"
-        mock_coordinator.server_name = "Test Server"
-        mock_coordinator.config_entry = mock_config_entry
-        mock_coordinator.async_add_listener = MagicMock(return_value=MagicMock())
-
-        button = EmbyRefreshLibraryButton(mock_coordinator)
-        device_info = button.device_info
-
-        assert device_info is not None
-        assert (DOMAIN, "server-123") in device_info["identifiers"]
-        assert device_info["name"] == "Test Server"  # No prefix
+        # Device name is NOT set by button - it's set in __init__.py
+        assert "name" not in device_info
+        assert device_info["manufacturer"] == "Emby"
 
     @pytest.mark.asyncio
     async def test_press_calls_api(
@@ -391,16 +374,21 @@ class TestEmbyRunLibraryScanButton:
 
         mock_client.async_get_scheduled_tasks.assert_called_once()
 
-    def test_button_device_info_with_prefix_enabled(
+    def test_button_device_info_links_to_server(
         self,
         hass: HomeAssistant,
     ) -> None:
-        """Test button device info with 'Emby' prefix enabled."""
+        """Test button device info links to server device without overriding name.
+
+        The button's device_info should only provide identifiers to link to
+        the server device (which is registered in __init__.py). It should NOT
+        set the name field, as that would overwrite the server's device name.
+        """
         from custom_components.embymedia.button import EmbyRunLibraryScanButton
-        from custom_components.embymedia.const import CONF_PREFIX_BUTTON, DOMAIN
+        from custom_components.embymedia.const import DOMAIN
 
         mock_config_entry = MagicMock()
-        mock_config_entry.options = {CONF_PREFIX_BUTTON: True}
+        mock_config_entry.options = {}
 
         mock_coordinator = MagicMock()
         mock_coordinator.server_id = "server-123"
@@ -413,7 +401,9 @@ class TestEmbyRunLibraryScanButton:
 
         assert device_info is not None
         assert (DOMAIN, "server-123") in device_info["identifiers"]
-        assert device_info["name"] == "Emby Test Server"
+        # Device name is NOT set by button - it's set in __init__.py
+        assert "name" not in device_info
+        assert device_info["manufacturer"] == "Emby"
 
     def test_suggested_object_id_with_prefix_enabled(
         self,
