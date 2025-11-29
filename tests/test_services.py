@@ -1981,3 +1981,302 @@ class TestPlaylistServices:
                     },
                     blocking=True,
                 )
+
+
+class TestClearQueueService:
+    """Tests for clear_queue service."""
+
+    @pytest.mark.asyncio
+    async def test_clear_queue_service_registered(self, hass: HomeAssistant) -> None:
+        """Test that clear_queue service is registered."""
+        from custom_components.embymedia.services import (
+            SERVICE_CLEAR_QUEUE,
+            async_setup_services,
+        )
+
+        await async_setup_services(hass)
+        assert hass.services.has_service(DOMAIN, SERVICE_CLEAR_QUEUE)
+
+    @pytest.mark.asyncio
+    async def test_clear_queue_success(self, hass: HomeAssistant) -> None:
+        """Test clear_queue service success."""
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Living Room TV",
+                        "Client": "Emby Theater",
+                        "SupportsRemoteControl": True,
+                    }
+                ]
+            )
+            client.async_stop_playback = AsyncMock()
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            from homeassistant.helpers import entity_registry as er
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            media_player_entity = next(
+                (e for e in entities if e.domain == "media_player"),
+                None,
+            )
+            assert media_player_entity is not None
+
+            await hass.services.async_call(
+                DOMAIN,
+                "clear_queue",
+                {
+                    ATTR_ENTITY_ID: [media_player_entity.entity_id],
+                },
+                blocking=True,
+            )
+
+            client.async_stop_playback.assert_called_once_with("session-1")
+
+    @pytest.mark.asyncio
+    async def test_clear_queue_no_session(self, hass: HomeAssistant) -> None:
+        """Test clear_queue service when session not found."""
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            # Initially has a session to create the entity
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Living Room TV",
+                        "Client": "Emby Theater",
+                        "SupportsRemoteControl": True,
+                    }
+                ]
+            )
+            client.async_stop_playback = AsyncMock()
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            from homeassistant.helpers import entity_registry as er
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            media_player_entity = next(
+                (e for e in entities if e.domain == "media_player"),
+                None,
+            )
+            assert media_player_entity is not None
+
+            # Now remove the session and refresh coordinator
+            client.async_get_sessions.return_value = []
+
+            # Get the coordinator and trigger refresh to clear the session
+            coordinator = mock_entry.runtime_data.session_coordinator
+            await coordinator.async_refresh()
+            await hass.async_block_till_done()
+
+            with pytest.raises(HomeAssistantError, match="Session not found"):
+                await hass.services.async_call(
+                    DOMAIN,
+                    "clear_queue",
+                    {
+                        ATTR_ENTITY_ID: [media_player_entity.entity_id],
+                    },
+                    blocking=True,
+                )
+
+    @pytest.mark.asyncio
+    async def test_clear_queue_connection_error(self, hass: HomeAssistant) -> None:
+        """Test clear_queue service with connection error."""
+        from custom_components.embymedia.exceptions import EmbyConnectionError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Living Room TV",
+                        "Client": "Emby Theater",
+                        "SupportsRemoteControl": True,
+                    }
+                ]
+            )
+            client.async_stop_playback = AsyncMock(
+                side_effect=EmbyConnectionError("Connection failed")
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            from homeassistant.helpers import entity_registry as er
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            media_player_entity = next(
+                (e for e in entities if e.domain == "media_player"),
+                None,
+            )
+            assert media_player_entity is not None
+
+            with pytest.raises(HomeAssistantError, match="Connection error"):
+                await hass.services.async_call(
+                    DOMAIN,
+                    "clear_queue",
+                    {
+                        ATTR_ENTITY_ID: [media_player_entity.entity_id],
+                    },
+                    blocking=True,
+                )
+
+    @pytest.mark.asyncio
+    async def test_clear_queue_emby_error(self, hass: HomeAssistant) -> None:
+        """Test clear_queue service with Emby error."""
+        from custom_components.embymedia.exceptions import EmbyError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Living Room TV",
+                        "Client": "Emby Theater",
+                        "SupportsRemoteControl": True,
+                    }
+                ]
+            )
+            client.async_stop_playback = AsyncMock(side_effect=EmbyError("Server error"))
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+            from homeassistant.helpers import entity_registry as er
+
+            entity_reg = er.async_get(hass)
+            entities = er.async_entries_for_config_entry(entity_reg, mock_entry.entry_id)
+            media_player_entity = next(
+                (e for e in entities if e.domain == "media_player"),
+                None,
+            )
+            assert media_player_entity is not None
+
+            with pytest.raises(HomeAssistantError, match="Server error"):
+                await hass.services.async_call(
+                    DOMAIN,
+                    "clear_queue",
+                    {
+                        ATTR_ENTITY_ID: [media_player_entity.entity_id],
+                    },
+                    blocking=True,
+                )

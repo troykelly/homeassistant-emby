@@ -2399,3 +2399,107 @@ class TestSimilarItemsAttribute:
 
         # Should only fetch once
         mock_coordinator.client.async_get_similar_items.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_similar_items_clears_cache_when_session_none(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test similar_items clears cache when session becomes None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.session_id = "session-abc"
+        session.user_id = "user-456"
+        session.queue_item_ids = ()
+        session.queue_position = 0
+
+        now_playing = MagicMock()
+        now_playing.item_id = "item-1"
+        session.now_playing = now_playing
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client.async_get_similar_items = AsyncMock(
+            return_value=[{"Id": "sim1", "Name": "Similar 1", "Type": "Movie"}]
+        )
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        await player.async_update_similar_items()
+
+        # Cache should be populated
+        assert player._similar_items_cache is not None
+        assert player._similar_items_item_id == "item-1"
+
+        # Now session becomes None
+        mock_coordinator.get_session.return_value = None
+        await player.async_update_similar_items()
+
+        # Cache should be cleared
+        assert player._similar_items_cache is None
+        assert player._similar_items_item_id is None
+
+    @pytest.mark.asyncio
+    async def test_similar_items_clears_cache_when_no_user_id(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test similar_items clears cache when user_id is None."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.session_id = "session-abc"
+        session.user_id = None  # No user_id
+        session.queue_item_ids = ()
+        session.queue_position = 0
+
+        now_playing = MagicMock()
+        now_playing.item_id = "item-1"
+        session.now_playing = now_playing
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client.async_get_similar_items = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        await player.async_update_similar_items()
+
+        # Cache should be cleared because no user_id
+        assert player._similar_items_cache is None
+        assert player._similar_items_item_id is None
+        mock_coordinator.client.async_get_similar_items.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_similar_items_handles_api_error(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test similar_items handles API error gracefully."""
+        from custom_components.embymedia.exceptions import EmbyError
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.session_id = "session-abc"
+        session.user_id = "user-456"
+        session.queue_item_ids = ()
+        session.queue_position = 0
+
+        now_playing = MagicMock()
+        now_playing.item_id = "item-1"
+        session.now_playing = now_playing
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client.async_get_similar_items = AsyncMock(
+            side_effect=EmbyError("API error")
+        )
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        await player.async_update_similar_items()
+
+        # Cache should be cleared due to error
+        assert player._similar_items_cache is None
+        assert player._similar_items_item_id is None

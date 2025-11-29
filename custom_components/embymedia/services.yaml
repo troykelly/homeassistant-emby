@@ -417,3 +417,11 @@ restart_server:
 shutdown_server:
   name: Shutdown Server
   description: Shutdown the Emby server. Requires administrator privileges.
+
+clear_queue:
+  name: Clear Queue
+  description: Clear the playback queue and stop playback on an Emby client.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
