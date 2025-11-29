@@ -1280,6 +1280,28 @@ class EmbyTagsResponse(TypedDict):
 
 
 # =============================================================================
+# Plugin Types (Phase 20)
+# =============================================================================
+
+
+class EmbyPlugin(TypedDict, total=False):
+    """Response item from /Plugins endpoint.
+
+    Represents an installed Emby plugin with version information.
+    """
+
+    # Required fields (always present)
+    Name: str
+    Version: str
+    Id: str
+
+    # Optional fields
+    Description: str
+    ConfigurationFileName: str
+    ImageTag: str
+
+
+# =============================================================================
 # Utility Functions
 # =============================================================================
 
