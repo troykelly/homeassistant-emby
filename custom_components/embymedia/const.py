@@ -1257,6 +1257,29 @@ class EmbyPersonsResponse(TypedDict):
 
 
 # =============================================================================
+# Tag Types (Phase 19)
+# =============================================================================
+
+
+class EmbyTag(TypedDict, total=False):
+    """Type definition for tag from /Tags endpoint.
+
+    Represents a user-defined tag.
+    """
+
+    Id: str
+    Name: str
+    Type: str  # "Tag"
+
+
+class EmbyTagsResponse(TypedDict):
+    """Response from /Tags endpoint."""
+
+    Items: list[EmbyTag]
+    TotalRecordCount: int
+
+
+# =============================================================================
 # Utility Functions
 # =============================================================================
 

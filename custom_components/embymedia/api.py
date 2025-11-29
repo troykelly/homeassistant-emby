@@ -51,6 +51,7 @@ if TYPE_CHECKING:
         EmbySeriesTimer,
         EmbyServerInfo,
         EmbySessionResponse,
+        EmbyTag,
         EmbyTimer,
         EmbyTimerDefaults,
         EmbyUser,
@@ -2710,6 +2711,98 @@ class EmbyClient:
             "SortOrder=Ascending",
             f"Limit={limit}",
         ]
+        if include_item_types:
+            params.append(f"IncludeItemTypes={include_item_types}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Users/{user_id}/Items?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    # =========================================================================
+    # Tag Browsing API Methods (Phase 19)
+    # =========================================================================
+
+    async def async_get_tags(
+        self,
+        user_id: str,
+        parent_id: str | None = None,
+        include_item_types: str | None = None,
+    ) -> list[EmbyTag]:
+        """Get user-defined tags from the library.
+
+        Args:
+            user_id: The user ID.
+            parent_id: Optional parent library ID to filter tags.
+            include_item_types: Optional item types to filter tags.
+
+        Returns:
+            List of tag items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        # Check cache first
+        cache_key = self._browse_cache.generate_key(
+            "tags",
+            user_id,
+            parent_id=parent_id,
+            include_item_types=include_item_types,
+        )
+        cached = self._browse_cache.get(cache_key)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
+
+        params = [f"UserId={user_id}", "SortBy=SortName", "SortOrder=Ascending"]
+        if parent_id:
+            params.append(f"ParentId={parent_id}")
+        if include_item_types:
+            params.append(f"IncludeItemTypes={include_item_types}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Tags?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyTag] = response.get("Items", [])  # type: ignore[assignment]
+
+        # Cache the result
+        self._browse_cache.set(cache_key, items)
+        return items
+
+    async def async_get_items_by_tag(
+        self,
+        user_id: str,
+        tag_id: str,
+        parent_id: str | None = None,
+        include_item_types: str | None = None,
+        limit: int = 100,
+    ) -> list[EmbyBrowseItem]:
+        """Get items with a specific tag.
+
+        Args:
+            user_id: The user ID.
+            tag_id: The tag ID to filter by.
+            parent_id: Optional parent library ID.
+            include_item_types: Optional item types to filter.
+            limit: Maximum number of results.
+
+        Returns:
+            List of items with this tag.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        params = [
+            f"TagIds={tag_id}",
+            "Recursive=true",
+            "SortBy=SortName",
+            "SortOrder=Ascending",
+            f"Limit={limit}",
+        ]
+        if parent_id:
+            params.append(f"ParentId={parent_id}")
         if include_item_types:
             params.append(f"IncludeItemTypes={include_item_types}")
 
