@@ -55,7 +55,7 @@ class TestAsyncRunScheduledTask:
         ) as mock_request:
             await emby_client.async_run_scheduled_task(task_id=task_id)
 
-            mock_request.assert_called_once_with(f"/ScheduledTasks/{task_id}/Trigger")
+            mock_request.assert_called_once_with(f"/ScheduledTasks/Running/{task_id}")
 
     async def test_run_scheduled_task_not_found(
         self,

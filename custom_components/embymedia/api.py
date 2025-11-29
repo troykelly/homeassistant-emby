@@ -2831,7 +2831,7 @@ class EmbyClient:
             EmbyAuthenticationError: API key is invalid.
             EmbyNotFoundError: Task ID not found.
         """
-        endpoint = f"/ScheduledTasks/{task_id}/Trigger"
+        endpoint = f"/ScheduledTasks/Running/{task_id}"
         await self._request_post(endpoint)
 
     async def async_restart_server(self) -> None:
