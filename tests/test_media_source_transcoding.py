@@ -166,7 +166,7 @@ class TestBuildDirectStreamUrl:
 
         mock_coordinator = MagicMock()
         mock_coordinator.client.base_url = "http://emby.local:8096"
-        mock_coordinator.client._api_key = "test-api-key"
+        mock_coordinator.client.api_key = "test-api-key"
 
         source: MediaSourceInfo = {
             "Id": "source-1",
@@ -187,7 +187,7 @@ class TestBuildDirectStreamUrl:
 
         mock_coordinator = MagicMock()
         mock_coordinator.client.base_url = "http://emby.local:8096"
-        mock_coordinator.client._api_key = "test-api-key"
+        mock_coordinator.client.api_key = "test-api-key"
 
         source: MediaSourceInfo = {
             "Id": "item-456",
@@ -211,7 +211,7 @@ class TestBuildTranscodingUrl:
 
         mock_coordinator = MagicMock()
         mock_coordinator.client.base_url = "http://emby.local:8096"
-        mock_coordinator.client._api_key = "test-api-key"
+        mock_coordinator.client.api_key = "test-api-key"
 
         source: MediaSourceInfo = {
             "Id": "source-1",
@@ -233,7 +233,7 @@ class TestBuildTranscodingUrl:
 
         mock_coordinator = MagicMock()
         mock_coordinator.client.base_url = "http://emby.local:8096"
-        mock_coordinator.client._api_key = "test-api-key"
+        mock_coordinator.client.api_key = "test-api-key"
 
         source: MediaSourceInfo = {
             "Id": "source-1",

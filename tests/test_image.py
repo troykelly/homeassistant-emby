@@ -86,7 +86,7 @@ class TestImageProxyGet:
         coordinator = MagicMock()
         coordinator.client = MagicMock()
         coordinator.client.base_url = "http://emby.local:8096"
-        coordinator.client._api_key = "test-api-key"
+        coordinator.client.api_key = "test-api-key"
         return coordinator
 
     @pytest.fixture
@@ -421,7 +421,7 @@ class TestImageProxyGet:
         mock_coordinator.server_id = "server-by-attr"
         mock_coordinator.client = MagicMock()
         mock_coordinator.client.base_url = "http://emby.local:8096"
-        mock_coordinator.client._api_key = "test-api-key"
+        mock_coordinator.client.api_key = "test-api-key"
 
         mock_config_entry = MockConfigEntry(
             domain=DOMAIN,
@@ -485,7 +485,7 @@ class TestImageProxyResize:
         coordinator = MagicMock()
         coordinator.client = MagicMock()
         coordinator.client.base_url = "http://emby.local:8096"
-        coordinator.client._api_key = "test-api-key"
+        coordinator.client.api_key = "test-api-key"
         return coordinator
 
     @pytest.fixture
@@ -573,7 +573,7 @@ class TestImageProxyErrors:
         coordinator = MagicMock()
         coordinator.client = MagicMock()
         coordinator.client.base_url = "http://emby.local:8096"
-        coordinator.client._api_key = "test-api-key"
+        coordinator.client.api_key = "test-api-key"
         return coordinator
 
     @pytest.fixture
@@ -665,7 +665,7 @@ class TestImageProxyStreaming:
         coordinator = MagicMock()
         coordinator.client = MagicMock()
         coordinator.client.base_url = "http://emby.local:8096"
-        coordinator.client._api_key = "test-api-key"
+        coordinator.client.api_key = "test-api-key"
         return coordinator
 
     @pytest.fixture

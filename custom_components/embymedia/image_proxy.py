@@ -95,7 +95,7 @@ class EmbyImageProxyView(HomeAssistantView):
         # Build the Emby image URL
         emby_url = self._build_emby_url(
             coordinator.client.base_url,
-            coordinator.client._api_key,
+            coordinator.client.api_key,
             item_id,
             image_type,
             dict(request.query),

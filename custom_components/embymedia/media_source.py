@@ -2138,7 +2138,7 @@ class EmbyMediaSource(MediaSource):
             Full authenticated URL for direct streaming.
         """
         base_url = coordinator.client.base_url
-        api_key = coordinator.client._api_key
+        api_key = coordinator.client.api_key
 
         # Use DirectStreamUrl if provided
         direct_url = media_source.get("DirectStreamUrl")
@@ -2178,7 +2178,7 @@ class EmbyMediaSource(MediaSource):
             raise ValueError("No transcoding URL available in media source")
 
         base_url = coordinator.client.base_url
-        api_key = coordinator.client._api_key
+        api_key = coordinator.client.api_key
 
         # TranscodingUrl is relative, prepend base URL
         full_url = f"{base_url}{transcoding_url}"
