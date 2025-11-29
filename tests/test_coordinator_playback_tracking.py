@@ -696,3 +696,195 @@ class TestPlaybackTrackingEdgeCases:
         )
         # But watch time should NOT be counted (paused)
         assert coordinator.daily_watch_time == 0
+
+
+class TestPlaybackSessionCleanup:
+    """Tests for playback session memory cleanup (Phase 22)."""
+
+    def test_playback_stopped_cleans_up_session(
+        self,
+        mock_hass: MagicMock,
+        mock_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test PlaybackStopped event removes session from tracking."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=mock_hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Add some tracked sessions
+        coordinator._playback_sessions["user-abc:session-123"] = {
+            "position_ticks": 100 * EMBY_TICKS_PER_SECOND,
+            "item_id": "item-456",
+            "user_id": "user-abc",
+        }
+        coordinator._playback_sessions["user-xyz:session-456"] = {
+            "position_ticks": 200 * EMBY_TICKS_PER_SECOND,
+            "item_id": "item-789",
+            "user_id": "user-xyz",
+        }
+
+        # Handle PlaybackStopped event
+        data = {
+            "UserId": "user-abc",
+            "PlaySessionId": "session-123",
+        }
+        coordinator._handle_websocket_message("PlaybackStopped", data)
+
+        # Session should be removed
+        assert "user-abc:session-123" not in coordinator._playback_sessions
+        # Other session should remain
+        assert "user-xyz:session-456" in coordinator._playback_sessions
+
+    def test_session_ended_cleans_up_by_device_id(
+        self,
+        mock_hass: MagicMock,
+        mock_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test SessionEnded event removes all tracking for that device."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=mock_hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Add tracked sessions - some with device IDs in the key
+        coordinator._playback_sessions["user-abc:device-123"] = {
+            "position_ticks": 100 * EMBY_TICKS_PER_SECOND,
+            "item_id": "item-456",
+            "user_id": "user-abc",
+        }
+        coordinator._playback_sessions["user-xyz:device-456"] = {
+            "position_ticks": 200 * EMBY_TICKS_PER_SECOND,
+            "item_id": "item-789",
+            "user_id": "user-xyz",
+        }
+
+        # Handle SessionEnded event
+        data = {
+            "DeviceId": "device-123",
+        }
+        coordinator._handle_websocket_message("SessionEnded", data)
+
+        # Sessions containing device-123 should be removed
+        assert "user-abc:device-123" not in coordinator._playback_sessions
+        # Other session should remain
+        assert "user-xyz:device-456" in coordinator._playback_sessions
+
+    def test_cleanup_stale_sessions(
+        self,
+        mock_hass: MagicMock,
+        mock_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test stale sessions are cleaned up after timeout."""
+        from datetime import datetime, timedelta
+
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=mock_hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Add a stale session (2 hours old)
+        stale_time = (datetime.now() - timedelta(hours=2)).isoformat()
+        coordinator._playback_sessions["user-abc:session-stale"] = {
+            "position_ticks": 100 * EMBY_TICKS_PER_SECOND,
+            "item_id": "item-456",
+            "user_id": "user-abc",
+            "last_update": stale_time,
+        }
+
+        # Add a recent session
+        recent_time = datetime.now().isoformat()
+        coordinator._playback_sessions["user-xyz:session-recent"] = {
+            "position_ticks": 200 * EMBY_TICKS_PER_SECOND,
+            "item_id": "item-789",
+            "user_id": "user-xyz",
+            "last_update": recent_time,
+        }
+
+        # Clean up stale sessions (default: 1 hour max age)
+        coordinator._cleanup_stale_sessions()
+
+        # Stale session should be removed
+        assert "user-abc:session-stale" not in coordinator._playback_sessions
+        # Recent session should remain
+        assert "user-xyz:session-recent" in coordinator._playback_sessions
+
+    def test_cleanup_stale_sessions_custom_max_age(
+        self,
+        mock_hass: MagicMock,
+        mock_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test stale sessions cleanup with custom max age."""
+        from datetime import datetime, timedelta
+
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=mock_hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Add a session that's 10 minutes old
+        old_time = (datetime.now() - timedelta(minutes=10)).isoformat()
+        coordinator._playback_sessions["user-abc:session-123"] = {
+            "position_ticks": 100 * EMBY_TICKS_PER_SECOND,
+            "last_update": old_time,
+        }
+
+        # With 15 minute max age, session should NOT be removed
+        coordinator._cleanup_stale_sessions(max_age_seconds=900)  # 15 min
+        assert "user-abc:session-123" in coordinator._playback_sessions
+
+        # With 5 minute max age, session SHOULD be removed
+        coordinator._cleanup_stale_sessions(max_age_seconds=300)  # 5 min
+        assert "user-abc:session-123" not in coordinator._playback_sessions
+
+    def test_cleanup_stale_sessions_handles_missing_timestamp(
+        self,
+        mock_hass: MagicMock,
+        mock_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test cleanup handles sessions without last_update timestamp."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=mock_hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Add session without last_update (legacy or malformed)
+        coordinator._playback_sessions["user-abc:session-no-timestamp"] = {
+            "position_ticks": 100 * EMBY_TICKS_PER_SECOND,
+            # No last_update field
+        }
+
+        # Cleanup should remove sessions without timestamps (treated as stale)
+        coordinator._cleanup_stale_sessions()
+
+        assert "user-abc:session-no-timestamp" not in coordinator._playback_sessions
