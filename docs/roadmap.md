@@ -808,50 +808,53 @@ Phase 8 ─► Phase 9 ─► Phase 10 ─► Phase 11
 
 ---
 
-## Phase 14: Enhanced Playback & Queue Management
+## Phase 14: Enhanced Playback & Queue Management (Partial)
 
 ### Overview
 
 Advanced playback features including Instant Mix (radio mode), similar items recommendations, queue visualization, and announcement support for TTS integration.
 
-### 14.1 Instant Mix Support
-- [ ] Add `async_get_instant_mix()` API method (`/Items/{Id}/InstantMix`)
-- [ ] Add `async_get_artist_instant_mix()` API method (`/Artists/InstantMix`)
-- [ ] Create `embymedia.play_instant_mix` service
-- [ ] Support instant mix from currently playing item
-- [ ] Support instant mix from specified item ID
+### 14.1 Instant Mix Support ✅
+- [x] Add `async_get_instant_mix()` API method (`/Items/{Id}/InstantMix`)
+- [x] Add `async_get_artist_instant_mix()` API method (`/Artists/InstantMix`)
+- [x] Create `embymedia.play_instant_mix` service
+- [x] Support instant mix from currently playing item
+- [x] Support instant mix from specified item ID
 
-### 14.2 Similar Items
-- [ ] Add `async_get_similar_items()` API method (`/Items/{Id}/Similar`)
-- [ ] Create `embymedia.play_similar` service
+### 14.2 Similar Items ✅
+- [x] Add `async_get_similar_items()` API method (`/Items/{Id}/Similar`)
+- [x] Create `embymedia.play_similar` service
 - [ ] Expose similar items as media player attribute
 
-### 14.3 Queue Management
-- [ ] Parse `NowPlayingQueue` from session data
-- [ ] Add `queue_position` attribute to media player
-- [ ] Add `queue_size` attribute to media player
-- [ ] Add `CLEAR_PLAYLIST` feature support
+### 14.3 Queue Management (Partial)
+- [x] Parse `NowPlayingQueue` from session data
+- [x] Add `queue_position` attribute to media player
+- [x] Add `queue_size` attribute to media player
+- [x] Add `CLEAR_PLAYLIST` feature support
 - [ ] Create `embymedia.clear_queue` service
 
-### 14.4 Announcement Support
-- [ ] Implement `MEDIA_ANNOUNCE` feature flag
-- [ ] Add `async_play_media()` announce parameter handling
-- [ ] Pause current playback before announcement
-- [ ] Resume playback after announcement completes
-- [ ] Support TTS integration via announce
+### 14.4 Announcement Support ❌ (Researched - Not Feasible)
+- [x] Research Emby API announcement capabilities
+- [ ] ~~Implement `MEDIA_ANNOUNCE` feature flag~~ (not possible)
+- [ ] ~~Add `async_play_media()` announce parameter handling~~ (not possible)
+- [ ] ~~Pause current playback before announcement~~ (not possible)
+- [ ] ~~Resume playback after announcement completes~~ (not possible)
+- [ ] ~~Support TTS integration via announce~~ (not possible)
 
-### 14.5 Testing & Documentation
-- [ ] Unit tests for all new API methods
-- [ ] Unit tests for queue management
-- [ ] Unit tests for announcement flow
-- [ ] Update README with new features
-- [ ] Maintain 100% code coverage
+**Research Conclusion:** Cannot be implemented due to Emby API limitation - the API requires all playable content to have an Item ID in the library. External URLs (like TTS audio) cannot be played on Emby clients. See [phase-14-tasks.md Task 7](phase-14-tasks.md#task-7-announcement-support-media_announce) for full research.
+
+### 14.5 Testing & Documentation ✅
+- [x] Unit tests for all new API methods
+- [x] Unit tests for queue management
+- [x] Document announcement research findings
+- [x] Update README with new features
+- [x] Maintain 100% code coverage
 
 **Deliverables:**
-- Instant Mix/radio mode from any item or artist
-- Similar items recommendations
-- Queue visualization and management
-- TTS announcement support with auto-resume
+- ✅ Instant Mix/radio mode from any item or artist
+- ✅ Similar items recommendations
+- ✅ Queue visualization (position, size)
+- ✅ Announcement research documented (not feasible due to API limitation)
 
 ---
 
@@ -1346,8 +1349,9 @@ Comprehensive code quality improvements identified through exhaustive code revie
 
 ```
 Completed Phases (1-21) ────────────────────────────────────────────►
+Phase 14 (Partial - Instant Mix, Similar, Queue) ──────────────────►
 
-Phase 22 (Code Quality) ─► Phase 14 (Queue/Mix)
+Phase 22 (Code Quality) ─► Phase 14 Completion ─► Future Phases
 
 Future: Phase 23 ─► Phase 24 ─► Phase 25
 ```
@@ -1361,7 +1365,7 @@ Future: Phase 23 ─► Phase 24 ─► Phase 25
 6. ~~Phase 20 (Admin)~~ ✅ Complete
 7. ~~Phase 21 (WebSocket)~~ ✅ Complete
 8. Phase 22 (Code Quality & Performance) - Current
-9. Phase 14 (Queue/Instant Mix) - Enhanced playback
+9. Phase 14 Completion (clear_queue service, similar items attribute)
 
 ---
 
@@ -1379,6 +1383,7 @@ Future: Phase 23 ─► Phase 24 ─► Phase 25
 | 0.8.0 | 2025-11-29 | Collection Management (Phase 19) |
 | 0.9.0 | 2025-11-29 | Server Administration (Phase 20) |
 | 0.10.0 | 2025-11-29 | Enhanced WebSocket Events (Phase 21) |
+| 0.10.1 | 2025-11-29 | Instant Mix, Similar Items, Queue (Phase 14 partial) |
 | 0.11.0 | TBD | Code Quality & Performance Optimization (Phase 22) |
-| 0.12.0 | TBD | Queue management & Instant Mix (Phase 14) |
+| 0.12.0 | TBD | Phase 14 Completion (clear_queue, similar items attr) |
 | 1.0.0 | TBD | Production release |
