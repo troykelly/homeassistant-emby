@@ -63,7 +63,7 @@ async def async_get_config_entry_diagnostics(
             "server_name": coordinator.server_name,
         },
         "connection_status": {
-            "websocket_enabled": coordinator._websocket_enabled,
+            "websocket_enabled": coordinator.websocket_enabled,
             "last_update_success": coordinator.last_update_success,
             "update_interval": str(coordinator.update_interval),
         },
