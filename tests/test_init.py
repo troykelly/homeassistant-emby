@@ -381,6 +381,7 @@ class TestMultipleEntries:
             def create_client(*args: object, **kwargs: object) -> MagicMock:
                 client = MagicMock()
                 client.async_validate_connection = AsyncMock(return_value=True)
+                client.async_get_users = AsyncMock(return_value=[])  # No users for discovery
                 host = kwargs.get("host", "")
                 if host == "server1.local":
                     client.async_get_server_info = AsyncMock(return_value=server_info_1)
@@ -653,9 +654,11 @@ class TestWebSocketSetup:
         mock_config_entry.add_to_hass(hass)
 
         session_coordinator = create_mock_session_coordinator()
-        # Make WebSocket setup fail
+        # Make WebSocket setup fail with a specific exception type
+        from custom_components.embymedia.exceptions import EmbyWebSocketError
+
         session_coordinator.async_setup_websocket = AsyncMock(
-            side_effect=Exception("WebSocket failed")
+            side_effect=EmbyWebSocketError("WebSocket failed")
         )
         server_coordinator = create_mock_server_coordinator()
         library_coordinator = create_mock_library_coordinator()
