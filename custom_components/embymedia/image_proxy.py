@@ -29,6 +29,9 @@ CACHE_TIME_WITHOUT_TAG = 300
 # Chunk size for streaming images (64KB)
 STREAM_CHUNK_SIZE = 65536
 
+# Timeout for image fetch requests (seconds)
+IMAGE_FETCH_TIMEOUT = 10
+
 
 async def async_setup_image_proxy(hass: HomeAssistant) -> None:
     """Set up the Emby image proxy view.
@@ -103,8 +106,9 @@ class EmbyImageProxyView(HomeAssistantView):
 
         # Fetch the image from Emby with streaming
         session = async_get_clientsession(hass)
+        timeout = aiohttp.ClientTimeout(total=IMAGE_FETCH_TIMEOUT)
         try:
-            async with session.get(emby_url) as response:
+            async with session.get(emby_url, timeout=timeout) as response:
                 # For error responses, return a regular response with the status
                 if response.status != HTTPStatus.OK:
                     body = await response.read()
