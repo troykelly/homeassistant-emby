@@ -98,6 +98,14 @@ class BrowseCache:
         """Clear all cache entries."""
         self._cache.clear()
 
+    def reset_stats(self) -> None:
+        """Reset cache hit/miss statistics.
+
+        Resets hits and misses to zero while preserving cached entries.
+        """
+        self._hits = 0
+        self._misses = 0
+
     def invalidate_prefix(self, prefix: str) -> None:
         """Invalidate all cache entries with keys starting with prefix.
 

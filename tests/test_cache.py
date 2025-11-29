@@ -139,6 +139,38 @@ class TestBrowseCache:
         assert stats["misses"] == 1
         assert stats["entries"] == 1
 
+    def test_cache_reset_stats(self) -> None:
+        """Test resetting cache statistics."""
+        from custom_components.embymedia.cache import BrowseCache
+
+        cache = BrowseCache(ttl_seconds=60)
+        cache.set("key1", {"data": "value1"})
+
+        # Generate some hits and misses
+        cache.get("key1")  # Hit
+        cache.get("nonexistent")  # Miss
+        cache.get("key1")  # Hit
+
+        stats = cache.get_stats()
+        assert stats["hits"] == 2
+        assert stats["misses"] == 1
+
+        # Reset stats
+        cache.reset_stats()
+
+        # Stats should be reset to zero
+        stats = cache.get_stats()
+        assert stats["hits"] == 0
+        assert stats["misses"] == 0
+        # Entries should still exist
+        assert stats["entries"] == 1
+        # Cached data should still be accessible
+        assert cache.get("key1") == {"data": "value1"}
+
+        # New hit should be counted
+        stats = cache.get_stats()
+        assert stats["hits"] == 1
+
 
 class TestCacheDecorator:
     """Test cache decorator for API methods."""
