@@ -19,6 +19,8 @@ from custom_components.embymedia.const import (
     DOMAIN,
 )
 
+from .conftest import add_coordinator_mocks
+
 
 class TestScheduleRecordingService:
     """Tests for schedule_recording service."""
@@ -91,6 +93,7 @@ class TestScheduleRecordingService:
             )
             client.async_create_timer = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -176,6 +179,7 @@ class TestScheduleRecordingService:
             )
             client.async_create_timer = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -284,6 +288,7 @@ class TestScheduleRecordingService:
             )
             client.async_create_timer = AsyncMock(side_effect=EmbyError("Server error"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -360,6 +365,7 @@ class TestScheduleRecordingService:
                 side_effect=EmbyConnectionError("Connection failed")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -450,6 +456,7 @@ class TestCancelRecordingService:
             )
             client.async_cancel_timer = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -546,6 +553,7 @@ class TestCancelRecordingService:
             )
             client.async_cancel_timer = AsyncMock(side_effect=EmbyError("Server error"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -622,6 +630,7 @@ class TestCancelRecordingService:
                 side_effect=EmbyConnectionError("Connection failed")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -712,6 +721,7 @@ class TestCancelSeriesTimerService:
             )
             client.async_cancel_series_timer = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -810,6 +820,7 @@ class TestCancelSeriesTimerService:
             )
             client.async_cancel_series_timer = AsyncMock(side_effect=EmbyError("Server error"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -886,6 +897,7 @@ class TestCancelSeriesTimerService:
                 side_effect=EmbyConnectionError("Connection failed")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",

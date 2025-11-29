@@ -24,6 +24,8 @@ from custom_components.embymedia.exceptions import (
     EmbyNotFoundError,
 )
 
+from .conftest import add_coordinator_mocks
+
 
 @pytest.fixture
 def mock_config_entry() -> MockConfigEntry:
@@ -83,6 +85,7 @@ class TestRunScheduledTaskService:
             client.async_get_plugins = AsyncMock(return_value=[])
             client.async_run_scheduled_task = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -132,6 +135,7 @@ class TestRunScheduledTaskService:
                 side_effect=EmbyNotFoundError("Task not found")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -176,6 +180,7 @@ class TestRunScheduledTaskService:
             client.async_get_scheduled_tasks = AsyncMock(return_value=[])
             client.async_get_plugins = AsyncMock(return_value=[])
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -221,6 +226,7 @@ class TestRunScheduledTaskService:
                 side_effect=EmbyConnectionError("Connection failed")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -268,6 +274,7 @@ class TestRunScheduledTaskService:
                 side_effect=EmbyError("Server error occurred")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -331,6 +338,7 @@ class TestRestartServerService:
             client.async_get_plugins = AsyncMock(return_value=[])
             client.async_restart_server = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -378,6 +386,7 @@ class TestRestartServerService:
                 side_effect=EmbyConnectionError("Connection failed")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -423,6 +432,7 @@ class TestRestartServerService:
             client.async_get_plugins = AsyncMock(return_value=[])
             client.async_restart_server = AsyncMock(side_effect=EmbyError("Permission denied"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -486,6 +496,7 @@ class TestShutdownServerService:
             client.async_get_plugins = AsyncMock(return_value=[])
             client.async_shutdown_server = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -533,6 +544,7 @@ class TestShutdownServerService:
                 side_effect=EmbyConnectionError("Connection failed")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -578,6 +590,7 @@ class TestShutdownServerService:
             client.async_get_plugins = AsyncMock(return_value=[])
             client.async_shutdown_server = AsyncMock(side_effect=EmbyError("Permission denied"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",

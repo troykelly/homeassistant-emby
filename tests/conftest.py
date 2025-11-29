@@ -105,6 +105,92 @@ def mock_emby_client(
         yield client
 
 
+def add_coordinator_mocks(client: MagicMock) -> None:
+    """Add all coordinator-related mocks to a client mock.
+
+    This ensures the client mock has all methods required by the
+    coordinators (server, library, discovery) for asyncio.gather() calls.
+
+    Args:
+        client: The mock client to add methods to.
+    """
+    # Server coordinator methods
+    client.async_get_scheduled_tasks = AsyncMock(return_value=[])
+    client.async_get_live_tv_info = AsyncMock(
+        return_value={"IsEnabled": False, "TunerCount": 0, "ActiveRecordingCount": 0}
+    )
+    client.async_get_timers = AsyncMock(return_value=[])
+    client.async_get_series_timers = AsyncMock(return_value=[])
+    client.async_get_recordings = AsyncMock(return_value=[])
+    client.async_get_activity_log = AsyncMock(return_value={"Items": [], "TotalRecordCount": 0})
+    client.async_get_devices = AsyncMock(return_value={"Items": []})
+    client.async_get_plugins = AsyncMock(return_value=[])
+
+    # Library coordinator methods
+    client.async_get_item_counts = AsyncMock(
+        return_value={
+            "MovieCount": 0,
+            "SeriesCount": 0,
+            "EpisodeCount": 0,
+            "ArtistCount": 0,
+            "AlbumCount": 0,
+            "SongCount": 0,
+        }
+    )
+    client.async_get_virtual_folders = AsyncMock(return_value=[])
+    client.async_get_user_item_count = AsyncMock(return_value=0)
+    client.async_get_playlists = AsyncMock(return_value=[])
+    client.async_get_collections = AsyncMock(return_value=[])
+
+    # Discovery coordinator methods
+    client.async_get_next_up = AsyncMock(return_value=[])
+    client.async_get_resumable_items = AsyncMock(return_value=[])
+    client.async_get_latest_media = AsyncMock(return_value=[])
+    client.async_get_suggestions = AsyncMock(return_value=[])
+
+
+def setup_mock_emby_client(
+    client: MagicMock,
+    server_info: dict[str, Any] | None = None,
+) -> MagicMock:
+    """Setup a mock EmbyClient with all required mocks for testing.
+
+    This is the recommended way to setup a mock EmbyClient when using
+    patch("custom_components.embymedia.EmbyClient", autospec=True).
+
+    Args:
+        client: The mock client to setup (typically mock_client_class.return_value).
+        server_info: Optional server info dict (defaults to basic test server info).
+
+    Returns:
+        The configured mock client.
+
+    Example:
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_cls:
+            client = setup_mock_emby_client(mock_cls.return_value)
+            # Now client has all required mocks
+    """
+    if server_info is None:
+        server_info = {
+            "Id": "test-server-id",
+            "ServerName": "Test Server",
+            "Version": "4.9.2.0",
+        }
+
+    # Basic client methods
+    client.async_validate_connection = AsyncMock(return_value=True)
+    client.async_get_server_info = AsyncMock(return_value=server_info)
+    client.async_get_sessions = AsyncMock(return_value=[])
+    client.async_get_users = AsyncMock(return_value=[])
+    client.close = AsyncMock()
+    client.base_url = "http://emby.local:8096"
+
+    # Add all coordinator-related mocks
+    add_coordinator_mocks(client)
+
+    return client
+
+
 @pytest.fixture
 def mock_emby_client_init(
     mock_server_info: dict[str, Any],
@@ -120,6 +206,8 @@ def mock_emby_client_init(
         client.async_get_users = AsyncMock(return_value=mock_users)
         client.close = AsyncMock()
         client.base_url = "http://emby.local:8096"
+        # Add coordinator-related mocks
+        add_coordinator_mocks(client)
         yield client
 
 
