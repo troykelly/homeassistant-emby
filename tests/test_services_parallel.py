@@ -373,3 +373,17 @@ class TestParallelServiceExecution:
 
             # Verify it was called
             assert client.async_send_message.call_count == 1
+
+
+class TestExecuteParallelHelper:
+    """Test the _execute_parallel helper function directly."""
+
+    @pytest.mark.asyncio
+    async def test_execute_parallel_empty_list(self) -> None:
+        """Test that _execute_parallel handles empty coroutine list."""
+        from custom_components.embymedia.services import _execute_parallel
+
+        # Should return immediately without error for empty list
+        await _execute_parallel([])
+
+        # Function completes without error - test passes

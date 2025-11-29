@@ -888,3 +888,38 @@ class TestPlaybackSessionCleanup:
         coordinator._cleanup_stale_sessions()
 
         assert "user-abc:session-no-timestamp" not in coordinator._playback_sessions
+
+    def test_cleanup_stale_sessions_handles_invalid_timestamp(
+        self,
+        mock_hass: MagicMock,
+        mock_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test cleanup handles sessions with invalid timestamp values."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=mock_hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Add session with invalid timestamp string (not ISO format)
+        coordinator._playback_sessions["user-abc:session-invalid-str"] = {
+            "position_ticks": 100 * EMBY_TICKS_PER_SECOND,
+            "last_update": "not-a-valid-timestamp",
+        }
+
+        # Add session with wrong type timestamp
+        coordinator._playback_sessions["user-abc:session-invalid-type"] = {
+            "position_ticks": 100 * EMBY_TICKS_PER_SECOND,
+            "last_update": 12345,  # Integer instead of string
+        }
+
+        # Cleanup should remove sessions with invalid timestamps
+        coordinator._cleanup_stale_sessions()
+
+        assert "user-abc:session-invalid-str" not in coordinator._playback_sessions
+        assert "user-abc:session-invalid-type" not in coordinator._playback_sessions

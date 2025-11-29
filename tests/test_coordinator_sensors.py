@@ -602,3 +602,154 @@ class TestCoordinatorParallelExecution:
         assert elapsed < 0.2, (
             f"API calls took {elapsed:.3f}s - should be < 0.2s if running in parallel"
         )
+
+    async def test_server_coordinator_scheduled_tasks_error_handling(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test server coordinator handles scheduled tasks API errors gracefully."""
+        from custom_components.embymedia.coordinator_sensors import (
+            EmbyServerCoordinator,
+        )
+        from custom_components.embymedia.exceptions import EmbyError
+
+        mock_client = MagicMock()
+        mock_client.async_get_server_info = AsyncMock(
+            return_value={
+                "ServerName": "Test",
+                "Version": "4.9.0",
+                "Id": "test-id",
+                "LocalAddress": "http://localhost:8096",
+                "WanAddress": "",
+                "OperatingSystem": "Linux",
+                "CanLaunchWebBrowser": False,
+                "HasUpdateAvailable": False,
+                "HasPendingRestart": False,
+            }
+        )
+        mock_client.async_get_scheduled_tasks = AsyncMock(side_effect=EmbyError("API error"))
+        mock_client.async_get_live_tv_info = AsyncMock(return_value={"IsEnabled": False})
+        mock_client.async_get_activity_log = AsyncMock(
+            return_value={"Items": [], "TotalRecordCount": 0}
+        )
+        mock_client.async_get_devices = AsyncMock(return_value={"Items": []})
+        mock_client.async_get_plugins = AsyncMock(return_value=[])
+
+        coordinator = EmbyServerCoordinator(
+            hass=hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Should not raise - error is handled gracefully
+        data = await coordinator._async_update_data()
+        assert data is not None
+        # Scheduled tasks should be empty due to error
+        assert data.get("scheduled_tasks") == []
+
+    async def test_server_coordinator_live_tv_error_handling(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test server coordinator handles Live TV API errors gracefully."""
+        from custom_components.embymedia.coordinator_sensors import (
+            EmbyServerCoordinator,
+        )
+        from custom_components.embymedia.exceptions import EmbyError
+
+        mock_client = MagicMock()
+        mock_client.async_get_server_info = AsyncMock(
+            return_value={
+                "ServerName": "Test",
+                "Version": "4.9.0",
+                "Id": "test-id",
+                "LocalAddress": "http://localhost:8096",
+                "WanAddress": "",
+                "OperatingSystem": "Linux",
+                "CanLaunchWebBrowser": False,
+                "HasUpdateAvailable": False,
+                "HasPendingRestart": False,
+            }
+        )
+        mock_client.async_get_scheduled_tasks = AsyncMock(return_value=[])
+        mock_client.async_get_live_tv_info = AsyncMock(side_effect=EmbyError("Live TV error"))
+        mock_client.async_get_activity_log = AsyncMock(
+            return_value={"Items": [], "TotalRecordCount": 0}
+        )
+        mock_client.async_get_devices = AsyncMock(return_value={"Items": []})
+        mock_client.async_get_plugins = AsyncMock(return_value=[])
+
+        coordinator = EmbyServerCoordinator(
+            hass=hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Should not raise - error is handled gracefully
+        data = await coordinator._async_update_data()
+        assert data is not None
+        # Live TV should show as disabled due to error
+        assert data.get("live_tv_enabled") is False
+
+    async def test_server_coordinator_timers_error_handling(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test server coordinator handles timer API errors gracefully."""
+        from custom_components.embymedia.coordinator_sensors import (
+            EmbyServerCoordinator,
+        )
+        from custom_components.embymedia.exceptions import EmbyError
+
+        mock_client = MagicMock()
+        mock_client.async_get_server_info = AsyncMock(
+            return_value={
+                "ServerName": "Test",
+                "Version": "4.9.0",
+                "Id": "test-id",
+                "LocalAddress": "http://localhost:8096",
+                "WanAddress": "",
+                "OperatingSystem": "Linux",
+                "CanLaunchWebBrowser": False,
+                "HasUpdateAvailable": False,
+                "HasPendingRestart": False,
+            }
+        )
+        mock_client.async_get_scheduled_tasks = AsyncMock(return_value=[])
+        # Live TV is enabled but timer API fails
+        mock_client.async_get_live_tv_info = AsyncMock(
+            return_value={"IsEnabled": True, "EnabledUsers": ["user-1"]}
+        )
+        # Timer fetch fails
+        mock_client.async_get_timers = AsyncMock(side_effect=EmbyError("Timer error"))
+        mock_client.async_get_series_timers = AsyncMock(return_value=[])
+        mock_client.async_get_recordings = AsyncMock(return_value=[])
+        mock_client.async_get_activity_log = AsyncMock(
+            return_value={"Items": [], "TotalRecordCount": 0}
+        )
+        mock_client.async_get_devices = AsyncMock(return_value={"Items": []})
+        mock_client.async_get_plugins = AsyncMock(return_value=[])
+
+        coordinator = EmbyServerCoordinator(
+            hass=hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Should not raise - error is handled gracefully
+        data = await coordinator._async_update_data()
+        assert data is not None
+        # Live TV should still show as enabled
+        assert data.get("live_tv_enabled") is True
+        # Timer counts should be 0 due to error
+        assert data.get("scheduled_timer_count") == 0
+        assert data.get("series_timer_count") == 0
