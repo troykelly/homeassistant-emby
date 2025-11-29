@@ -1170,54 +1170,54 @@ Server administration capabilities including scheduled task control, server rest
 
 ---
 
-## Phase 21: Enhanced WebSocket Events
+## Phase 21: Enhanced WebSocket Events ✅
 
 ### Overview
 
 Extended WebSocket event handling to fire Home Assistant events for library changes, user data updates, and server notifications.
 
-### 21.1 Library Change Events
-- [ ] Subscribe to `LibraryChanged` WebSocket message
-- [ ] Fire `embymedia_library_updated` HA event
-- [ ] Include added/updated/removed item IDs
-- [ ] Clear browse cache on library changes
-- [ ] Trigger coordinator refresh for affected data
+### 21.1 Library Change Events ✅
+- [x] Subscribe to `LibraryChanged` WebSocket message
+- [x] Fire `embymedia_library_updated` HA event
+- [x] Include added/updated/removed item IDs
+- [x] Clear browse cache on library changes
+- [x] Trigger coordinator refresh for affected data (5-second debounce)
 
-### 21.2 User Data Events
-- [ ] Subscribe to `UserDataChanged` WebSocket message
-- [ ] Fire `embymedia_user_data_changed` HA event
-- [ ] Include item ID, user ID, and change type
-- [ ] Support favorite/rating/played status changes
-- [ ] Update relevant sensors on changes
+### 21.2 User Data Events ✅
+- [x] Subscribe to `UserDataChanged` WebSocket message
+- [x] Fire `embymedia_user_data_changed` HA event
+- [x] Include item ID, user ID, and change type
+- [x] Support favorite/rating/played status changes
+- [x] Update relevant sensors on changes
 
-### 21.3 Notification Events
-- [ ] Subscribe to `NotificationAdded` WebSocket message
-- [ ] Fire `embymedia_notification` HA event
-- [ ] Include notification text, level, and category
-- [ ] Option to create persistent notifications in HA
+### 21.3 Notification Events ✅
+- [x] Subscribe to `NotificationAdded` WebSocket message
+- [x] Fire `embymedia_notification` HA event
+- [x] Include notification text, level, and category
+- [x] Option to create persistent notifications in HA
 
-### 21.4 User Account Events
-- [ ] Subscribe to `UserUpdated`, `UserDeleted` WebSocket messages
-- [ ] Fire `embymedia_user_changed` HA event
-- [ ] Reload integration on significant user changes
+### 21.4 User Account Events ✅
+- [x] Subscribe to `UserUpdated`, `UserDeleted` WebSocket messages
+- [x] Fire `embymedia_user_changed` HA event
+- [x] Reload integration on significant user changes
 
-### 21.5 Event Documentation
-- [ ] Document all fired events with payload schemas
-- [ ] Provide example automations for each event type
-- [ ] Add event descriptions to developer docs
+### 21.5 Event Documentation ✅
+- [x] Document all fired events with payload schemas (docs/AUTOMATIONS.md)
+- [x] Provide example automations for each event type
+- [x] Add event descriptions to developer docs
 
-### 21.6 Testing & Documentation
-- [ ] Unit tests for WebSocket message parsing
-- [ ] Unit tests for event firing
-- [ ] Integration tests for event-driven updates
-- [ ] Update README with events section
-- [ ] Maintain 100% code coverage
+### 21.6 Testing & Documentation ✅
+- [x] Unit tests for WebSocket message parsing
+- [x] Unit tests for event firing
+- [x] Integration tests for event-driven updates
+- [x] Update README with events section
+- [x] Maintain 100% code coverage (1649 tests)
 
 **Deliverables:**
-- Library change events for automation triggers
-- User data change events (favorites, ratings, played)
-- Server notification forwarding to HA
-- Comprehensive event documentation with examples
+- ✅ Library change events for automation triggers
+- ✅ User data change events (favorites, ratings, played)
+- ✅ Server notification forwarding to HA
+- ✅ Comprehensive event documentation with examples
 
 ---
 
@@ -1265,8 +1265,8 @@ Future: Phase 22 ─► Phase 23 ─► Phase 24
 4. ~~Phase 18 (Activity)~~ ✅ Complete
 5. ~~Phase 19 (Collections)~~ ✅ Complete
 6. ~~Phase 20 (Admin)~~ ✅ Complete
-7. Phase 14 (Queue/Instant Mix) - Enhanced playback
-8. Phase 21 (WebSocket) - Reactive automations
+7. ~~Phase 21 (WebSocket)~~ ✅ Complete
+8. Phase 14 (Queue/Instant Mix) - Enhanced playback
 
 ---
 
@@ -1283,5 +1283,6 @@ Future: Phase 22 ─► Phase 23 ─► Phase 24
 | 0.7.0 | 2025-11-29 | User Activity & Statistics (Phase 18) |
 | 0.8.0 | 2025-11-29 | Collection Management (Phase 19) |
 | 0.9.0 | 2025-11-29 | Server Administration (Phase 20) |
-| 0.10.0 | TBD | Queue management & Instant Mix (Phase 14) |
+| 0.10.0 | 2025-11-29 | Enhanced WebSocket Events (Phase 21) |
+| 0.11.0 | TBD | Queue management & Instant Mix (Phase 14) |
 | 1.0.0 | TBD | Production release |

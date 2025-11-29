@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Enhanced WebSocket Events** (Phase 21)
+  - New event: `embymedia_library_updated` - Fires when items are added/updated/removed from libraries
+  - New event: `embymedia_user_data_changed` - Fires when favorites, played status, or ratings change
+  - New event: `embymedia_notification` - Forwards Emby server notifications to Home Assistant
+  - New event: `embymedia_user_changed` - Fires when user accounts are updated or deleted
+  - TypedDicts: `EmbyLibraryChangedData`, `EmbyUserDataChangedData`, `EmbyNotificationData`, `EmbyUserChangedData`
+  - Automatic browse cache invalidation on library changes
+  - Debounced library coordinator refresh (5-second delay) on library changes
+  - Documentation with example automations in docs/AUTOMATIONS.md
+
 - **Server Administration** (Phase 20)
   - New service: `embymedia.run_scheduled_task` - Trigger any scheduled task on demand
   - New service: `embymedia.restart_server` - Restart the Emby server (requires admin)
@@ -55,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - TypedDicts for playlist API type safety
 
 ### Technical
-- 1618 tests with 100% code coverage
+- 1649 tests with 100% code coverage
 
 ## [0.3.0] - 2025-11-27
 
