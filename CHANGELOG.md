@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-11-29
+
 ### Added
 - **Enhanced WebSocket Events** (Phase 21)
   - New event: `embymedia_library_updated` - Fires when items are added/updated/removed from libraries
@@ -64,8 +66,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New sensor: `sensor.{server}_playlists` - Shows playlist count (requires user_id configuration)
   - TypedDicts for playlist API type safety
 
+- **Code Quality & Performance Optimization** (Phase 22)
+  - Parallel API calls for coordinator data fetching (discovery, server, library)
+  - Streaming image proxy for efficient memory usage
+  - Playback session memory cleanup to prevent memory leaks
+  - BLAKE2b hash algorithm replacing MD5 for cache keys
+  - Parallel service execution for non-dependent operations
+  - Optimized web player detection with O(1) lookup
+  - Configurable WebSocket session interval option
+  - Enhanced error handling with specific exception types
+
+- **Enhanced Playback** (Phase 14)
+  - New service: `embymedia.clear_queue` - Clear playback queue
+  - New attribute: `similar_items` - List of similar content on media players
+  - Queue attributes: `queue_items`, `queue_position`, `queue_total`
+
+### Changed
+- Replaced MD5 with BLAKE2b for cache key hashing (improved security)
+- Replaced broad exception handling with specific exception types
+- Extracted letter browsing helper for code reuse
+- Image proxy now uses streaming for better memory efficiency
+
 ### Technical
 - 1649 tests with 100% code coverage
+- Internationalization: 9 language translations added
 
 ## [0.3.0] - 2025-11-27
 
@@ -191,7 +215,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Browse cache with LRU + TTL for performance
 - Graceful degradation on partial failures
 
-[Unreleased]: https://github.com/troykelly/homeassistant-emby/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/troykelly/homeassistant-emby/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/troykelly/homeassistant-emby/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/troykelly/homeassistant-emby/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/troykelly/homeassistant-emby/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/troykelly/homeassistant-emby/compare/v0.2.0...v0.2.1

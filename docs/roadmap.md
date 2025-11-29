@@ -1377,13 +1377,5 @@ Future: Phase 23 ─► Phase 24 ─► Phase 25
 | 0.1.0 | 2025-11-26 | MVP - Full media player with browsing, WebSocket, services |
 | 0.2.0 | 2025-11-26 | Sensor platform (Phase 12) |
 | 0.3.0 | 2025-11-27 | Dynamic transcoding (Phase 13) |
-| 0.4.0 | 2025-11-28 | Discovery sensors with ImageEntity (Phase 15) |
-| 0.5.0 | 2025-11-28 | Live TV & DVR Integration (Phase 16) |
-| 0.6.0 | 2025-11-28 | Playlist Management (Phase 17) |
-| 0.7.0 | 2025-11-29 | User Activity & Statistics (Phase 18) |
-| 0.8.0 | 2025-11-29 | Collection Management (Phase 19) |
-| 0.9.0 | 2025-11-29 | Server Administration (Phase 20) |
-| 0.10.0 | 2025-11-29 | Enhanced WebSocket Events (Phase 21) |
-| 0.10.1 | 2025-11-29 | Enhanced Playback Complete (Phase 14) |
-| 0.11.0 | TBD | Code Quality & Performance Optimization (Phase 22) |
+| 0.4.0 | 2025-11-29 | Phases 14-22 - Discovery, Live TV, Playlists, Activity, Collections, Admin, WebSocket Events, Performance |
 | 1.0.0 | TBD | Production release |
