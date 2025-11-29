@@ -1129,7 +1129,7 @@ Collection (BoxSet) lifecycle management and enhanced library browsing by person
 Server administration capabilities including scheduled task control, server restart/shutdown, plugin monitoring, and storage information.
 
 ### 20.1 Scheduled Task Control ✅
-- [x] Add `async_run_scheduled_task()` API method (`POST /ScheduledTasks/{Id}/Trigger`)
+- [x] Add `async_run_scheduled_task()` API method (`POST /ScheduledTasks/Running/{Id}`)
 - [x] Create `embymedia.run_scheduled_task` service
 - [x] Create button entity for library scan (`button.{server}_run_library_scan`)
 - [x] Task ID provided in service call
@@ -1146,8 +1146,12 @@ Server administration capabilities including scheduled task control, server rest
 - [x] Create `sensor.{server}_plugins` entity (count)
 - [x] Expose plugin list with version info in extra_state_attributes
 
-### 20.4 Storage Information
-- Deferred to Phase 22 (optional enhancement)
+### 20.4 Storage Information ❌
+- Not available: Emby API does not expose disk space or storage information
+- The `/Environment/Drives` endpoint only returns directory paths without size data
+- The `/System/Info` endpoint has no storage-related fields
+- Third-party plugins like Emby.DashboardExtras exist specifically because this data isn't exposed
+- **Resolution:** Cannot implement - Emby API limitation, not a deferral
 
 ### 20.5 Testing & Documentation ✅
 - [x] Unit tests for task control API (14 tests in test_api_admin.py)
