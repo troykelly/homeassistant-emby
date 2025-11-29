@@ -11,6 +11,7 @@ This guide provides ready-to-use automation examples for the Emby Media integrat
 - [Library Management Automations](#library-management-automations)
 - [Sensor-Based Automations](#sensor-based-automations)
 - [Device Triggers](#device-triggers)
+- [WebSocket Events](#websocket-events)
 - [Advanced Examples](#advanced-examples)
 
 ---
@@ -615,6 +616,156 @@ The integration provides device triggers that can be used in automations. These 
 | `media_changed` | Different media started playing |
 | `session_connected` | Client connected to Emby |
 | `session_disconnected` | Client disconnected |
+
+---
+
+## WebSocket Events
+
+The integration fires custom events when the Emby server sends real-time updates via WebSocket. These events can be used as triggers in automations.
+
+### Library Updated Event
+
+Fired when items are added, updated, or removed from the library.
+
+**Event Type:** `embymedia_library_updated`
+
+**Event Data:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `server_id` | string | Emby server ID |
+| `server_name` | string | Emby server name |
+| `items_added` | list | List of added item IDs |
+| `items_updated` | list | List of updated item IDs |
+| `items_removed` | list | List of removed item IDs |
+| `folders_added_to` | list | Library folder IDs with new items |
+| `folders_removed_from` | list | Library folder IDs with removed items |
+
+**Example Automation:**
+
+```yaml
+automation:
+  - alias: "Emby - Notify on new library content"
+    trigger:
+      - platform: event
+        event_type: embymedia_library_updated
+        event_data:
+          server_name: "My Emby Server"
+    condition:
+      - condition: template
+        value_template: "{{ trigger.event.data.items_added | length > 0 }}"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "New Emby Content"
+          message: "{{ trigger.event.data.items_added | length }} new items added to library!"
+```
+
+### User Data Changed Event
+
+Fired when a user's item data changes (favorites, played status, ratings).
+
+**Event Type:** `embymedia_user_data_changed`
+
+**Event Data:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `server_id` | string | Emby server ID |
+| `server_name` | string | Emby server name |
+| `user_id` | string | Emby user ID |
+| `item_id` | string | Item ID that changed |
+| `is_favorite` | bool | Whether item is now a favorite |
+| `played` | bool | Whether item is marked as played |
+| `playback_position_ticks` | int | Resume position (optional) |
+| `play_count` | int | Number of times played (optional) |
+| `rating` | float | User rating 0.0-10.0 (optional) |
+| `last_played_date` | string | ISO 8601 timestamp (optional) |
+
+**Example Automation:**
+
+```yaml
+automation:
+  - alias: "Emby - Track favorite changes"
+    trigger:
+      - platform: event
+        event_type: embymedia_user_data_changed
+    condition:
+      - condition: template
+        value_template: "{{ trigger.event.data.is_favorite == true }}"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Emby Favorite"
+          message: "Item {{ trigger.event.data.item_id }} was added to favorites"
+```
+
+### Notification Event
+
+Fired when the Emby server creates a notification.
+
+**Event Type:** `embymedia_notification`
+
+**Event Data:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `server_id` | string | Emby server ID |
+| `server_name` | string | Emby server name |
+| `name` | string | Notification title |
+| `description` | string | Notification message (optional) |
+| `level` | string | "Normal", "Warning", or "Error" |
+| `notification_type` | string | Type like "Info", "Update", etc. |
+| `url` | string | Related URL (optional) |
+| `date` | string | ISO 8601 timestamp |
+
+**Example Automation:**
+
+```yaml
+automation:
+  - alias: "Emby - Forward server notifications"
+    trigger:
+      - platform: event
+        event_type: embymedia_notification
+    condition:
+      - condition: template
+        value_template: "{{ trigger.event.data.level in ['Warning', 'Error'] }}"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Emby {{ trigger.event.data.level }}"
+          message: "{{ trigger.event.data.name }}: {{ trigger.event.data.description }}"
+```
+
+### User Changed Event
+
+Fired when a user account is updated or deleted.
+
+**Event Type:** `embymedia_user_changed`
+
+**Event Data:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `server_id` | string | Emby server ID |
+| `server_name` | string | Emby server name |
+| `user_id` | string | Emby user ID |
+| `user_name` | string | User display name (if available) |
+| `change_type` | string | "updated" or "deleted" |
+
+**Example Automation:**
+
+```yaml
+automation:
+  - alias: "Emby - User account changes"
+    trigger:
+      - platform: event
+        event_type: embymedia_user_changed
+    condition:
+      - condition: template
+        value_template: "{{ trigger.event.data.change_type == 'deleted' }}"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Emby User Deleted"
+          message: "User {{ trigger.event.data.user_name or trigger.event.data.user_id }} was removed"
+```
 
 ### Using Device Triggers in YAML
 

@@ -26,6 +26,10 @@ from .const import (
     DOMAIN,
     WEBSOCKET_POLL_INTERVAL,
     EmbyConfigEntry,
+    EmbyLibraryChangedData,
+    EmbyNotificationData,
+    EmbyUserChangedData,
+    EmbyUserDataChangedData,
 )
 from .exceptions import EmbyConnectionError, EmbyError
 from .models import EmbySession, parse_session
@@ -526,6 +530,15 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
             _LOGGER.info("Emby server %s is restarting", self.server_name)
         elif message_type == "ServerShuttingDown":
             _LOGGER.warning("Emby server %s is shutting down", self.server_name)
+        # Phase 21: Library and user data events
+        elif message_type == "LibraryChanged":
+            self._handle_library_changed(data)
+        elif message_type == "UserDataChanged":
+            self._handle_user_data_changed(data)
+        elif message_type == "NotificationAdded":
+            self._handle_notification_added(data)
+        elif message_type in ("UserUpdated", "UserDeleted"):
+            self._handle_user_changed(message_type, data)
         else:
             _LOGGER.debug("Unhandled WebSocket message type: %s", message_type)
 
@@ -707,6 +720,183 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
             "media_player", DOMAIN, unique_id
         )
         return entity_id
+
+    # =========================================================================
+    # Phase 21: WebSocket Event Handlers
+    # =========================================================================
+
+    def _handle_library_changed(self, data: object) -> None:
+        """Handle LibraryChanged WebSocket message.
+
+        Fired when items are added, updated, or removed from libraries.
+        Clears browse cache and triggers coordinator refresh.
+
+        Args:
+            data: Message data from WebSocket.
+        """
+        if not isinstance(data, dict):
+            return
+
+        library_data: EmbyLibraryChangedData = data  # type: ignore[assignment]
+
+        # Clear browse cache since library contents changed
+        self.client.clear_browse_cache()
+
+        # Fire Home Assistant event
+        self.hass.bus.async_fire(
+            "embymedia_library_updated",
+            {
+                "server_id": self.server_id,
+                "server_name": self.server_name,
+                "items_added": library_data.get("ItemsAdded", []),
+                "items_updated": library_data.get("ItemsUpdated", []),
+                "items_removed": library_data.get("ItemsRemoved", []),
+                "folders_added_to": library_data.get("FoldersAddedTo", []),
+                "folders_removed_from": library_data.get("FoldersRemovedFrom", []),
+            },
+        )
+
+        _LOGGER.debug(
+            "Library changed on %s: %d added, %d updated, %d removed",
+            self.server_name,
+            len(library_data.get("ItemsAdded", [])),
+            len(library_data.get("ItemsUpdated", [])),
+            len(library_data.get("ItemsRemoved", [])),
+        )
+
+        # Trigger library coordinator refresh (in background, non-blocking)
+        # Use debounced delay to prevent excessive refreshes during bulk operations
+        runtime_data = getattr(self.config_entry, "runtime_data", None)
+        if runtime_data is not None and hasattr(runtime_data, "library_coordinator"):
+            library_coordinator = runtime_data.library_coordinator
+
+            async def _delayed_refresh() -> None:
+                """Refresh library coordinator after debounce delay."""
+                await asyncio.sleep(5)
+                await library_coordinator.async_request_refresh()
+
+            self.hass.async_create_task(_delayed_refresh())
+
+    def _handle_user_data_changed(self, data: object) -> None:
+        """Handle UserDataChanged WebSocket message.
+
+        Fired when user-specific item data changes (favorites, played, ratings).
+
+        Args:
+            data: Message data from WebSocket.
+        """
+        if not isinstance(data, dict):
+            return
+
+        user_data: EmbyUserDataChangedData = data  # type: ignore[assignment]
+        user_data_list = user_data.get("UserDataList", [])
+
+        for item_data in user_data_list:
+            item_id = item_data.get("ItemId")
+            user_id = item_data.get("UserId")
+
+            if not item_id or not user_id:
+                continue
+
+            # Fire Home Assistant event for each changed item
+            self.hass.bus.async_fire(
+                "embymedia_user_data_changed",
+                {
+                    "server_id": self.server_id,
+                    "server_name": self.server_name,
+                    "user_id": user_id,
+                    "item_id": item_id,
+                    "is_favorite": item_data.get("IsFavorite"),
+                    "played": item_data.get("Played"),
+                    "playback_position_ticks": item_data.get("PlaybackPositionTicks"),
+                    "play_count": item_data.get("PlayCount"),
+                    "rating": item_data.get("Rating"),
+                    "last_played_date": item_data.get("LastPlayedDate"),
+                },
+            )
+
+        _LOGGER.debug(
+            "User data changed on %s: %d items updated",
+            self.server_name,
+            len(user_data_list),
+        )
+
+    def _handle_notification_added(self, data: object) -> None:
+        """Handle NotificationAdded WebSocket message.
+
+        Fired when a server notification is created.
+        Forwards the notification to Home Assistant.
+
+        Args:
+            data: Message data from WebSocket.
+        """
+        if not isinstance(data, dict):
+            return
+
+        notification: EmbyNotificationData = data  # type: ignore[assignment]
+        name = notification.get("Name", "")
+        description = notification.get("Description")
+        level = notification.get("Level", "Normal")
+
+        # Fire Home Assistant event
+        self.hass.bus.async_fire(
+            "embymedia_notification",
+            {
+                "server_id": self.server_id,
+                "server_name": self.server_name,
+                "name": name,
+                "description": description,
+                "level": level,
+                "notification_type": notification.get("NotificationType", "Info"),
+                "url": notification.get("Url"),
+                "date": notification.get("Date"),
+            },
+        )
+
+        _LOGGER.info(
+            "Notification from %s [%s]: %s - %s",
+            self.server_name,
+            level,
+            name,
+            description,
+        )
+
+    def _handle_user_changed(self, message_type: str, data: object) -> None:
+        """Handle UserUpdated/UserDeleted WebSocket message.
+
+        Fired when user accounts are modified or deleted.
+
+        Args:
+            message_type: "UserUpdated" or "UserDeleted"
+            data: Message data from WebSocket.
+        """
+        if not isinstance(data, dict):
+            return
+
+        user_data: EmbyUserChangedData = data  # type: ignore[assignment]
+        user_id = user_data.get("UserId")
+
+        if not user_id:
+            return
+
+        # Fire Home Assistant event
+        self.hass.bus.async_fire(
+            "embymedia_user_changed",
+            {
+                "server_id": self.server_id,
+                "server_name": self.server_name,
+                "user_id": user_id,
+                "user_name": user_data.get("UserName"),
+                "change_type": "deleted" if message_type == "UserDeleted" else "updated",
+            },
+        )
+
+        _LOGGER.info(
+            "User %s on %s: %s",
+            user_id,
+            self.server_name,
+            "deleted" if message_type == "UserDeleted" else "updated",
+        )
 
 
 __all__ = ["EmbyDataUpdateCoordinator"]
