@@ -1302,6 +1302,74 @@ class EmbyPlugin(TypedDict, total=False):
 
 
 # =============================================================================
+# TypedDicts for WebSocket Event Data (Phase 21)
+# =============================================================================
+
+
+class EmbyLibraryChangedData(TypedDict, total=False):
+    """Data from LibraryChanged WebSocket message.
+
+    Sent when items are added, updated, or removed from libraries.
+    """
+
+    ItemsAdded: list[str]  # List of item IDs added
+    ItemsUpdated: list[str]  # List of item IDs updated
+    ItemsRemoved: list[str]  # List of item IDs removed
+    FoldersAddedTo: list[str]  # List of folder/library IDs items were added to
+    FoldersRemovedFrom: list[str]  # List of folder/library IDs items were removed from
+    CollectionFolders: list[str]  # Library IDs affected (optional)
+
+
+class EmbyUserDataChangedItemData(TypedDict, total=False):
+    """Single item's user data change.
+
+    Represents a single item in the UserDataChanged event.
+    """
+
+    ItemId: str  # Required - The item ID
+    UserId: str  # Required - The user ID
+    IsFavorite: bool  # Whether item is favorited
+    Played: bool  # Whether item is marked as played
+    PlaybackPositionTicks: int  # Resume position in ticks
+    PlayCount: int  # Number of times played
+    Rating: float  # User rating (0.0-10.0)
+    LastPlayedDate: str  # ISO 8601 timestamp of last play
+
+
+class EmbyUserDataChangedData(TypedDict):
+    """Data from UserDataChanged WebSocket message.
+
+    Sent when user-specific item data changes (favorites, played status, ratings).
+    """
+
+    UserDataList: list[EmbyUserDataChangedItemData]
+
+
+class EmbyNotificationData(TypedDict, total=False):
+    """Data from NotificationAdded WebSocket message.
+
+    Sent when a server notification is created.
+    """
+
+    Name: str  # Required - Notification title/summary
+    Description: str  # Detailed message (optional)
+    NotificationType: str  # Required - "Info", "Warning", "Error", etc.
+    Level: str  # Required - "Normal", "Warning", "Error"
+    Url: str  # Optional URL for more info
+    Date: str  # Required - ISO 8601 timestamp
+
+
+class EmbyUserChangedData(TypedDict, total=False):
+    """Data from UserUpdated/UserDeleted WebSocket message.
+
+    Sent when user accounts are modified or deleted.
+    """
+
+    UserId: str  # Required - The user ID
+    UserName: str  # User display name (only present on UserUpdated)
+
+
+# =============================================================================
 # Utility Functions
 # =============================================================================
 
