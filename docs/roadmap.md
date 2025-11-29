@@ -808,11 +808,11 @@ Phase 8 ─► Phase 9 ─► Phase 10 ─► Phase 11
 
 ---
 
-## Phase 14: Enhanced Playback & Queue Management (Partial)
+## Phase 14: Enhanced Playback & Queue Management ✅
 
 ### Overview
 
-Advanced playback features including Instant Mix (radio mode), similar items recommendations, queue visualization, and announcement support for TTS integration.
+Advanced playback features including Instant Mix (radio mode), similar items recommendations, queue visualization, and announcement support research for TTS integration.
 
 ### 14.1 Instant Mix Support ✅
 - [x] Add `async_get_instant_mix()` API method (`/Items/{Id}/InstantMix`)
@@ -824,14 +824,14 @@ Advanced playback features including Instant Mix (radio mode), similar items rec
 ### 14.2 Similar Items ✅
 - [x] Add `async_get_similar_items()` API method (`/Items/{Id}/Similar`)
 - [x] Create `embymedia.play_similar` service
-- [ ] Expose similar items as media player attribute
+- [x] Expose similar items as media player attribute (`similar_items`)
 
-### 14.3 Queue Management (Partial)
+### 14.3 Queue Management ✅
 - [x] Parse `NowPlayingQueue` from session data
 - [x] Add `queue_position` attribute to media player
 - [x] Add `queue_size` attribute to media player
 - [x] Add `CLEAR_PLAYLIST` feature support
-- [ ] Create `embymedia.clear_queue` service
+- [x] Create `embymedia.clear_queue` service
 
 ### 14.4 Announcement Support ❌ (Researched - Not Feasible)
 - [x] Research Emby API announcement capabilities
@@ -846,14 +846,16 @@ Advanced playback features including Instant Mix (radio mode), similar items rec
 ### 14.5 Testing & Documentation ✅
 - [x] Unit tests for all new API methods
 - [x] Unit tests for queue management
+- [x] Unit tests for similar_items attribute edge cases
+- [x] Unit tests for clear_queue service
 - [x] Document announcement research findings
 - [x] Update README with new features
 - [x] Maintain 100% code coverage
 
 **Deliverables:**
 - ✅ Instant Mix/radio mode from any item or artist
-- ✅ Similar items recommendations
-- ✅ Queue visualization (position, size)
+- ✅ Similar items recommendations (API + service + media player attribute)
+- ✅ Queue visualization (position, size) + clear_queue service
 - ✅ Announcement research documented (not feasible due to API limitation)
 
 ---
@@ -1348,10 +1350,9 @@ Comprehensive code quality improvements identified through exhaustive code revie
 ## Updated Implementation Order
 
 ```
-Completed Phases (1-21) ────────────────────────────────────────────►
-Phase 14 (Partial - Instant Mix, Similar, Queue) ──────────────────►
+Completed Phases (1-21, 14) ────────────────────────────────────────►
 
-Phase 22 (Code Quality) ─► Phase 14 Completion ─► Future Phases
+Phase 22 (Code Quality) ─► Future Phases
 
 Future: Phase 23 ─► Phase 24 ─► Phase 25
 ```
@@ -1364,8 +1365,8 @@ Future: Phase 23 ─► Phase 24 ─► Phase 25
 5. ~~Phase 19 (Collections)~~ ✅ Complete
 6. ~~Phase 20 (Admin)~~ ✅ Complete
 7. ~~Phase 21 (WebSocket)~~ ✅ Complete
-8. Phase 22 (Code Quality & Performance) - Current
-9. Phase 14 Completion (clear_queue service, similar items attribute)
+8. ~~Phase 14 (Enhanced Playback)~~ ✅ Complete
+9. Phase 22 (Code Quality & Performance) - Next
 
 ---
 
@@ -1383,7 +1384,6 @@ Future: Phase 23 ─► Phase 24 ─► Phase 25
 | 0.8.0 | 2025-11-29 | Collection Management (Phase 19) |
 | 0.9.0 | 2025-11-29 | Server Administration (Phase 20) |
 | 0.10.0 | 2025-11-29 | Enhanced WebSocket Events (Phase 21) |
-| 0.10.1 | 2025-11-29 | Instant Mix, Similar Items, Queue (Phase 14 partial) |
+| 0.10.1 | 2025-11-29 | Enhanced Playback Complete (Phase 14) |
 | 0.11.0 | TBD | Code Quality & Performance Optimization (Phase 22) |
-| 0.12.0 | TBD | Phase 14 Completion (clear_queue, similar items attr) |
 | 1.0.0 | TBD | Production release |
