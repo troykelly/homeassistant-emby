@@ -125,6 +125,12 @@ MAX_SCAN_INTERVAL: Final = 300
 WEBSOCKET_POLL_INTERVAL: Final = 60  # Reduced polling when WebSocket connected
 FALLBACK_POLL_INTERVAL: Final = 10  # Normal polling when WebSocket disconnected
 
+# WebSocket session subscription interval configuration
+CONF_WEBSOCKET_INTERVAL: Final = "websocket_interval"
+DEFAULT_WEBSOCKET_INTERVAL: Final = 1500  # Default 1500ms
+MIN_WEBSOCKET_INTERVAL: Final = 500  # Minimum 500ms
+MAX_WEBSOCKET_INTERVAL: Final = 10000  # Maximum 10000ms (10 seconds)
+
 # Notification defaults
 DEFAULT_NOTIFICATION_TIMEOUT_MS: Final = 5000  # 5 seconds
 

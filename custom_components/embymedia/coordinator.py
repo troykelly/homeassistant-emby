@@ -21,8 +21,10 @@ from homeassistant.helpers.update_coordinator import (
 from .api import EmbyClient
 from .const import (
     CONF_IGNORE_WEB_PLAYERS,
+    CONF_WEBSOCKET_INTERVAL,
     DEFAULT_IGNORE_WEB_PLAYERS,
     DEFAULT_SCAN_INTERVAL,
+    DEFAULT_WEBSOCKET_INTERVAL,
     DOMAIN,
     WEB_PLAYER_CLIENTS_LOWER,
     WEBSOCKET_POLL_INTERVAL,
@@ -492,8 +494,12 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
         try:
             await self._websocket.async_connect()
             # Subscribe to session updates (with error handling)
+            # Use configured interval or default
+            interval_ms = self.config_entry.options.get(
+                CONF_WEBSOCKET_INTERVAL, DEFAULT_WEBSOCKET_INTERVAL
+            )
             try:
-                await self._websocket.async_subscribe_sessions()
+                await self._websocket.async_subscribe_sessions(interval_ms=interval_ms)
             except RuntimeError as err:
                 _LOGGER.warning(
                     "Failed to subscribe to WebSocket sessions for %s: %s",
