@@ -24,6 +24,7 @@ from .const import (
     DEFAULT_IGNORE_WEB_PLAYERS,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    WEB_PLAYER_CLIENTS_LOWER,
     WEBSOCKET_POLL_INTERVAL,
     EmbyConfigEntry,
     EmbyLibraryChangedData,
@@ -50,23 +51,6 @@ MAX_PLAYBACK_DELTA_SECONDS = 60
 
 # Default maximum age in seconds for stale playback session cleanup (1 hour)
 DEFAULT_STALE_SESSION_MAX_AGE = 3600
-
-# Client names that indicate web browser sessions
-WEB_PLAYER_CLIENTS: frozenset[str] = frozenset(
-    {
-        "Emby Web",
-        "Emby Mobile Web",
-        "Chrome",
-        "Firefox",
-        "Safari",
-        "Edge",
-        "Opera",
-        "Brave",
-        "Vivaldi",
-        "Internet Explorer",
-        "Microsoft Edge",
-    }
-)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -207,6 +191,8 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
     def _is_web_player(self, session: EmbySession) -> bool:
         """Check if a session is from a web browser.
 
+        Uses O(1) lookup with pre-computed lowercase set for efficiency.
+
         Args:
             session: The session to check.
 
@@ -214,7 +200,7 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
             True if the session is from a web browser client.
         """
         client_name = session.client_name.lower()
-        return any(web_client.lower() in client_name for web_client in WEB_PLAYER_CLIENTS)
+        return client_name in WEB_PLAYER_CLIENTS_LOWER
 
     def _track_playback_progress(self, data: Mapping[str, Any]) -> None:
         """Track playback progress for watch time statistics (per user).

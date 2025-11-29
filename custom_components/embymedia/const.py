@@ -162,6 +162,23 @@ PLATFORMS: list[Platform] = [
     Platform.SENSOR,
 ]
 
+# Client names that indicate web browser sessions (pre-computed lowercase for O(1) lookup)
+WEB_PLAYER_CLIENTS_LOWER: frozenset[str] = frozenset(
+    {
+        "emby web",
+        "emby mobile web",
+        "chrome",
+        "firefox",
+        "safari",
+        "edge",
+        "opera",
+        "brave",
+        "vivaldi",
+        "internet explorer",
+        "microsoft edge",
+    }
+)
+
 
 # =============================================================================
 # TypedDicts for API Responses
