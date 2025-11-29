@@ -24,6 +24,8 @@ from custom_components.embymedia.const import (
     DOMAIN,
 )
 
+from .conftest import add_coordinator_mocks
+
 
 class TestGetConditions:
     """Test getting device conditions."""
@@ -72,6 +74,7 @@ class TestGetConditions:
                 ]
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -132,6 +135,7 @@ class TestGetConditions:
             )
             client.async_get_sessions = AsyncMock(return_value=[])
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -216,6 +220,7 @@ class TestConditionFromConfig:
             )
             client.get_image_url.return_value = "http://emby.local/image.jpg"
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -303,6 +308,7 @@ class TestConditionFromConfig:
             )
             client.get_image_url.return_value = "http://emby.local/image.jpg"
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -378,6 +384,7 @@ class TestConditionFromConfig:
                 ]
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -465,6 +472,7 @@ class TestConditionFromConfig:
             )
             client.get_image_url.return_value = "http://emby.local/image.jpg"
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -532,6 +540,7 @@ class TestConditionFromConfig:
                 ]
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -37,8 +38,9 @@ from .exceptions import EmbyError
 from .models import MediaType as EmbyMediaType
 
 if TYPE_CHECKING:
-    from .const import EmbyBrowseItem, EmbyConfigEntry, EmbyLibraryItem, EmbyPerson
+    from .const import EmbyConfigEntry, EmbyLibraryItem, EmbyPerson
 
+from .const import EmbyBrowseItem
 from .coordinator import EmbyDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -1125,6 +1127,69 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
             children=children,
         )
 
+    async def _async_browse_items_by_letter(
+        self,
+        user_id: str,
+        library_id: str,
+        letter: str,
+        item_type: str,
+        content_id_type: str,
+        media_content_type: str,
+        title_prefix: str,
+        item_converter: Callable[[EmbyBrowseItem], BrowseMedia] | None = None,
+    ) -> BrowseMedia:
+        """Browse items starting with a specific letter.
+
+        Generic helper for letter-based browsing across different item types.
+        This reduces code duplication between artists, albums, movies, and TV shows.
+
+        Args:
+            user_id: The user ID for API calls.
+            library_id: The library ID to browse.
+            letter: The letter to filter by (# for numbers/symbols).
+            item_type: The Emby item type (e.g., "Movie", "Series", "MusicArtist").
+            content_id_type: The content ID type for encoding (e.g., "movieazletter").
+            media_content_type: The HA media content type (e.g., MediaType.VIDEO).
+            title_prefix: The title prefix (e.g., "Movies", "TV Shows").
+            item_converter: Optional function to convert items to BrowseMedia.
+                            Defaults to _item_to_browse_media.
+
+        Returns:
+            BrowseMedia with filtered items as children.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        # For "#", we need special handling - Emby uses empty string for non-alpha
+        name_filter = "" if letter == "#" else letter
+
+        result = await client.async_get_items(
+            user_id,
+            parent_id=library_id,
+            include_item_types=item_type,
+            recursive=True,
+            name_starts_with=name_filter if name_filter else None,
+        )
+        items: list[EmbyBrowseItem] = result.get("Items", [])
+
+        # For "#", filter to non-alpha items manually
+        if letter == "#":
+            items = [i for i in items if not i.get("Name", "")[0:1].isalpha()]
+
+        # Use provided converter or default to _item_to_browse_media
+        converter = item_converter if item_converter else self._item_to_browse_media
+        children: list[BrowseMedia] = [converter(item) for item in items]
+
+        return BrowseMedia(
+            media_class=MediaClass.DIRECTORY,
+            media_content_id=encode_content_id(content_id_type, library_id, letter),
+            media_content_type=media_content_type,
+            title=f"{title_prefix} - {letter}",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
     async def _async_browse_artists_by_letter(
         self, user_id: str, library_id: str, letter: str
     ) -> BrowseMedia:
@@ -1138,37 +1203,14 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
         Returns:
             BrowseMedia with filtered artists as children.
         """
-        coordinator: EmbyDataUpdateCoordinator = self.coordinator
-        client = coordinator.client
-
-        # For "#", we need special handling - Emby uses empty string for non-alpha
-        name_filter = "" if letter == "#" else letter
-
-        result = await client.async_get_items(
-            user_id,
-            parent_id=library_id,
-            include_item_types="MusicArtist",
-            recursive=True,
-            name_starts_with=name_filter if name_filter else None,
-        )
-        items = result.get("Items", [])
-
-        # For "#", filter to non-alpha items manually
-        if letter == "#":
-            items = [i for i in items if not i.get("Name", "")[0:1].isalpha()]
-
-        children: list[BrowseMedia] = []
-        for item in items:
-            children.append(self._item_to_browse_media(item))
-
-        return BrowseMedia(
-            media_class=MediaClass.DIRECTORY,
-            media_content_id=encode_content_id("musicartistletter", library_id, letter),
+        return await self._async_browse_items_by_letter(
+            user_id=user_id,
+            library_id=library_id,
+            letter=letter,
+            item_type="MusicArtist",
+            content_id_type="musicartistletter",
             media_content_type=MediaType.MUSIC,
-            title=f"Artists - {letter}",
-            can_play=False,
-            can_expand=True,
-            children=children,
+            title_prefix="Artists",
         )
 
     async def _async_browse_music_albums(self, user_id: str, library_id: str) -> BrowseMedia:
@@ -1206,36 +1248,15 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
         Returns:
             BrowseMedia with filtered albums as children.
         """
-        coordinator: EmbyDataUpdateCoordinator = self.coordinator
-        client = coordinator.client
-
-        name_filter = "" if letter == "#" else letter
-
-        result = await client.async_get_items(
-            user_id,
-            parent_id=library_id,
-            include_item_types="MusicAlbum",
-            recursive=True,
-            name_starts_with=name_filter if name_filter else None,
-        )
-        items = result.get("Items", [])
-
-        # For "#", filter to non-alpha items manually
-        if letter == "#":
-            items = [i for i in items if not i.get("Name", "")[0:1].isalpha()]
-
-        children: list[BrowseMedia] = []
-        for item in items:
-            children.append(self._album_to_browse_media(item))
-
-        return BrowseMedia(
-            media_class=MediaClass.DIRECTORY,
-            media_content_id=encode_content_id("musicalbumletter", library_id, letter),
+        return await self._async_browse_items_by_letter(
+            user_id=user_id,
+            library_id=library_id,
+            letter=letter,
+            item_type="MusicAlbum",
+            content_id_type="musicalbumletter",
             media_content_type=MediaType.MUSIC,
-            title=f"Albums - {letter}",
-            can_play=False,
-            can_expand=True,
-            children=children,
+            title_prefix="Albums",
+            item_converter=self._album_to_browse_media,
         )
 
     async def _async_browse_music_genres(self, user_id: str, library_id: str) -> BrowseMedia:
@@ -1293,15 +1314,14 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
         coordinator: EmbyDataUpdateCoordinator = self.coordinator
         client = coordinator.client
 
-        # Fetch albums in this genre
+        # Fetch albums in this genre using genre_ids filter
         result = await client.async_get_items(
             user_id,
             parent_id=library_id,
             include_item_types="MusicAlbum",
             recursive=True,
+            genre_ids=genre_id,
         )
-        # Note: Emby's genre filtering is complex - for now return all albums
-        # A better approach would be using the GenreIds filter parameter
         items = result.get("Items", [])
 
         children: list[BrowseMedia] = []
@@ -1834,37 +1854,14 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
         Returns:
             BrowseMedia with filtered movies as children.
         """
-        coordinator: EmbyDataUpdateCoordinator = self.coordinator
-        client = coordinator.client
-
-        # For "#", we need special handling - Emby uses empty string for non-alpha
-        name_filter = "" if letter == "#" else letter
-
-        result = await client.async_get_items(
-            user_id,
-            parent_id=library_id,
-            include_item_types="Movie",
-            recursive=True,
-            name_starts_with=name_filter if name_filter else None,
-        )
-        items = result.get("Items", [])
-
-        # For "#", filter to non-alpha items manually
-        if letter == "#":
-            items = [i for i in items if not i.get("Name", "")[0:1].isalpha()]
-
-        children: list[BrowseMedia] = []
-        for item in items:
-            children.append(self._item_to_browse_media(item))
-
-        return BrowseMedia(
-            media_class=MediaClass.DIRECTORY,
-            media_content_id=encode_content_id("movieazletter", library_id, letter),
+        return await self._async_browse_items_by_letter(
+            user_id=user_id,
+            library_id=library_id,
+            letter=letter,
+            item_type="Movie",
+            content_id_type="movieazletter",
             media_content_type=MediaType.VIDEO,
-            title=f"Movies - {letter}",
-            can_play=False,
-            can_expand=True,
-            children=children,
+            title_prefix="Movies",
         )
 
     async def _async_browse_movie_years(self, user_id: str, library_id: str) -> BrowseMedia:
@@ -2493,37 +2490,14 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
         Returns:
             BrowseMedia with filtered TV shows as children.
         """
-        coordinator: EmbyDataUpdateCoordinator = self.coordinator
-        client = coordinator.client
-
-        # For "#", we need special handling - Emby uses empty string for non-alpha
-        name_filter = "" if letter == "#" else letter
-
-        result = await client.async_get_items(
-            user_id,
-            parent_id=library_id,
-            include_item_types="Series",
-            recursive=True,
-            name_starts_with=name_filter if name_filter else None,
-        )
-        items = result.get("Items", [])
-
-        # For "#", filter to non-alpha items manually
-        if letter == "#":
-            items = [i for i in items if not i.get("Name", "")[0:1].isalpha()]
-
-        children: list[BrowseMedia] = []
-        for item in items:
-            children.append(self._item_to_browse_media(item))
-
-        return BrowseMedia(
-            media_class=MediaClass.DIRECTORY,
-            media_content_id=encode_content_id("tvazletter", library_id, letter),
+        return await self._async_browse_items_by_letter(
+            user_id=user_id,
+            library_id=library_id,
+            letter=letter,
+            item_type="Series",
+            content_id_type="tvazletter",
             media_content_type=MediaType.TVSHOW,
-            title=f"TV Shows - {letter}",
-            can_play=False,
-            can_expand=True,
-            children=children,
+            title_prefix="TV Shows",
         )
 
     async def _async_browse_tv_years(self, user_id: str, library_id: str) -> BrowseMedia:

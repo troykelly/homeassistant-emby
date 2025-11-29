@@ -20,6 +20,8 @@ from custom_components.embymedia.const import (
     DOMAIN,
 )
 
+from .conftest import add_coordinator_mocks
+
 
 class TestGetTriggers:
     """Test getting device triggers."""
@@ -68,6 +70,7 @@ class TestGetTriggers:
                 ]
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -130,6 +133,7 @@ class TestGetTriggers:
             )
             client.async_get_sessions = AsyncMock(return_value=[])
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -201,6 +205,7 @@ class TestAttachTrigger:
                 ]
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",

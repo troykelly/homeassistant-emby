@@ -381,6 +381,7 @@ class TestMultipleEntries:
             def create_client(*args: object, **kwargs: object) -> MagicMock:
                 client = MagicMock()
                 client.async_validate_connection = AsyncMock(return_value=True)
+                client.async_get_users = AsyncMock(return_value=[])  # No users for discovery
                 host = kwargs.get("host", "")
                 if host == "server1.local":
                     client.async_get_server_info = AsyncMock(return_value=server_info_1)
@@ -653,9 +654,11 @@ class TestWebSocketSetup:
         mock_config_entry.add_to_hass(hass)
 
         session_coordinator = create_mock_session_coordinator()
-        # Make WebSocket setup fail
+        # Make WebSocket setup fail with a specific exception type
+        from custom_components.embymedia.exceptions import EmbyWebSocketError
+
         session_coordinator.async_setup_websocket = AsyncMock(
-            side_effect=Exception("WebSocket failed")
+            side_effect=EmbyWebSocketError("WebSocket failed")
         )
         server_coordinator = create_mock_server_coordinator()
         library_coordinator = create_mock_library_coordinator()
@@ -889,3 +892,69 @@ class TestAdminContextDiscoverySetup:
             assert mock_discovery_coordinator_class.call_count == 1
             call_kwargs = mock_discovery_coordinator_class.call_args[1]
             assert call_kwargs["scan_interval"] == 1800
+
+
+class TestDiscoveryUserFetchError:
+    """Test handling of user fetch errors for discovery sensors."""
+
+    @pytest.mark.asyncio
+    async def test_setup_handles_user_fetch_error_gracefully(
+        self,
+        hass: HomeAssistant,
+        mock_server_info: dict[str, Any],
+    ) -> None:
+        """Test setup continues even if fetching users for discovery fails."""
+        from custom_components.embymedia.exceptions import EmbyError
+
+        config_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            options={
+                CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
+            },
+            unique_id="test-server-id",
+        )
+        config_entry.add_to_hass(hass)
+
+        session_coordinator = create_mock_session_coordinator()
+        server_coordinator = create_mock_server_coordinator()
+        library_coordinator = create_mock_library_coordinator()
+
+        with (
+            patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class,
+            patch(
+                "custom_components.embymedia.EmbyDataUpdateCoordinator",
+            ) as mock_session_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyServerCoordinator",
+            ) as mock_server_coordinator_class,
+            patch(
+                "custom_components.embymedia.EmbyLibraryCoordinator",
+            ) as mock_library_coordinator_class,
+        ):
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(return_value=mock_server_info)
+            # User fetch fails with EmbyError
+            client.async_get_users = AsyncMock(side_effect=EmbyError("Failed to get users"))
+
+            mock_session_coordinator_class.return_value = session_coordinator
+            mock_server_coordinator_class.return_value = server_coordinator
+            mock_library_coordinator_class.return_value = library_coordinator
+
+            # Setup should still succeed even though user fetch failed
+            result = await hass.config_entries.async_setup(config_entry.entry_id)
+
+            # Entry should be loaded successfully
+            assert result is True
+            assert config_entry.state is ConfigEntryState.LOADED
+
+            # Runtime data should exist but discovery_coordinators should be empty
+            assert isinstance(config_entry.runtime_data, EmbyRuntimeData)
+            assert config_entry.runtime_data.discovery_coordinators == {}

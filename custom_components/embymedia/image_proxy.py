@@ -26,6 +26,12 @@ CACHE_TIME_WITH_TAG = 31536000
 # Cache time in seconds when no tag is provided (5 minutes)
 CACHE_TIME_WITHOUT_TAG = 300
 
+# Chunk size for streaming images (64KB)
+STREAM_CHUNK_SIZE = 65536
+
+# Timeout for image fetch requests (seconds)
+IMAGE_FETCH_TIMEOUT = 10
+
 
 async def async_setup_image_proxy(hass: HomeAssistant) -> None:
     """Set up the Emby image proxy view.
@@ -63,8 +69,11 @@ class EmbyImageProxyView(HomeAssistantView):
         server_id: str,
         item_id: str,
         image_type: str,
-    ) -> web.Response:
-        """Handle GET request for an image.
+    ) -> web.StreamResponse:
+        """Handle GET request for an image with streaming response.
+
+        Uses streaming to avoid loading large images fully into memory.
+        Chunks are forwarded from Emby to the client as they arrive.
 
         Args:
             request: The aiohttp request.
@@ -73,7 +82,7 @@ class EmbyImageProxyView(HomeAssistantView):
             image_type: The image type (Primary, Backdrop, Thumb, etc.).
 
         Returns:
-            The image response with appropriate headers.
+            A streaming response with the image data.
         """
         # Get hass from self (set by HA view registration) or from request app
         hass: HomeAssistant = getattr(self, "hass", None) or request.app["hass"]
@@ -89,29 +98,50 @@ class EmbyImageProxyView(HomeAssistantView):
         # Build the Emby image URL
         emby_url = self._build_emby_url(
             coordinator.client.base_url,
-            coordinator.client._api_key,
+            coordinator.client.api_key,
             item_id,
             image_type,
             dict(request.query),
         )
 
-        # Fetch the image from Emby
+        # Fetch the image from Emby with streaming
         session = async_get_clientsession(hass)
+        timeout = aiohttp.ClientTimeout(total=IMAGE_FETCH_TIMEOUT)
         try:
-            async with session.get(emby_url) as response:
-                body = await response.read()
+            async with session.get(emby_url, timeout=timeout) as response:
+                # For error responses, return a regular response with the status
+                if response.status != HTTPStatus.OK:
+                    body = await response.read()
+                    return web.Response(
+                        status=response.status,
+                        body=body,
+                        headers=self._build_response_headers(
+                            response.headers.get("Content-Type", "application/octet-stream"),
+                            "tag" in request.query,
+                        ),
+                    )
 
-                # Build response headers
+                # Build streaming response with headers
                 headers = self._build_response_headers(
                     response.headers.get("Content-Type", "application/octet-stream"),
                     "tag" in request.query,
                 )
-
-                return web.Response(
-                    status=response.status,
-                    body=body,
+                stream_response = web.StreamResponse(
+                    status=HTTPStatus.OK,
                     headers=headers,
                 )
+
+                # Prepare the response (starts sending headers to client)
+                await stream_response.prepare(request)
+
+                # Stream chunks from Emby to client
+                async for chunk in response.content.iter_chunked(STREAM_CHUNK_SIZE):
+                    await stream_response.write(chunk)
+
+                # Finalize the response
+                await stream_response.write_eof()
+                return stream_response
+
         except aiohttp.ClientError as err:
             _LOGGER.warning("Network error fetching image from Emby: %s", err)
             return web.Response(

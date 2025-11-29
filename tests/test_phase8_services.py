@@ -10,6 +10,8 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.embymedia.const import DOMAIN
 
+from .conftest import add_coordinator_mocks
+
 
 @pytest.fixture
 def mock_coordinator() -> MagicMock:
@@ -60,6 +62,7 @@ class TestSendMessageService:
             mock_client.async_get_sessions = AsyncMock(return_value=[])
             mock_client.browse_cache = MagicMock()
             mock_client.browse_cache.get_stats = MagicMock(return_value={})
+            add_coordinator_mocks(mock_client)
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             await hass.async_block_till_done()
@@ -92,6 +95,7 @@ class TestMarkPlayedService:
             mock_client.async_get_sessions = AsyncMock(return_value=[])
             mock_client.browse_cache = MagicMock()
             mock_client.browse_cache.get_stats = MagicMock(return_value={})
+            add_coordinator_mocks(mock_client)
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             await hass.async_block_till_done()
@@ -124,6 +128,7 @@ class TestMarkUnplayedService:
             mock_client.async_get_sessions = AsyncMock(return_value=[])
             mock_client.browse_cache = MagicMock()
             mock_client.browse_cache.get_stats = MagicMock(return_value={})
+            add_coordinator_mocks(mock_client)
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             await hass.async_block_till_done()
@@ -156,6 +161,7 @@ class TestFavoriteServices:
             mock_client.async_get_sessions = AsyncMock(return_value=[])
             mock_client.browse_cache = MagicMock()
             mock_client.browse_cache.get_stats = MagicMock(return_value={})
+            add_coordinator_mocks(mock_client)
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             await hass.async_block_till_done()
@@ -184,6 +190,7 @@ class TestFavoriteServices:
             mock_client.async_get_sessions = AsyncMock(return_value=[])
             mock_client.browse_cache = MagicMock()
             mock_client.browse_cache.get_stats = MagicMock(return_value={})
+            add_coordinator_mocks(mock_client)
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             await hass.async_block_till_done()
@@ -216,6 +223,7 @@ class TestLibraryServices:
             mock_client.async_get_sessions = AsyncMock(return_value=[])
             mock_client.browse_cache = MagicMock()
             mock_client.browse_cache.get_stats = MagicMock(return_value={})
+            add_coordinator_mocks(mock_client)
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             await hass.async_block_till_done()
@@ -244,6 +252,7 @@ class TestLibraryServices:
             mock_client.async_get_sessions = AsyncMock(return_value=[])
             mock_client.browse_cache = MagicMock()
             mock_client.browse_cache.get_stats = MagicMock(return_value={})
+            add_coordinator_mocks(mock_client)
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             await hass.async_block_till_done()

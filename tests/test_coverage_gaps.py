@@ -16,6 +16,8 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.embymedia.const import CONF_API_KEY, CONF_VERIFY_SSL, DOMAIN
 from custom_components.embymedia.exceptions import EmbyConnectionError, EmbyServerError
 
+from .conftest import add_coordinator_mocks
+
 
 class TestCoordinatorWebSocketErrors:
     """Tests for coordinator WebSocket error handling."""
@@ -56,6 +58,7 @@ class TestCoordinatorWebSocketErrors:
             )
             client.async_get_sessions = AsyncMock(return_value=[])
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch("custom_components.embymedia.coordinator.EmbyWebSocket") as mock_ws_class:
                 mock_ws = MagicMock()
@@ -94,6 +97,7 @@ class TestCoordinatorWebSocketErrors:
             )
             client.async_get_sessions = AsyncMock(return_value=[])
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             # Track calls to the receive loop
             receive_called = asyncio.Event()
@@ -140,6 +144,7 @@ class TestCoordinatorWebSocketErrors:
             )
             client.async_get_sessions = AsyncMock(return_value=[])
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch("custom_components.embymedia.coordinator.EmbyWebSocket") as mock_ws_class:
                 mock_ws = MagicMock()

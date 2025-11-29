@@ -19,6 +19,8 @@ from custom_components.embymedia.const import (
     DOMAIN,
 )
 
+from .conftest import add_coordinator_mocks
+
 
 class TestCreateCollectionService:
     """Tests for create_collection service."""
@@ -82,6 +84,7 @@ class TestCreateCollectionService:
                 return_value={"Id": "collection-123", "Name": "Test Collection"}
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -152,6 +155,7 @@ class TestCreateCollectionService:
                 return_value={"Id": "collection-123", "Name": "Movie Collection"}
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -239,6 +243,7 @@ class TestAddToCollectionService:
             )
             client.async_add_to_collection = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -307,6 +312,7 @@ class TestAddToCollectionService:
                 ]
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -389,6 +395,7 @@ class TestRemoveFromCollectionService:
             )
             client.async_remove_from_collection = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -468,6 +475,7 @@ class TestCollectionServicesConnectionErrors:
                 side_effect=EmbyConnectionError("Connection refused")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -538,6 +546,7 @@ class TestCollectionServicesConnectionErrors:
                 side_effect=EmbyConnectionError("Connection timeout")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -609,6 +618,7 @@ class TestCollectionServicesConnectionErrors:
                 side_effect=EmbyConnectionError("Server unreachable")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -684,6 +694,7 @@ class TestCollectionServicesEmbyErrors:
                 side_effect=EmbyError("Collection already exists")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -752,6 +763,7 @@ class TestCollectionServicesEmbyErrors:
             )
             client.async_add_to_collection = AsyncMock(side_effect=EmbyError("Item not found"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -823,6 +835,7 @@ class TestCollectionServicesEmbyErrors:
                 side_effect=EmbyError("Permission denied")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",

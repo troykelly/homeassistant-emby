@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+import aiohttp
 from homeassistant.components.image import ImageEntity
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -160,7 +161,7 @@ class EmbyDiscoveryImageBase(
                     response.status,
                 )
                 return None
-        except Exception as err:  # pylint: disable=broad-exception-caught
+        except (aiohttp.ClientError, OSError, TimeoutError) as err:
             _LOGGER.debug("Error fetching image for %s: %s", self.entity_id, err)
             return None
 

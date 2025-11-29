@@ -316,8 +316,10 @@ class TestRemoteSendCommand:
             supports_remote_control=True,
         )
 
+        from custom_components.embymedia.exceptions import EmbyError
+
         mock_client = MagicMock()
-        mock_client.async_send_command = AsyncMock(side_effect=Exception("API Error"))
+        mock_client.async_send_command = AsyncMock(side_effect=EmbyError("API Error"))
 
         mock_coordinator = MagicMock()
         mock_coordinator.server_id = "server-123"

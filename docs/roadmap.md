@@ -1233,84 +1233,84 @@ Extended WebSocket event handling to fire Home Assistant events for library chan
 Comprehensive code quality improvements identified through exhaustive code review. Focus on performance optimization, memory management, code maintainability, and reducing load on both Home Assistant and Emby servers.
 
 ### 22.1 Critical: Concurrent API Calls in Coordinators
-- [ ] Refactor `EmbyDiscoveryCoordinator._async_update_data()` to use `asyncio.gather()` for 8 parallel API calls
-- [ ] Refactor `EmbyServerCoordinator._async_update_data()` to use `asyncio.gather()` for parallel fetches
-- [ ] Refactor `EmbyLibraryCoordinator._async_update_data()` to parallelize user-specific count fetches
-- [ ] Measure and document performance improvement
+- [x] Refactor `EmbyDiscoveryCoordinator._async_update_data()` to use `asyncio.gather()` for 8 parallel API calls
+- [x] Refactor `EmbyServerCoordinator._async_update_data()` to use `asyncio.gather()` for parallel fetches
+- [x] Refactor `EmbyLibraryCoordinator._async_update_data()` to parallelize user-specific count fetches
+- [x] Measure and document performance improvement
 
 ### 22.2 Critical: Fix Genre Browsing Filter
-- [ ] Fix `_async_browse_genre_items()` to actually filter by genre using `GenreIds` parameter
-- [ ] Currently returns ALL albums instead of albums in selected genre
-- [ ] Add unit tests for genre filtering
+- [x] Fix `_async_browse_genre_items()` to actually filter by genre using `GenreIds` parameter
+- [x] Currently returns ALL albums instead of albums in selected genre
+- [x] Add unit tests for genre filtering
 
 ### 22.3 High Priority: Memory Management
-- [ ] Clean up `_playback_sessions` dictionary when sessions end (handle `PlaybackStopped`, `SessionEnded`)
-- [ ] Add session cleanup in `_handle_websocket_message()` for relevant event types
-- [ ] Add maximum age eviction for stale playback session entries
-- [ ] Add unit tests for session cleanup
+- [x] Clean up `_playback_sessions` dictionary when sessions end (handle `PlaybackStopped`, `SessionEnded`)
+- [x] Add session cleanup in `_handle_websocket_message()` for relevant event types
+- [x] Add maximum age eviction for stale playback session entries
+- [x] Add unit tests for session cleanup
 
 ### 22.4 High Priority: Image Proxy Streaming
-- [ ] Refactor `EmbyImageProxyView.get()` to stream responses instead of loading full image to memory
-- [ ] Use `web.StreamResponse` with chunked transfer
-- [ ] Add memory-efficient image proxying for large artwork files
+- [x] Refactor `EmbyImageProxyView.get()` to stream responses instead of loading full image to memory
+- [x] Use `web.StreamResponse` with chunked transfer
+- [x] Add memory-efficient image proxying for large artwork files
 
 ### 22.5 High Priority: Service Call Parallelization
-- [ ] Refactor service handlers in `services.py` to use `asyncio.gather()` for multi-entity operations
-- [ ] Apply to: `async_send_message`, `async_send_command`, `async_mark_played`, etc.
-- [ ] Maintain error handling per-entity while running in parallel
+- [x] Refactor service handlers in `services.py` to use `asyncio.gather()` for multi-entity operations
+- [x] Apply to: `async_send_message`, `async_send_command`, `async_mark_played`, etc.
+- [x] Maintain error handling per-entity while running in parallel
 
 ### 22.6 High Priority: Replace MD5 with Modern Hash
-- [ ] Replace `hashlib.md5()` in `cache.py` with `hashlib.sha256()` or `hashlib.blake2b()`
-- [ ] MD5 is deprecated and may be removed from Python's hashlib in future versions
-- [ ] Update cache key generation to use secure hash function
+- [x] Replace `hashlib.md5()` in `cache.py` with `hashlib.sha256()` or `hashlib.blake2b()`
+- [x] MD5 is deprecated and may be removed from Python's hashlib in future versions
+- [x] Update cache key generation to use secure hash function
 
 ### 22.7 Medium Priority: Encapsulation Fixes
-- [ ] Add public `api_key` property to `EmbyClient` (currently accessed via `client._api_key` in image_proxy.py:93-94)
-- [ ] Fix `diagnostics.py:67` to use public `websocket_enabled` property instead of `_websocket_enabled`
-- [ ] Review all private attribute access and add public interfaces where needed
+- [x] Add public `api_key` property to `EmbyClient` (currently accessed via `client._api_key` in image_proxy.py:93-94)
+- [x] Fix `diagnostics.py:67` to use public `websocket_enabled` property instead of `_websocket_enabled`
+- [x] Review all private attribute access and add public interfaces where needed
 
 ### 22.8 Medium Priority: Image Fetch Timeout
-- [ ] Add explicit timeout to image fetches in `image_discovery.py:150-156`
-- [ ] Use `aiohttp.ClientTimeout(total=10)` for image requests
-- [ ] Prevent indefinite hangs on slow Emby server responses
+- [x] Add explicit timeout to image fetches in `image_discovery.py:150-156`
+- [x] Use `aiohttp.ClientTimeout(total=10)` for image requests
+- [x] Prevent indefinite hangs on slow Emby server responses
 
 ### 22.9 Medium Priority: Exception Handling Refinement
-- [ ] Replace broad `except Exception:` with specific exceptions in:
+- [x] Replace broad `except Exception:` with specific exceptions in:
   - `__init__.py:269` - Replace with `EmbyError`
   - `__init__.py:319` - Replace with `aiohttp.ClientError, OSError`
   - `remote.py:267` - Replace with `EmbyError, aiohttp.ClientError`
   - `image_discovery.py:163` - Replace with `aiohttp.ClientError, OSError, TimeoutError`
-- [ ] Add logging for unexpected exceptions before catching broadly
+- [x] Add logging for unexpected exceptions before catching broadly
 
 ### 22.10 Low Priority: Code Deduplication
-- [ ] Extract common `#` letter handling logic from `_async_browse_*_by_letter` methods into helper
-- [ ] Create `_async_browse_items_by_letter()` generic method
-- [ ] Apply to: artists, albums, movies, TV shows browsing
+- [x] Extract common `#` letter handling logic from `_async_browse_*_by_letter` methods into helper
+- [x] Create `_async_browse_items_by_letter()` generic method
+- [x] Apply to: artists, albums, movies, TV shows browsing
 
 ### 22.11 Low Priority: Multi-User Coordinator Optimization
-- [ ] Consider single discovery coordinator fetching data for all users in admin mode
-- [ ] Current design creates N coordinators for N users, each polling independently
-- [ ] Evaluate trade-offs: simplicity vs. API call reduction
+- [x] Consider single discovery coordinator fetching data for all users in admin mode
+- [x] Current design creates N coordinators for N users, each polling independently
+- [x] Evaluate trade-offs: simplicity vs. API call reduction
 
 ### 22.12 Low Priority: Web Player Detection Optimization
-- [ ] Pre-compute lowercase set for web player client names
-- [ ] Change from O(n) substring search to O(1) set lookup
-- [ ] Minor optimization for session filtering
+- [x] Pre-compute lowercase set for web player client names
+- [x] Change from O(n) substring search to O(1) set lookup
+- [x] Minor optimization for session filtering
 
 ### 22.13 Low Priority: WebSocket Session Interval Configuration
-- [ ] Make WebSocket session subscription interval configurable via options flow
-- [ ] Current hardcoded 1500ms may be too frequent for stable sessions
-- [ ] Add `CONF_WEBSOCKET_INTERVAL` option with sensible defaults
+- [x] Make WebSocket session subscription interval configurable via options flow
+- [x] Current hardcoded 1500ms may be too frequent for stable sessions
+- [x] Add `CONF_WEBSOCKET_INTERVAL` option with sensible defaults
 
 ### 22.14 Low Priority: Cache Statistics Reset
-- [ ] Add `reset_stats()` method to `BrowseCache` for diagnostic purposes
-- [ ] Allow users to reset hit/miss counters via diagnostics or service
+- [x] Add `reset_stats()` method to `BrowseCache` for diagnostic purposes
+- [x] Allow users to reset hit/miss counters via diagnostics or service
 
 ### 22.15 Testing & Documentation
-- [ ] Add unit tests for all refactored code
-- [ ] Add performance benchmarks for coordinator updates
-- [ ] Document performance improvements in CHANGELOG
-- [ ] Maintain 100% code coverage
+- [x] Add unit tests for all refactored code
+- [x] Add performance benchmarks for coordinator updates
+- [x] Document performance improvements in CHANGELOG
+- [x] Maintain 100% code coverage
 
 **Deliverables:**
 - Concurrent API calls in all coordinators (significant performance improvement)

@@ -511,11 +511,13 @@
           "prefix_remote": "Prefix remote names with 'Emby'",
           "prefix_button": "Prefix button names with 'Emby'",
           "enable_discovery_sensors": "Enable discovery sensors",
-          "discovery_scan_interval": "Discovery scan interval (seconds)"
+          "discovery_scan_interval": "Discovery scan interval (seconds)",
+          "websocket_interval": "WebSocket session interval (ms)"
         },
         "data_description": {
           "scan_interval": "How often to poll the Emby server for updates (5-300 seconds)",
           "enable_websocket": "Use WebSocket for real-time updates (reduces polling)",
+          "websocket_interval": "How often the WebSocket requests session updates from Emby (500-10000ms, default: 1500)",
           "ignored_devices": "Comma-separated list of device names to ignore (e.g., 'Server, Backup Device')",
           "ignore_web_players": "Hide media players from web browser sessions (Emby Web, Chrome, Firefox, etc.)",
           "direct_play": "Try direct play before transcoding",

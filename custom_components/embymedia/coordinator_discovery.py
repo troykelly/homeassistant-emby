@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
 from typing import TYPE_CHECKING, TypedDict
@@ -15,6 +16,7 @@ from homeassistant.helpers.update_coordinator import (
 from .const import (
     DEFAULT_DISCOVERY_SCAN_INTERVAL,
     DOMAIN,
+    EmbyBrowseItem,
     LatestMediaItem,
     NextUpItem,
     ResumableItem,
@@ -134,6 +136,8 @@ class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
     async def _async_update_data(self) -> EmbyDiscoveryData:
         """Fetch discovery data from Emby server.
 
+        Uses asyncio.gather() to fetch all data in parallel for improved performance.
+
         Returns:
             Discovery data including next up, continue watching,
             recently added, suggestions, and user-specific counts.
@@ -142,28 +146,46 @@ class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
             UpdateFailed: If fetching data fails.
         """
         try:
-            # Fetch all discovery data for the user
-            next_up = await self.client.async_get_next_up(user_id=self._user_id)
-            continue_watching = await self.client.async_get_resumable_items(user_id=self._user_id)
-            recently_added = await self.client.async_get_latest_media(user_id=self._user_id)
-            suggestions = await self.client.async_get_suggestions(user_id=self._user_id)
+            # Fetch all discovery data in parallel using asyncio.gather()
+            # Type annotation specifies expected return types for each coroutine
+            results: tuple[
+                list[NextUpItem],
+                list[ResumableItem],
+                list[LatestMediaItem],
+                list[SuggestionItem],
+                int,
+                int,
+                int,
+                list[EmbyBrowseItem],
+            ] = await asyncio.gather(
+                self.client.async_get_next_up(user_id=self._user_id),
+                self.client.async_get_resumable_items(user_id=self._user_id),
+                self.client.async_get_latest_media(user_id=self._user_id),
+                self.client.async_get_suggestions(user_id=self._user_id),
+                self.client.async_get_user_item_count(
+                    user_id=self._user_id,
+                    filters="IsFavorite",
+                ),
+                self.client.async_get_user_item_count(
+                    user_id=self._user_id,
+                    filters="IsPlayed",
+                ),
+                self.client.async_get_user_item_count(
+                    user_id=self._user_id,
+                    filters="IsResumable",
+                ),
+                self.client.async_get_playlists(user_id=self._user_id),
+            )  # type: ignore[assignment]
 
-            # Fetch user-specific item counts
-            favorites_count = await self.client.async_get_user_item_count(
-                user_id=self._user_id,
-                filters="IsFavorite",
-            )
-            played_count = await self.client.async_get_user_item_count(
-                user_id=self._user_id,
-                filters="IsPlayed",
-            )
-            resumable_count = await self.client.async_get_user_item_count(
-                user_id=self._user_id,
-                filters="IsResumable",
-            )
+            next_up = results[0]
+            continue_watching = results[1]
+            recently_added = results[2]
+            suggestions = results[3]
+            favorites_count = results[4]
+            played_count = results[5]
+            resumable_count = results[6]
+            playlists = results[7]
 
-            # Fetch playlist count
-            playlists = await self.client.async_get_playlists(user_id=self._user_id)
             playlist_count = len(playlists)
 
             user_counts = EmbyUserCounts(

@@ -25,6 +25,8 @@ from custom_components.embymedia.services import (
     _validate_emby_id,
 )
 
+from .conftest import add_coordinator_mocks
+
 
 @pytest.fixture
 def mock_config_entry() -> MockConfigEntry:
@@ -524,6 +526,7 @@ class TestServicesSetup:
             )
             client.async_get_sessions = AsyncMock(return_value=[])
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -562,6 +565,7 @@ class TestServicesSetup:
             )
             client.async_get_sessions = AsyncMock(return_value=[])
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -624,6 +628,7 @@ class TestServiceHandlers:
             client.async_get_sessions = AsyncMock(return_value=sessions)
             client.async_send_message = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             await hass.async_block_till_done()
@@ -696,6 +701,7 @@ class TestServiceHandlers:
             client.async_get_sessions = AsyncMock(return_value=sessions)
             client.async_send_general_command = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             await hass.async_block_till_done()
@@ -759,6 +765,7 @@ class TestServiceHandlers:
             client.async_get_sessions = AsyncMock(return_value=sessions)
             client.async_mark_played = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -826,6 +833,7 @@ class TestServiceHandlers:
             client.async_get_sessions = AsyncMock(return_value=sessions)
             client.async_mark_played = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -893,6 +901,7 @@ class TestServiceHandlers:
             client.async_get_sessions = AsyncMock(return_value=sessions)
             client.async_mark_unplayed = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -959,6 +968,7 @@ class TestServiceHandlers:
             client.async_get_sessions = AsyncMock(return_value=sessions)
             client.async_add_favorite = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1025,6 +1035,7 @@ class TestServiceHandlers:
             client.async_get_sessions = AsyncMock(return_value=sessions)
             client.async_remove_favorite = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1090,6 +1101,7 @@ class TestServiceHandlers:
             client.async_get_sessions = AsyncMock(return_value=sessions)
             client.async_refresh_library = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1152,6 +1164,7 @@ class TestServiceHandlers:
             client.async_get_sessions = AsyncMock(return_value=sessions)
             client.async_refresh_library = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1212,6 +1225,7 @@ class TestServiceEdgeCases:
             )
             client.async_get_sessions = AsyncMock(return_value=[])
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1276,6 +1290,7 @@ class TestServiceEdgeCases:
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1341,6 +1356,7 @@ class TestServiceEdgeCases:
             )
             client.async_send_message = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1456,6 +1472,7 @@ class TestServiceEdgeCases:
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             await hass.async_block_till_done()
@@ -1523,6 +1540,7 @@ class TestServiceEdgeCases:
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             await hass.async_block_till_done()
@@ -1590,6 +1608,7 @@ class TestServiceEdgeCases:
             )
             client.async_get_sessions = AsyncMock(return_value=sessions)
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             await hass.config_entries.async_setup(mock_config_entry.entry_id)
             await hass.async_block_till_done()
@@ -1712,6 +1731,7 @@ class TestServiceApiErrorHandling:
                 side_effect=EmbyConnectionError("Connection refused")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1785,6 +1805,7 @@ class TestServiceApiErrorHandling:
                 ]
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1865,6 +1886,7 @@ class TestServiceApiErrorHandling:
             )
             client.async_mark_played = AsyncMock(side_effect=EmbyConnectionError("Connection lost"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1940,6 +1962,7 @@ class TestServiceApiErrorHandling:
             )
             client.async_send_message = AsyncMock(side_effect=EmbyError("Session not controllable"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2017,6 +2040,7 @@ class TestServiceApiErrorHandling:
                 side_effect=EmbyConnectionError("Connection reset")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2094,6 +2118,7 @@ class TestServiceApiErrorHandling:
                 side_effect=EmbyError("Command not supported")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2170,6 +2195,7 @@ class TestServiceApiErrorHandling:
             )
             client.async_mark_played = AsyncMock(side_effect=EmbyError("Item not found"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2246,6 +2272,7 @@ class TestServiceApiErrorHandling:
             )
             client.async_mark_unplayed = AsyncMock(side_effect=EmbyConnectionError("Timeout"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2322,6 +2349,7 @@ class TestServiceApiErrorHandling:
             )
             client.async_mark_unplayed = AsyncMock(side_effect=EmbyError("Permission denied"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2395,6 +2423,7 @@ class TestServiceApiErrorHandling:
                 ]
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2475,6 +2504,7 @@ class TestServiceApiErrorHandling:
                 side_effect=EmbyConnectionError("Server unreachable")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2551,6 +2581,7 @@ class TestServiceApiErrorHandling:
             )
             client.async_add_favorite = AsyncMock(side_effect=EmbyError("Already a favorite"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2624,6 +2655,7 @@ class TestServiceApiErrorHandling:
                 ]
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2704,6 +2736,7 @@ class TestServiceApiErrorHandling:
                 side_effect=EmbyConnectionError("Network timeout")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2780,6 +2813,7 @@ class TestServiceApiErrorHandling:
             )
             client.async_remove_favorite = AsyncMock(side_effect=EmbyError("Not a favorite"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2853,6 +2887,7 @@ class TestServiceApiErrorHandling:
                 ]
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2932,6 +2967,7 @@ class TestServiceApiErrorHandling:
                 side_effect=EmbyConnectionError("Connection closed")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -3008,6 +3044,7 @@ class TestServiceApiErrorHandling:
                 side_effect=EmbyError("Library scan in progress")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",

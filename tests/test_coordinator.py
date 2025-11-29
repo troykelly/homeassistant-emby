@@ -461,6 +461,7 @@ class TestCoordinatorWebSocket:
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
         mock_aiohttp_session: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
     ) -> None:
         """Test WebSocket setup creates connection."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -506,6 +507,7 @@ class TestCoordinatorWebSocket:
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
         mock_aiohttp_session: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
     ) -> None:
         """Test WebSocket shutdown closes connection."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
@@ -645,6 +647,7 @@ class TestCoordinatorWebSocket:
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
         mock_aiohttp_session: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test WebSocket connection state changes are logged."""
@@ -922,6 +925,7 @@ class TestCoordinatorHybridPolling:
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
         mock_aiohttp_session: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
     ) -> None:
         """Test reduced polling interval when WebSocket is connected."""
         from datetime import timedelta
@@ -993,6 +997,7 @@ class TestCoordinatorHybridPolling:
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
         mock_aiohttp_session: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
     ) -> None:
         """Test polling interval increases on WebSocket disconnect."""
         from datetime import timedelta
@@ -1075,6 +1080,7 @@ class TestCoordinatorHybridPolling:
         hass: HomeAssistant,
         mock_emby_client: MagicMock,
         mock_aiohttp_session: MagicMock,
+        mock_config_entry: EmbyConfigEntry,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test fallback to polling is logged."""

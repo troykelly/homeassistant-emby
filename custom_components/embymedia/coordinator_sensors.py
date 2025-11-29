@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
 from typing import TYPE_CHECKING, TypedDict
@@ -17,7 +18,9 @@ from .const import (
     DEFAULT_SERVER_SCAN_INTERVAL,
     DOMAIN,
     EmbyActivityLogEntry,
+    EmbyBrowseItem,
     EmbyDeviceInfo,
+    EmbyItemCounts,
     EmbyPlugin,
     EmbyScheduledTask,
     EmbyVirtualFolder,
@@ -26,7 +29,7 @@ from .exceptions import EmbyConnectionError, EmbyError
 
 if TYPE_CHECKING:
     from .api import EmbyClient
-    from .const import EmbyConfigEntry, EmbyServerInfo
+    from .const import EmbyConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -147,6 +150,8 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
     async def _async_update_data(self) -> EmbyServerData:
         """Fetch server data from Emby server.
 
+        Uses asyncio.gather() to fetch independent data in parallel for improved performance.
+
         Returns:
             Server data including version, restart status, and scheduled tasks.
 
@@ -154,11 +159,23 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
             UpdateFailed: If fetching data fails.
         """
         try:
-            # Fetch server info
-            server_info: EmbyServerInfo = await self.client.async_get_server_info()
-
-            # Fetch scheduled tasks
-            tasks: list[EmbyScheduledTask] = await self.client.async_get_scheduled_tasks()
+            # Fetch all data in parallel using asyncio.gather()
+            # Server info is fetched with others but processed first for error handling
+            (
+                server_info,
+                tasks,
+                live_tv_data,
+                activity_data,
+                devices_data,
+                plugins,
+            ) = await asyncio.gather(
+                self.client.async_get_server_info(),
+                self._fetch_scheduled_tasks_safe(),
+                self._fetch_live_tv_info_safe(),
+                self._fetch_activity_log_safe(),
+                self._fetch_devices_safe(),
+                self._fetch_plugins_safe(),
+            )
 
             # Calculate running tasks and library scan status
             running_tasks = [t for t in tasks if t.get("State") == "Running"]
@@ -175,73 +192,28 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
                     library_scan_progress = task.get("CurrentProgressPercentage")
                     break
 
-            # Fetch Live TV info (Phase 16)
-            live_tv_enabled = False
-            live_tv_tuner_count = 0
-            live_tv_active_recordings = 0
-            recording_count = 0
-            scheduled_timer_count = 0
-            series_timer_count = 0
-            try:
-                live_tv_info = await self.client.async_get_live_tv_info()
-                live_tv_enabled = bool(live_tv_info.get("IsEnabled", False))
-                live_tv_tuner_count = live_tv_info.get("TunerCount", 0)
-                live_tv_active_recordings = live_tv_info.get("ActiveRecordingCount", 0)
+            # Extract Live TV data
+            live_tv_enabled = live_tv_data.get("live_tv_enabled", False)
+            live_tv_tuner_count = live_tv_data.get("live_tv_tuner_count", 0)
+            live_tv_active_recordings = live_tv_data.get("live_tv_active_recordings", 0)
+            recording_count = live_tv_data.get("recording_count", 0)
+            scheduled_timer_count = live_tv_data.get("scheduled_timer_count", 0)
+            series_timer_count = live_tv_data.get("series_timer_count", 0)
 
-                # Fetch recording and timer counts if Live TV is enabled
-                if live_tv_enabled:
-                    timers = await self.client.async_get_timers()
-                    scheduled_timer_count = len(timers)
+            # Extract activity data
+            activity_items = activity_data.get("Items", [])
+            activity_total = activity_data.get("TotalRecordCount", 0)
+            recent_activities: list[EmbyActivityLogEntry] = (
+                activity_items if isinstance(activity_items, list) else []
+            )
+            activity_count: int = activity_total if isinstance(activity_total, int) else 0
 
-                    series_timers = await self.client.async_get_series_timers()
-                    series_timer_count = len(series_timers)
+            # Extract devices data
+            devices: list[EmbyDeviceInfo] = devices_data.get("Items", [])
+            device_count = len(devices)
 
-                    # Get recording count from recordings API
-                    # Note: We use a user_id from enabled users if available
-                    enabled_users = live_tv_info.get("EnabledUsers", [])
-                    if enabled_users:
-                        recordings = await self.client.async_get_recordings(
-                            user_id=enabled_users[0]
-                        )
-                        recording_count = len(recordings)
-
-            except (EmbyError, TypeError, AttributeError):
-                # Live TV info is optional, don't fail the whole update
-                # TypeError/AttributeError can occur if client doesn't have the method (e.g., in tests)
-                _LOGGER.debug("Could not fetch Live TV info, Live TV may not be configured")
-
-            # Fetch Activity Log (Phase 18) - graceful error handling
-            recent_activities: list[EmbyActivityLogEntry] = []
-            activity_count = 0
-            try:
-                activity_response = await self.client.async_get_activity_log(
-                    start_index=0,
-                    limit=20,  # Fetch last 20 entries
-                )
-                recent_activities = activity_response.get("Items", [])
-                activity_count = activity_response.get("TotalRecordCount", 0)
-            except (EmbyError, TypeError, AttributeError):
-                _LOGGER.debug("Could not fetch activity log")
-
-            # Fetch Devices (Phase 18) - graceful error handling
-            devices: list[EmbyDeviceInfo] = []
-            device_count = 0
-            try:
-                devices_response = await self.client.async_get_devices()
-                devices = devices_response.get("Items", [])
-                # Use actual item count (TotalRecordCount may be 0 due to API quirk)
-                device_count = len(devices)
-            except (EmbyError, TypeError, AttributeError):
-                _LOGGER.debug("Could not fetch devices")
-
-            # Fetch Plugins (Phase 20) - graceful error handling
-            plugins: list[EmbyPlugin] = []
-            plugin_count = 0
-            try:
-                plugins = await self.client.async_get_plugins()
-                plugin_count = len(plugins)
-            except (EmbyError, TypeError, AttributeError):
-                _LOGGER.debug("Could not fetch plugins")
+            # Extract plugins data
+            plugin_count = len(plugins)
 
             return EmbyServerData(
                 server_version=str(server_info.get("Version", "Unknown")),
@@ -251,7 +223,7 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
                 running_tasks_count=running_tasks_count,
                 library_scan_active=library_scan_active,
                 library_scan_progress=library_scan_progress,
-                live_tv_enabled=live_tv_enabled,
+                live_tv_enabled=bool(live_tv_enabled),
                 live_tv_tuner_count=live_tv_tuner_count,
                 live_tv_active_recordings=live_tv_active_recordings,
                 recording_count=recording_count,
@@ -269,6 +241,121 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
             raise UpdateFailed(f"Failed to connect to Emby server: {err}") from err
         except EmbyError as err:
             raise UpdateFailed(f"Error fetching server data: {err}") from err
+
+    async def _fetch_scheduled_tasks_safe(self) -> list[EmbyScheduledTask]:
+        """Fetch scheduled tasks with graceful error handling.
+
+        Returns:
+            List of scheduled tasks, or empty list on failure.
+        """
+        try:
+            return await self.client.async_get_scheduled_tasks()
+        except (EmbyError, TypeError, AttributeError):
+            _LOGGER.debug("Could not fetch scheduled tasks")
+            return []
+
+    async def _fetch_live_tv_info_safe(self) -> dict[str, bool | int]:
+        """Fetch Live TV info with graceful error handling.
+
+        Returns:
+            Dictionary with Live TV data, or defaults on failure.
+        """
+        try:
+            live_tv_info = await self.client.async_get_live_tv_info()
+            live_tv_enabled = bool(live_tv_info.get("IsEnabled", False))
+            live_tv_tuner_count: int = live_tv_info.get("TunerCount", 0)
+            live_tv_active_recordings: int = live_tv_info.get("ActiveRecordingCount", 0)
+
+            recording_count = 0
+            scheduled_timer_count = 0
+            series_timer_count = 0
+
+            # Fetch recording and timer counts if Live TV is enabled
+            if live_tv_enabled:
+                # Fetch timers in parallel
+                try:
+                    timers, series_timers = await asyncio.gather(
+                        self.client.async_get_timers(),
+                        self.client.async_get_series_timers(),
+                    )
+                    scheduled_timer_count = len(timers)
+                    series_timer_count = len(series_timers)
+                except (EmbyError, TypeError, AttributeError):
+                    pass
+
+                # Get recording count from recordings API
+                enabled_users: list[str] = live_tv_info.get("EnabledUsers", [])
+                if enabled_users:
+                    try:
+                        recordings = await self.client.async_get_recordings(
+                            user_id=enabled_users[0]
+                        )
+                        recording_count = len(recordings)
+                    except (EmbyError, TypeError, AttributeError):
+                        pass
+
+            return {
+                "live_tv_enabled": live_tv_enabled,
+                "live_tv_tuner_count": live_tv_tuner_count,
+                "live_tv_active_recordings": live_tv_active_recordings,
+                "recording_count": recording_count,
+                "scheduled_timer_count": scheduled_timer_count,
+                "series_timer_count": series_timer_count,
+            }
+        except (EmbyError, TypeError, AttributeError):
+            _LOGGER.debug("Could not fetch Live TV info, Live TV may not be configured")
+            return {
+                "live_tv_enabled": False,
+                "live_tv_tuner_count": 0,
+                "live_tv_active_recordings": 0,
+                "recording_count": 0,
+                "scheduled_timer_count": 0,
+                "series_timer_count": 0,
+            }
+
+    async def _fetch_activity_log_safe(self) -> dict[str, list[EmbyActivityLogEntry] | int]:
+        """Fetch activity log with graceful error handling.
+
+        Returns:
+            Dictionary with activity log data, or empty defaults on failure.
+        """
+        try:
+            response = await self.client.async_get_activity_log(
+                start_index=0,
+                limit=20,
+            )
+            return {
+                "Items": response.get("Items", []),
+                "TotalRecordCount": response.get("TotalRecordCount", 0),
+            }
+        except (EmbyError, TypeError, AttributeError):
+            _LOGGER.debug("Could not fetch activity log")
+            return {"Items": [], "TotalRecordCount": 0}
+
+    async def _fetch_devices_safe(self) -> dict[str, list[EmbyDeviceInfo]]:
+        """Fetch devices with graceful error handling.
+
+        Returns:
+            Dictionary with devices data, or empty defaults on failure.
+        """
+        try:
+            response = await self.client.async_get_devices()
+            return {"Items": response.get("Items", [])}
+        except (EmbyError, TypeError, AttributeError):
+            _LOGGER.debug("Could not fetch devices")
+            return {"Items": []}
+
+    async def _fetch_plugins_safe(self) -> list[EmbyPlugin]:
+        """Fetch plugins with graceful error handling.
+
+        Returns:
+            List of plugins, or empty list on failure.
+        """
+        try:
+            return await self.client.async_get_plugins()
+        except (EmbyError, TypeError, AttributeError):
+            _LOGGER.debug("Could not fetch plugins")
+            return []
 
 
 class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
@@ -329,6 +416,8 @@ class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
     async def _async_update_data(self) -> EmbyLibraryData:
         """Fetch library data from Emby server.
 
+        Uses asyncio.gather() to fetch independent data in parallel for improved performance.
+
         Returns:
             Library data including item counts and virtual folders.
 
@@ -336,55 +425,97 @@ class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
             UpdateFailed: If fetching data fails.
         """
         try:
-            # Fetch item counts
-            counts = await self.client.async_get_item_counts()
-
-            # Fetch virtual folders
-            folders = await self.client.async_get_virtual_folders()
-
-            data: EmbyLibraryData = {
-                "movie_count": counts.get("MovieCount", 0),
-                "series_count": counts.get("SeriesCount", 0),
-                "episode_count": counts.get("EpisodeCount", 0),
-                "artist_count": counts.get("ArtistCount", 0),
-                "album_count": counts.get("AlbumCount", 0),
-                "song_count": counts.get("SongCount", 0),
-                "virtual_folders": folders,
-            }
-
-            # Fetch user-specific counts if user_id is configured
             if self._user_id:
-                favorites_count = await self.client.async_get_user_item_count(
-                    user_id=self._user_id,
-                    filters="IsFavorite",
+                # Fetch all data in parallel (7 calls) when user_id is configured
+                # Split into two gather calls for type safety (mypy limitation with 6+ args)
+                (
+                    (counts, folders),
+                    (
+                        favorites_count,
+                        played_count,
+                        resumable_count,
+                        playlists,
+                        collections,
+                    ),
+                ) = await asyncio.gather(
+                    self._fetch_base_data(),
+                    self._fetch_user_data(self._user_id),
                 )
-                played_count = await self.client.async_get_user_item_count(
-                    user_id=self._user_id,
-                    filters="IsPlayed",
+
+                return EmbyLibraryData(
+                    movie_count=counts.get("MovieCount", 0),
+                    series_count=counts.get("SeriesCount", 0),
+                    episode_count=counts.get("EpisodeCount", 0),
+                    artist_count=counts.get("ArtistCount", 0),
+                    album_count=counts.get("AlbumCount", 0),
+                    song_count=counts.get("SongCount", 0),
+                    virtual_folders=folders,
+                    user_favorites_count=favorites_count,
+                    user_played_count=played_count,
+                    user_resumable_count=resumable_count,
+                    playlist_count=len(playlists),
+                    collection_count=len(collections),
                 )
-                resumable_count = await self.client.async_get_user_item_count(
-                    user_id=self._user_id,
-                    filters="IsResumable",
+            else:
+                # Fetch only basic data in parallel (2 calls) when no user_id
+                counts, folders = await self._fetch_base_data()
+
+                return EmbyLibraryData(
+                    movie_count=counts.get("MovieCount", 0),
+                    series_count=counts.get("SeriesCount", 0),
+                    episode_count=counts.get("EpisodeCount", 0),
+                    artist_count=counts.get("ArtistCount", 0),
+                    album_count=counts.get("AlbumCount", 0),
+                    song_count=counts.get("SongCount", 0),
+                    virtual_folders=folders,
                 )
-
-                data["user_favorites_count"] = favorites_count
-                data["user_played_count"] = played_count
-                data["user_resumable_count"] = resumable_count
-
-                # Fetch playlist count (Phase 17)
-                playlists = await self.client.async_get_playlists(user_id=self._user_id)
-                data["playlist_count"] = len(playlists)
-
-                # Fetch collection count (Phase 19)
-                collections = await self.client.async_get_collections(user_id=self._user_id)
-                data["collection_count"] = len(collections)
-
-            return data
 
         except EmbyConnectionError as err:
             raise UpdateFailed(f"Failed to connect to Emby server: {err}") from err
         except EmbyError as err:
             raise UpdateFailed(f"Error fetching library data: {err}") from err
+
+    async def _fetch_base_data(
+        self,
+    ) -> tuple[EmbyItemCounts, list[EmbyVirtualFolder]]:
+        """Fetch base library data in parallel.
+
+        Returns:
+            Tuple of item counts and virtual folders.
+        """
+        return await asyncio.gather(
+            self.client.async_get_item_counts(),
+            self.client.async_get_virtual_folders(),
+        )
+
+    async def _fetch_user_data(
+        self,
+        user_id: str,
+    ) -> tuple[int, int, int, list[EmbyBrowseItem], list[EmbyBrowseItem]]:
+        """Fetch user-specific library data in parallel.
+
+        Args:
+            user_id: The user ID to fetch data for.
+
+        Returns:
+            Tuple of (favorites_count, played_count, resumable_count, playlists, collections).
+        """
+        return await asyncio.gather(
+            self.client.async_get_user_item_count(
+                user_id=user_id,
+                filters="IsFavorite",
+            ),
+            self.client.async_get_user_item_count(
+                user_id=user_id,
+                filters="IsPlayed",
+            ),
+            self.client.async_get_user_item_count(
+                user_id=user_id,
+                filters="IsResumable",
+            ),
+            self.client.async_get_playlists(user_id=user_id),
+            self.client.async_get_collections(user_id=user_id),
+        )
 
 
 __all__ = [

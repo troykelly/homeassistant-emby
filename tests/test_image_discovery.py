@@ -421,14 +421,17 @@ class TestAsyncImage:
         mock_hass: MagicMock,
         mock_coordinator_with_data: MagicMock,
     ) -> None:
-        """Test async_image returns None on exception."""
+        """Test async_image returns None on network exception."""
         from unittest.mock import AsyncMock, patch
+
+        import aiohttp
 
         image = EmbyNextUpImage(mock_hass, mock_coordinator_with_data, "Emby Server")
 
         mock_session = MagicMock()
         mock_context = AsyncMock()
-        mock_context.__aenter__ = AsyncMock(side_effect=Exception("Connection failed"))
+        # Use specific exception type that is caught by the handler
+        mock_context.__aenter__ = AsyncMock(side_effect=aiohttp.ClientError("Connection failed"))
         mock_context.__aexit__ = AsyncMock(return_value=None)
         mock_session.get = MagicMock(return_value=mock_context)
 

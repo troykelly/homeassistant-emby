@@ -21,9 +21,12 @@ from homeassistant.helpers.update_coordinator import (
 from .api import EmbyClient
 from .const import (
     CONF_IGNORE_WEB_PLAYERS,
+    CONF_WEBSOCKET_INTERVAL,
     DEFAULT_IGNORE_WEB_PLAYERS,
     DEFAULT_SCAN_INTERVAL,
+    DEFAULT_WEBSOCKET_INTERVAL,
     DOMAIN,
+    WEB_PLAYER_CLIENTS_LOWER,
     WEBSOCKET_POLL_INTERVAL,
     EmbyConfigEntry,
     EmbyLibraryChangedData,
@@ -48,22 +51,8 @@ EMBY_TICKS_PER_SECOND = 10_000_000
 # Larger gaps indicate seeks rather than actual watch time
 MAX_PLAYBACK_DELTA_SECONDS = 60
 
-# Client names that indicate web browser sessions
-WEB_PLAYER_CLIENTS: frozenset[str] = frozenset(
-    {
-        "Emby Web",
-        "Emby Mobile Web",
-        "Chrome",
-        "Firefox",
-        "Safari",
-        "Edge",
-        "Opera",
-        "Brave",
-        "Vivaldi",
-        "Internet Explorer",
-        "Microsoft Edge",
-    }
-)
+# Default maximum age in seconds for stale playback session cleanup (1 hour)
+DEFAULT_STALE_SESSION_MAX_AGE = 3600
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -204,6 +193,8 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
     def _is_web_player(self, session: EmbySession) -> bool:
         """Check if a session is from a web browser.
 
+        Uses O(1) lookup with pre-computed lowercase set for efficiency.
+
         Args:
             session: The session to check.
 
@@ -211,7 +202,7 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
             True if the session is from a web browser client.
         """
         client_name = session.client_name.lower()
-        return any(web_client.lower() in client_name for web_client in WEB_PLAYER_CLIENTS)
+        return client_name in WEB_PLAYER_CLIENTS_LOWER
 
     def _track_playback_progress(self, data: Mapping[str, Any]) -> None:
         """Track playback progress for watch time statistics (per user).
@@ -301,6 +292,68 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
             "user_id": user_id,
             "user_name": user_name,
         }
+
+    def _cleanup_playback_session(self, data: Mapping[str, Any]) -> None:
+        """Remove playback session tracking when playback stops.
+
+        Args:
+            data: PlaybackStopped WebSocket event data.
+        """
+        user_id = str(data.get("UserId", ""))
+        device_id = str(data.get("DeviceId", ""))
+        play_session_id = str(data.get("PlaySessionId", "")) or device_id
+        tracking_key = f"{user_id}:{play_session_id}"
+        removed = self._playback_sessions.pop(tracking_key, None)
+        if removed:
+            _LOGGER.debug("Cleaned up playback session: %s", tracking_key)
+
+    def _cleanup_session_tracking(self, data: Mapping[str, Any]) -> None:
+        """Remove all tracking for a session that ended.
+
+        Args:
+            data: SessionEnded WebSocket event data.
+        """
+        device_id = str(data.get("DeviceId", ""))
+        if not device_id:
+            return
+
+        # Remove any entries containing this device_id
+        keys_to_remove = [k for k in self._playback_sessions if device_id in k]
+        for key in keys_to_remove:
+            self._playback_sessions.pop(key, None)
+            _LOGGER.debug("Cleaned up session tracking for device: %s", key)
+
+    def _cleanup_stale_sessions(self, max_age_seconds: int = DEFAULT_STALE_SESSION_MAX_AGE) -> None:
+        """Remove playback sessions older than max_age_seconds.
+
+        This prevents memory leaks from sessions that ended without proper cleanup
+        (e.g., client disconnected without sending PlaybackStopped).
+
+        Args:
+            max_age_seconds: Maximum age in seconds before a session is considered stale.
+        """
+        now = datetime.now()
+        keys_to_remove: list[str] = []
+
+        for key, session_data in self._playback_sessions.items():
+            last_update_str = session_data.get("last_update")
+            if not last_update_str:
+                # No timestamp - treat as stale
+                keys_to_remove.append(key)
+                continue
+
+            try:
+                last_update = datetime.fromisoformat(str(last_update_str))
+                age = (now - last_update).total_seconds()
+                if age > max_age_seconds:
+                    keys_to_remove.append(key)
+            except (ValueError, TypeError):
+                # Invalid timestamp - treat as stale
+                keys_to_remove.append(key)
+
+        for key in keys_to_remove:
+            self._playback_sessions.pop(key, None)
+            _LOGGER.debug("Cleaned up stale playback session: %s", key)
 
     async def _async_update_data(self) -> dict[str, EmbySession]:
         """Fetch session data from Emby server with graceful degradation.
@@ -441,8 +494,12 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
         try:
             await self._websocket.async_connect()
             # Subscribe to session updates (with error handling)
+            # Use configured interval or default
+            interval_ms = self.config_entry.options.get(
+                CONF_WEBSOCKET_INTERVAL, DEFAULT_WEBSOCKET_INTERVAL
+            )
             try:
-                await self._websocket.async_subscribe_sessions()
+                await self._websocket.async_subscribe_sessions(interval_ms=interval_ms)
             except RuntimeError as err:
                 _LOGGER.warning(
                     "Failed to subscribe to WebSocket sessions for %s: %s",
@@ -519,12 +576,16 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
             self._track_playback_progress(data)
             # Also trigger a refresh to get latest session state
             self._trigger_debounced_refresh()
-        elif message_type in (
-            "PlaybackStarted",
-            "PlaybackStopped",
-            "SessionEnded",
-        ):
+        elif message_type == "PlaybackStarted":
             # Trigger a refresh to get latest session state (with debouncing)
+            self._trigger_debounced_refresh()
+        elif message_type == "PlaybackStopped":
+            # Clean up playback session tracking when playback stops
+            self._cleanup_playback_session(data)
+            self._trigger_debounced_refresh()
+        elif message_type == "SessionEnded":
+            # Clean up all tracking for a session that ended
+            self._cleanup_session_tracking(data)
             self._trigger_debounced_refresh()
         elif message_type == "ServerRestarting":
             _LOGGER.info("Emby server %s is restarting", self.server_name)

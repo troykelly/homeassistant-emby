@@ -64,6 +64,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import CONF_PREFIX_REMOTE, DEFAULT_PREFIX_REMOTE, EmbyConfigEntry
 from .entity import EmbyEntity
+from .exceptions import EmbyError
 
 if TYPE_CHECKING:
     from .coordinator import EmbyDataUpdateCoordinator
@@ -264,7 +265,7 @@ class EmbyRemoteEntity(EmbyEntity, RemoteEntity):
                         cmd,
                         self._device_id,
                     )
-                except Exception as err:  # pylint: disable=broad-except
+                except (EmbyError, OSError) as err:
                     _LOGGER.error(
                         "Failed to send command '%s' to %s: %s",
                         cmd,

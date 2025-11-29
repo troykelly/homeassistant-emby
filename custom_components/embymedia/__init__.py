@@ -69,7 +69,12 @@ from .const import (
 from .coordinator import EmbyDataUpdateCoordinator
 from .coordinator_discovery import EmbyDiscoveryCoordinator
 from .coordinator_sensors import EmbyLibraryCoordinator, EmbyServerCoordinator
-from .exceptions import EmbyAuthenticationError, EmbyConnectionError
+from .exceptions import (
+    EmbyAuthenticationError,
+    EmbyConnectionError,
+    EmbyError,
+    EmbyWebSocketError,
+)
 from .image_proxy import async_setup_image_proxy
 from .services import async_setup_services, async_unload_services
 
@@ -266,10 +271,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> bool
                     "Created discovery coordinators for %d users",
                     len(discovery_coordinators),
                 )
-            except Exception:  # pylint: disable=broad-exception-caught
+            except EmbyError as err:
                 _LOGGER.warning(
-                    "Failed to fetch users for discovery sensors. "
-                    "Discovery sensors will not be available."
+                    "Failed to fetch users for discovery sensors: %s. "
+                    "Discovery sensors will not be available.",
+                    err,
                 )
 
     # Fetch initial data from all coordinators
@@ -316,11 +322,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: EmbyConfigEntry) -> bool
     # Start WebSocket for real-time updates
     try:
         await session_coordinator.async_setup_websocket(session)
-    except Exception:  # pylint: disable=broad-exception-caught
+    except (EmbyWebSocketError, OSError) as err:
         _LOGGER.warning(
-            "Failed to set up WebSocket connection to Emby server %s. "
+            "Failed to set up WebSocket connection to Emby server %s: %s. "
             "Falling back to polling only.",
             server_name,
+            err,
         )
 
     # Register cleanup callbacks

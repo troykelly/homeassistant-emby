@@ -249,8 +249,101 @@ class TestEmbyDiscoveryDataTypedDict:
             "continue_watching": [],
             "recently_added": [],
             "suggestions": [],
+            "user_counts": {
+                "favorites_count": 0,
+                "played_count": 0,
+                "resumable_count": 0,
+                "playlist_count": 0,
+            },
         }
         assert "next_up" in data
         assert "continue_watching" in data
         assert "recently_added" in data
         assert "suggestions" in data
+        assert "user_counts" in data
+
+
+class TestEmbyDiscoveryCoordinatorParallelExecution:
+    """Test that coordinator uses asyncio.gather for parallel API calls."""
+
+    async def test_parallel_api_calls_faster_than_sequential(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test that API calls run in parallel, not sequentially.
+
+        If 8 calls with 50ms delay each ran sequentially, it would take 400ms.
+        In parallel, they should complete in ~50ms (plus overhead).
+        We assert completion in under 200ms to prove parallelism.
+        """
+        import asyncio
+        import time
+
+        delay_seconds = 0.05  # 50ms per call
+
+        async def slow_api_call(*args: object, **kwargs: object) -> list[object]:
+            """Simulate a slow API call."""
+            await asyncio.sleep(delay_seconds)
+            return []
+
+        async def slow_count_call(*args: object, **kwargs: object) -> int:
+            """Simulate a slow count API call."""
+            await asyncio.sleep(delay_seconds)
+            return 0
+
+        mock_client = MagicMock()
+        mock_client.async_get_next_up = AsyncMock(side_effect=slow_api_call)
+        mock_client.async_get_resumable_items = AsyncMock(side_effect=slow_api_call)
+        mock_client.async_get_latest_media = AsyncMock(side_effect=slow_api_call)
+        mock_client.async_get_suggestions = AsyncMock(side_effect=slow_api_call)
+        mock_client.async_get_user_item_count = AsyncMock(side_effect=slow_count_call)
+        mock_client.async_get_playlists = AsyncMock(side_effect=slow_api_call)
+
+        coordinator = EmbyDiscoveryCoordinator(
+            hass=hass,
+            client=mock_client,
+            server_id="server123",
+            config_entry=mock_config_entry,
+            user_id="user456",
+        )
+
+        # Measure execution time
+        start = time.time()
+        await coordinator._async_update_data()
+        elapsed = time.time() - start
+
+        # 8 calls at 50ms each:
+        # Sequential: 400ms minimum (8 * 50ms)
+        # Parallel: ~50ms (plus overhead)
+        # We allow up to 200ms to account for overhead but prove parallelism
+        assert elapsed < 0.2, (
+            f"API calls took {elapsed:.3f}s - "
+            f"should be < 0.2s if running in parallel (8 calls * 50ms sequential = 400ms)"
+        )
+
+    async def test_all_api_methods_called(
+        self,
+        hass: HomeAssistant,
+        mock_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test that all 8 API calls are made during update."""
+        coordinator = EmbyDiscoveryCoordinator(
+            hass=hass,
+            client=mock_client,
+            server_id="server123",
+            config_entry=mock_config_entry,
+            user_id="user456",
+        )
+
+        await coordinator._async_update_data()
+
+        # Verify all 8 API calls were made
+        mock_client.async_get_next_up.assert_called_once_with(user_id="user456")
+        mock_client.async_get_resumable_items.assert_called_once_with(user_id="user456")
+        mock_client.async_get_latest_media.assert_called_once_with(user_id="user456")
+        mock_client.async_get_suggestions.assert_called_once_with(user_id="user456")
+        # User item count called 3 times (favorites, played, resumable)
+        assert mock_client.async_get_user_item_count.call_count == 3
+        mock_client.async_get_playlists.assert_called_once_with(user_id="user456")

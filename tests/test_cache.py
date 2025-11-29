@@ -139,6 +139,38 @@ class TestBrowseCache:
         assert stats["misses"] == 1
         assert stats["entries"] == 1
 
+    def test_cache_reset_stats(self) -> None:
+        """Test resetting cache statistics."""
+        from custom_components.embymedia.cache import BrowseCache
+
+        cache = BrowseCache(ttl_seconds=60)
+        cache.set("key1", {"data": "value1"})
+
+        # Generate some hits and misses
+        cache.get("key1")  # Hit
+        cache.get("nonexistent")  # Miss
+        cache.get("key1")  # Hit
+
+        stats = cache.get_stats()
+        assert stats["hits"] == 2
+        assert stats["misses"] == 1
+
+        # Reset stats
+        cache.reset_stats()
+
+        # Stats should be reset to zero
+        stats = cache.get_stats()
+        assert stats["hits"] == 0
+        assert stats["misses"] == 0
+        # Entries should still exist
+        assert stats["entries"] == 1
+        # Cached data should still be accessible
+        assert cache.get("key1") == {"data": "value1"}
+
+        # New hit should be counted
+        stats = cache.get_stats()
+        assert stats["hits"] == 1
+
 
 class TestCacheDecorator:
     """Test cache decorator for API methods."""
@@ -221,3 +253,53 @@ class TestCacheDecorator:
         # Normal call should still use cached result from first call
         result3 = await test_func("user1")
         assert result3 == {"call": 1}
+
+
+class TestCacheKeyHashing:
+    """Test cache key hashing implementation."""
+
+    def test_cache_key_uses_blake2b_not_md5(self) -> None:
+        """Test that generate_key uses BLAKE2b hash, not MD5.
+
+        BLAKE2b is cryptographically stronger and faster than MD5.
+        We use a 16-byte digest (same length as MD5) for compact keys.
+        """
+        import hashlib
+        import json
+
+        from custom_components.embymedia.cache import BrowseCache
+
+        cache = BrowseCache(ttl_seconds=60)
+
+        # Generate a cache key
+        key = cache.generate_key("test_func", "arg1", kwarg="value")
+
+        # Calculate what the BLAKE2b hash should be
+        sorted_kwargs = sorted([("kwarg", "value")])
+        key_data = json.dumps(
+            {"func": "test_func", "args": ("arg1",), "kwargs": sorted_kwargs},
+            sort_keys=True,
+            default=str,
+        )
+        expected_blake2b = hashlib.blake2b(key_data.encode(), digest_size=16).hexdigest()
+
+        # Calculate what MD5 would produce (should NOT match)
+        md5_hash = hashlib.md5(key_data.encode()).hexdigest()
+
+        # Key should match BLAKE2b
+        assert key == expected_blake2b, f"Expected BLAKE2b hash, got: {key}"
+
+        # Key should NOT match MD5 (unless we're still using MD5)
+        # BLAKE2b digest_size=16 produces 32-char hex, same as MD5
+        # but the values differ - fail if they match (means MD5 is still used)
+        assert key != md5_hash, "Cache key should use BLAKE2b, not MD5"
+
+    def test_cache_key_length_is_32_chars(self) -> None:
+        """Test that cache key is 32 characters (16-byte digest in hex)."""
+        from custom_components.embymedia.cache import BrowseCache
+
+        cache = BrowseCache(ttl_seconds=60)
+        key = cache.generate_key("func", "arg1", "arg2", key="value")
+
+        # 16-byte digest = 32 hex characters
+        assert len(key) == 32

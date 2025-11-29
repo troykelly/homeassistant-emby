@@ -16,6 +16,8 @@ from custom_components.embymedia.const import (
     DOMAIN,
 )
 
+from .conftest import add_coordinator_mocks
+
 
 class TestSendMessageService:
     """Test send_message service."""
@@ -54,6 +56,7 @@ class TestSendMessageService:
             )
             client.async_get_sessions = AsyncMock(return_value=[])
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -100,6 +103,7 @@ class TestLibraryServices:
             )
             client.async_get_sessions = AsyncMock(return_value=[])
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -166,6 +170,7 @@ class TestDeviceIdTargeting:
             )
             client.async_send_message = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -266,6 +271,7 @@ class TestPlayInstantMixService:
             )
             client.async_play_items = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -342,6 +348,7 @@ class TestPlayInstantMixService:
             # Return empty list - no items found
             client.async_get_instant_mix = AsyncMock(return_value=[])
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -434,6 +441,7 @@ class TestPlaySimilarService:
             )
             client.async_play_items = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -509,6 +517,7 @@ class TestPlaySimilarService:
             # Return empty list - no similar items found
             client.async_get_similar_items = AsyncMock(return_value=[])
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -584,6 +593,7 @@ class TestPlaySimilarService:
                 side_effect=EmbyConnectionError("Connection failed")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -657,6 +667,7 @@ class TestPlaySimilarService:
             )
             client.async_get_similar_items = AsyncMock(side_effect=EmbyError("Server error"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -736,6 +747,7 @@ class TestPlayInstantMixErrorHandling:
                 side_effect=EmbyConnectionError("Connection failed")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -809,6 +821,7 @@ class TestPlayInstantMixErrorHandling:
             )
             client.async_get_instant_mix = AsyncMock(side_effect=EmbyError("Server error"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -929,6 +942,7 @@ class TestNoUserIdErrorHandling:
                 ]
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1002,6 +1016,7 @@ class TestNoUserIdErrorHandling:
                 ]
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1078,6 +1093,7 @@ class TestNoSessionErrorHandling:
                 ]
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1158,6 +1174,7 @@ class TestNoSessionErrorHandling:
                 ]
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1273,6 +1290,7 @@ class TestPlaylistServices:
             )
             client.async_create_playlist = AsyncMock(return_value="new-playlist-id")
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1350,6 +1368,7 @@ class TestPlaylistServices:
             )
             client.async_add_to_playlist = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1426,6 +1445,7 @@ class TestPlaylistServices:
             )
             client.async_remove_from_playlist = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1500,6 +1520,7 @@ class TestPlaylistServices:
             )
             client.async_create_playlist = AsyncMock(return_value="new-playlist-id")
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1582,6 +1603,7 @@ class TestPlaylistServices:
                 side_effect=EmbyConnectionError("Connection failed")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1657,6 +1679,7 @@ class TestPlaylistServices:
                 side_effect=EmbyError("Playlist creation failed")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1732,6 +1755,7 @@ class TestPlaylistServices:
                 side_effect=EmbyConnectionError("Connection failed")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1805,6 +1829,7 @@ class TestPlaylistServices:
             )
             client.async_add_to_playlist = AsyncMock(side_effect=EmbyError("Add failed"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1880,6 +1905,7 @@ class TestPlaylistServices:
                 side_effect=EmbyConnectionError("Connection failed")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -1952,6 +1978,7 @@ class TestPlaylistServices:
             )
             client.async_remove_from_playlist = AsyncMock(side_effect=EmbyError("Remove failed"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2036,6 +2063,7 @@ class TestClearQueueService:
             )
             client.async_stop_playback = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2105,6 +2133,7 @@ class TestClearQueueService:
             )
             client.async_stop_playback = AsyncMock()
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2184,6 +2213,7 @@ class TestClearQueueService:
                 side_effect=EmbyConnectionError("Connection failed")
             )
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
@@ -2253,6 +2283,7 @@ class TestClearQueueService:
             )
             client.async_stop_playback = AsyncMock(side_effect=EmbyError("Server error"))
             client.close = AsyncMock()
+            add_coordinator_mocks(client)
 
             with patch(
                 "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",

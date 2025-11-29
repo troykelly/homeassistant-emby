@@ -36,6 +36,7 @@ from .const import (
     CONF_USER_ID,
     CONF_VERIFY_SSL,
     CONF_VIDEO_CONTAINER,
+    CONF_WEBSOCKET_INTERVAL,
     DEFAULT_DIRECT_PLAY,
     DEFAULT_DISCOVERY_SCAN_INTERVAL,
     DEFAULT_ENABLE_DISCOVERY_SENSORS,
@@ -51,10 +52,13 @@ from .const import (
     DEFAULT_TRANSCODING_PROFILE,
     DEFAULT_VERIFY_SSL,
     DEFAULT_VIDEO_CONTAINER,
+    DEFAULT_WEBSOCKET_INTERVAL,
     DOMAIN,
     EMBY_MIN_VERSION,
     MAX_SCAN_INTERVAL,
+    MAX_WEBSOCKET_INTERVAL,
     MIN_SCAN_INTERVAL,
+    MIN_WEBSOCKET_INTERVAL,
     TRANSCODING_PROFILES,
     VIDEO_CONTAINERS,
     EmbyConfigFlowUserInput,
@@ -733,6 +737,15 @@ class EmbyOptionsFlowHandler(OptionsFlow):
                             CONF_ENABLE_WEBSOCKET, DEFAULT_ENABLE_WEBSOCKET
                         ),
                     ): bool,
+                    vol.Optional(
+                        CONF_WEBSOCKET_INTERVAL,
+                        default=self.config_entry.options.get(
+                            CONF_WEBSOCKET_INTERVAL, DEFAULT_WEBSOCKET_INTERVAL
+                        ),
+                    ): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=MIN_WEBSOCKET_INTERVAL, max=MAX_WEBSOCKET_INTERVAL),
+                    ),
                     vol.Optional(
                         CONF_IGNORED_DEVICES,
                         default=self.config_entry.options.get(CONF_IGNORED_DEVICES, ""),

@@ -98,6 +98,14 @@ class BrowseCache:
         """Clear all cache entries."""
         self._cache.clear()
 
+    def reset_stats(self) -> None:
+        """Reset cache hit/miss statistics.
+
+        Resets hits and misses to zero while preserving cached entries.
+        """
+        self._hits = 0
+        self._misses = 0
+
     def invalidate_prefix(self, prefix: str) -> None:
         """Invalidate all cache entries with keys starting with prefix.
 
@@ -126,8 +134,8 @@ class BrowseCache:
             sort_keys=True,
             default=str,
         )
-        # Use MD5 for short, deterministic key
-        return hashlib.md5(key_data.encode()).hexdigest()
+        # Use BLAKE2b for fast, secure, deterministic key (16-byte digest = 32 hex chars)
+        return hashlib.blake2b(key_data.encode(), digest_size=16).hexdigest()
 
     def get_stats(self) -> dict[str, int]:
         """Get cache statistics.
