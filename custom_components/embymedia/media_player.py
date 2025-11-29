@@ -117,6 +117,9 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
             device_id: The stable device identifier.
         """
         super().__init__(coordinator, device_id)
+        # Cache for similar items to avoid repeated API calls
+        self._similar_items_cache: list[dict[str, str]] | None = None
+        self._similar_items_item_id: str | None = None
 
     @property
     def state(self) -> MediaPlayerState:
@@ -424,7 +427,7 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
         """Return entity specific state attributes.
 
         Returns:
-            Dictionary of extra attributes including queue information.
+            Dictionary of extra attributes including queue and similar items.
         """
         session = self.session
         if session is None:
@@ -437,7 +440,61 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
             attrs["queue_size"] = len(session.queue_item_ids)
             attrs["queue_position"] = session.queue_position + 1  # 1-based for display
 
+        # Similar items (if cached and for current item)
+        if (
+            self._similar_items_cache is not None
+            and session.now_playing is not None
+            and self._similar_items_item_id == session.now_playing.item_id
+        ):
+            attrs["similar_items"] = self._similar_items_cache
+
         return attrs
+
+    async def async_update_similar_items(self) -> None:
+        """Fetch and cache similar items for the currently playing media.
+
+        This method should be called when the now playing item changes
+        to refresh the similar items cache.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            self._similar_items_cache = None
+            self._similar_items_item_id = None
+            return
+
+        current_item_id = session.now_playing.item_id
+
+        # Skip if already cached for this item
+        if self._similar_items_item_id == current_item_id:
+            return
+
+        # Fetch similar items from API
+        user_id = session.user_id
+        if user_id is None:
+            self._similar_items_cache = None
+            self._similar_items_item_id = None
+            return
+
+        try:
+            similar_items = await self.coordinator.client.async_get_similar_items(
+                user_id=user_id,
+                item_id=current_item_id,
+                limit=10,  # Limit to 10 similar items for the attribute
+            )
+            # Transform to simpler format for attribute
+            self._similar_items_cache = [
+                {
+                    "id": item.get("Id", ""),
+                    "name": item.get("Name", ""),
+                    "type": item.get("Type", ""),
+                }
+                for item in similar_items
+            ]
+            self._similar_items_item_id = current_item_id
+        except EmbyError:
+            _LOGGER.debug("Failed to fetch similar items for %s", current_item_id)
+            self._similar_items_cache = None
+            self._similar_items_item_id = None
 
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level (0.0 to 1.0).

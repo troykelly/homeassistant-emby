@@ -2234,3 +2234,168 @@ class TestClearPlaylist:
         await player.async_clear_playlist()
 
         mock_coordinator.client.async_stop_playback.assert_not_called()
+
+
+class TestSimilarItemsAttribute:
+    """Tests for similar items attribute in media player."""
+
+    @pytest.mark.asyncio
+    async def test_similar_items_attribute_present_when_playing(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test similar_items attribute is present when media is playing."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.session_id = "session-abc"
+        session.user_id = "user-456"
+        session.queue_item_ids = ()
+        session.queue_position = 0
+
+        now_playing = MagicMock()
+        now_playing.item_id = "playing-item-789"
+        session.now_playing = now_playing
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client.async_get_similar_items = AsyncMock(
+            return_value=[
+                {"Id": "similar1", "Name": "Similar Movie 1", "Type": "Movie"},
+                {"Id": "similar2", "Name": "Similar Movie 2", "Type": "Movie"},
+            ]
+        )
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+
+        # Trigger similar items fetch
+        await player.async_update_similar_items()
+
+        attrs = player.extra_state_attributes
+
+        assert "similar_items" in attrs
+        assert len(attrs["similar_items"]) == 2
+        assert attrs["similar_items"][0]["id"] == "similar1"
+        assert attrs["similar_items"][0]["name"] == "Similar Movie 1"
+
+    @pytest.mark.asyncio
+    async def test_similar_items_attribute_empty_when_no_session(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test similar_items attribute is not present when no session."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator.get_session.return_value = None
+        mock_coordinator.client.async_get_similar_items = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        attrs = player.extra_state_attributes
+
+        assert "similar_items" not in attrs
+        mock_coordinator.client.async_get_similar_items.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_similar_items_attribute_empty_when_not_playing(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test similar_items attribute is not present when nothing playing."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.now_playing = None
+        session.queue_item_ids = ()
+        session.queue_position = 0
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client.async_get_similar_items = AsyncMock()
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        attrs = player.extra_state_attributes
+
+        assert "similar_items" not in attrs
+
+    @pytest.mark.asyncio
+    async def test_similar_items_cleared_when_media_changes(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test similar_items is refreshed when now playing item changes."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.session_id = "session-abc"
+        session.user_id = "user-456"
+        session.queue_item_ids = ()
+        session.queue_position = 0
+
+        now_playing = MagicMock()
+        now_playing.item_id = "item-1"
+        session.now_playing = now_playing
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client.async_get_similar_items = AsyncMock(
+            return_value=[{"Id": "sim1", "Name": "Similar 1", "Type": "Movie"}]
+        )
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        await player.async_update_similar_items()
+
+        # First fetch - verify cache populated
+        assert player._similar_items_cache is not None
+        assert len(player._similar_items_cache) == 1
+        assert player._similar_items_cache[0]["id"] == "sim1"
+        assert player._similar_items_item_id == "item-1"
+
+        # Change the playing item
+        now_playing.item_id = "item-2"
+        mock_coordinator.client.async_get_similar_items.return_value = [
+            {"Id": "sim2", "Name": "Similar 2", "Type": "Movie"}
+        ]
+
+        await player.async_update_similar_items()
+
+        # Should have fetched again for new item
+        assert player._similar_items_item_id == "item-2"
+        assert player._similar_items_cache is not None
+        assert player._similar_items_cache[0]["id"] == "sim2"
+        assert mock_coordinator.client.async_get_similar_items.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_similar_items_skips_fetch_when_same_item(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test similar_items skips API call when item hasn't changed."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        session = MagicMock()
+        session.device_id = "device-123"
+        session.session_id = "session-abc"
+        session.user_id = "user-456"
+        session.queue_item_ids = ()
+        session.queue_position = 0
+
+        now_playing = MagicMock()
+        now_playing.item_id = "item-1"
+        session.now_playing = now_playing
+
+        mock_coordinator.get_session.return_value = session
+        mock_coordinator.client.async_get_similar_items = AsyncMock(
+            return_value=[{"Id": "sim1", "Name": "Similar 1", "Type": "Movie"}]
+        )
+
+        player = EmbyMediaPlayer(mock_coordinator, "device-123")
+        await player.async_update_similar_items()
+        await player.async_update_similar_items()  # Second call, same item
+
+        # Should only fetch once
+        mock_coordinator.client.async_get_similar_items.assert_called_once()
