@@ -1230,6 +1230,33 @@ class EmbyCollectionCreateResponse(TypedDict):
 
 
 # =============================================================================
+# Person Types (Phase 19)
+# =============================================================================
+
+
+class EmbyPerson(TypedDict, total=False):
+    """Type definition for person from /Persons endpoint.
+
+    Represents an actor, director, writer, or other person in the library.
+    """
+
+    Id: str
+    Name: str
+    Type: str  # "Person"
+    PrimaryImageTag: str
+    ImageTags: dict[str, str]
+    Role: str  # "Actor", "Director", "Writer", etc.
+
+
+class EmbyPersonsResponse(TypedDict):
+    """Response from /Persons endpoint."""
+
+    Items: list[EmbyPerson]
+    TotalRecordCount: int
+    StartIndex: int
+
+
+# =============================================================================
 # Utility Functions
 # =============================================================================
 

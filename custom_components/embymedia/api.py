@@ -43,6 +43,7 @@ if TYPE_CHECKING:
         EmbyItemsResponse,
         EmbyLibraryItem,
         EmbyLiveTvInfo,
+        EmbyPersonsResponse,
         EmbyProgram,
         EmbyPublicInfo,
         EmbyRecording,
@@ -2618,6 +2619,105 @@ class EmbyClient:
             sort_order="Ascending",
         )
         return result.get("Items", [])
+
+    # =========================================================================
+    # Person Browsing API Methods (Phase 19)
+    # =========================================================================
+
+    async def async_get_persons(
+        self,
+        user_id: str,
+        parent_id: str | None = None,
+        person_types: str | None = None,
+        limit: int = 100,
+        start_index: int = 0,
+    ) -> EmbyPersonsResponse:
+        """Get persons (actors, directors, writers) from the library.
+
+        Args:
+            user_id: The user ID.
+            parent_id: Optional parent library ID to filter persons.
+            person_types: Optional person types to filter (e.g., "Actor,Director").
+            limit: Maximum number of results to return.
+            start_index: Pagination offset.
+
+        Returns:
+            Persons response with list of persons.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        # Check cache first (persons lists are relatively stable)
+        cache_key = self._browse_cache.generate_key(
+            "persons",
+            user_id,
+            parent_id=parent_id,
+            person_types=person_types,
+            limit=str(limit),
+            start_index=str(start_index),
+        )
+        cached = self._browse_cache.get(cache_key)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
+
+        params = [
+            f"UserId={user_id}",
+            "SortBy=SortName",
+            "SortOrder=Ascending",
+            f"Limit={limit}",
+            f"StartIndex={start_index}",
+        ]
+        if parent_id:
+            params.append(f"ParentId={parent_id}")
+        if person_types:
+            params.append(f"PersonTypes={person_types}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Persons?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+
+        # Cache the result
+        self._browse_cache.set(cache_key, response)
+        return response  # type: ignore[return-value]
+
+    async def async_get_person_items(
+        self,
+        user_id: str,
+        person_id: str,
+        include_item_types: str | None = None,
+        limit: int = 100,
+    ) -> list[EmbyBrowseItem]:
+        """Get items featuring a specific person.
+
+        Args:
+            user_id: The user ID.
+            person_id: The person ID.
+            include_item_types: Optional item types to filter (e.g., "Movie,Series").
+            limit: Maximum number of results.
+
+        Returns:
+            List of items featuring this person.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        params = [
+            f"PersonIds={person_id}",
+            "Recursive=true",
+            "SortBy=SortName",
+            "SortOrder=Ascending",
+            f"Limit={limit}",
+        ]
+        if include_item_types:
+            params.append(f"IncludeItemTypes={include_item_types}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Users/{user_id}/Items?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
 
     async def close(self) -> None:
         """Close the client session.
