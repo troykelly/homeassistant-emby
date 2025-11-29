@@ -14,7 +14,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN, MAX_SEARCH_TERM_LENGTH
-from .exceptions import EmbyConnectionError, EmbyError
+from .exceptions import EmbyConnectionError, EmbyError, EmbyNotFoundError
 
 if TYPE_CHECKING:
     from .coordinator import EmbyDataUpdateCoordinator
@@ -43,6 +43,10 @@ SERVICE_REMOVE_FROM_PLAYLIST = "remove_from_playlist"
 SERVICE_CREATE_COLLECTION = "create_collection"
 SERVICE_ADD_TO_COLLECTION = "add_to_collection"
 SERVICE_REMOVE_FROM_COLLECTION = "remove_from_collection"
+# Server administration services (Phase 20)
+SERVICE_RUN_SCHEDULED_TASK = "run_scheduled_task"
+SERVICE_RESTART_SERVER = "restart_server"
+SERVICE_SHUTDOWN_SERVER = "shutdown_server"
 
 # Service attributes
 ATTR_MESSAGE = "message"
@@ -67,6 +71,8 @@ ATTR_PLAYLIST_ITEM_IDS = "playlist_item_ids"
 # Collection service attributes (Phase 19)
 ATTR_COLLECTION_NAME = "collection_name"
 ATTR_COLLECTION_ID = "collection_id"
+# Server admin service attributes (Phase 20)
+ATTR_TASK_ID = "task_id"
 
 # Service schemas - support both entity_id and device_id targeting
 SEND_MESSAGE_SCHEMA = vol.Schema(
@@ -205,6 +211,18 @@ REMOVE_FROM_COLLECTION_SCHEMA = vol.Schema(
     }
 )
 
+# Server administration service schemas (Phase 20)
+# These services don't require entity targeting - they operate on the server
+RUN_SCHEDULED_TASK_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_TASK_ID): cv.string,
+    }
+)
+
+RESTART_SERVER_SCHEMA = vol.Schema({})
+
+SHUTDOWN_SERVER_SCHEMA = vol.Schema({})
+
 
 def _validate_emby_id(id_value: str, id_name: str) -> None:
     """Validate an Emby ID.
@@ -282,6 +300,33 @@ def _get_entity_ids_from_call(hass: HomeAssistant, call: ServiceCall) -> list[st
         raise ServiceValidationError("No valid targets provided. Specify entity_id.")
 
     return entity_ids
+
+
+def _get_any_coordinator(
+    hass: HomeAssistant,
+) -> EmbyDataUpdateCoordinator:
+    """Get any Emby coordinator for server-level operations.
+
+    Used for services that operate on the server itself, not on specific entities.
+
+    Args:
+        hass: Home Assistant instance.
+
+    Returns:
+        The first available Emby coordinator.
+
+    Raises:
+        HomeAssistantError: If no Emby config entries are loaded.
+    """
+    entries = hass.config_entries.async_entries(DOMAIN)
+    for entry in entries:
+        if hasattr(entry, "runtime_data") and entry.runtime_data is not None:
+            coordinator: EmbyDataUpdateCoordinator = entry.runtime_data.session_coordinator
+            return coordinator
+
+    raise HomeAssistantError(
+        "No Emby integration configured. Please add an Emby integration first."
+    )
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -871,6 +916,47 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to remove from collection for {entity_id}: {err}"
                 ) from err
 
+    # Server administration services (Phase 20)
+    async def async_run_scheduled_task(call: ServiceCall) -> None:
+        """Trigger a scheduled task to run immediately."""
+        task_id: str = call.data[ATTR_TASK_ID]
+
+        # Validate task_id
+        _validate_emby_id(task_id, "task_id")
+
+        coordinator = _get_any_coordinator(hass)
+
+        try:
+            await coordinator.client.async_run_scheduled_task(task_id=task_id)
+        except EmbyNotFoundError as err:
+            raise HomeAssistantError(f"Scheduled task not found: {task_id}") from err
+        except EmbyConnectionError as err:
+            raise HomeAssistantError("Failed to run scheduled task: Connection error") from err
+        except EmbyError as err:
+            raise HomeAssistantError(f"Failed to run scheduled task: {err}") from err
+
+    async def async_restart_server(call: ServiceCall) -> None:
+        """Restart the Emby server."""
+        coordinator = _get_any_coordinator(hass)
+
+        try:
+            await coordinator.client.async_restart_server()
+        except EmbyConnectionError as err:
+            raise HomeAssistantError("Failed to restart server: Connection error") from err
+        except EmbyError as err:
+            raise HomeAssistantError(f"Failed to restart server: {err}") from err
+
+    async def async_shutdown_server(call: ServiceCall) -> None:
+        """Shutdown the Emby server."""
+        coordinator = _get_any_coordinator(hass)
+
+        try:
+            await coordinator.client.async_shutdown_server()
+        except EmbyConnectionError as err:
+            raise HomeAssistantError("Failed to shutdown server: Connection error") from err
+        except EmbyError as err:
+            raise HomeAssistantError(f"Failed to shutdown server: {err}") from err
+
     # Register services
     hass.services.async_register(
         DOMAIN,
@@ -983,6 +1069,25 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         async_remove_from_collection,
         schema=REMOVE_FROM_COLLECTION_SCHEMA,
     )
+    # Server administration services (Phase 20)
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RUN_SCHEDULED_TASK,
+        async_run_scheduled_task,
+        schema=RUN_SCHEDULED_TASK_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RESTART_SERVER,
+        async_restart_server,
+        schema=RESTART_SERVER_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SHUTDOWN_SERVER,
+        async_shutdown_server,
+        schema=SHUTDOWN_SERVER_SCHEMA,
+    )
 
     _LOGGER.debug("Emby services registered")
 
@@ -1017,6 +1122,10 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_CREATE_COLLECTION)
     hass.services.async_remove(DOMAIN, SERVICE_ADD_TO_COLLECTION)
     hass.services.async_remove(DOMAIN, SERVICE_REMOVE_FROM_COLLECTION)
+    # Server administration services (Phase 20)
+    hass.services.async_remove(DOMAIN, SERVICE_RUN_SCHEDULED_TASK)
+    hass.services.async_remove(DOMAIN, SERVICE_RESTART_SERVER)
+    hass.services.async_remove(DOMAIN, SERVICE_SHUTDOWN_SERVER)
 
     _LOGGER.debug("Emby services unregistered")
 
