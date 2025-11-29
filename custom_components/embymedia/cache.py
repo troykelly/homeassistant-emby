@@ -126,8 +126,8 @@ class BrowseCache:
             sort_keys=True,
             default=str,
         )
-        # Use MD5 for short, deterministic key
-        return hashlib.md5(key_data.encode()).hexdigest()
+        # Use BLAKE2b for fast, secure, deterministic key (16-byte digest = 32 hex chars)
+        return hashlib.blake2b(key_data.encode(), digest_size=16).hexdigest()
 
     def get_stats(self) -> dict[str, int]:
         """Get cache statistics.
