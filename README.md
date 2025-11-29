@@ -1,205 +1,223 @@
-# Emby Media for Home Assistant
-
-[![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![GitHub Release](https://img.shields.io/github/v/release/troykelly/homeassistant-emby)](https://github.com/troykelly/homeassistant-emby/releases)
-[![License](https://img.shields.io/github/license/troykelly/homeassistant-emby)](LICENSE)
-[![Tests](https://img.shields.io/github/actions/workflow/status/troykelly/homeassistant-emby/test.yml?label=tests)](https://github.com/troykelly/homeassistant-emby/actions)
-[![Coverage](https://img.shields.io/codecov/c/github/troykelly/homeassistant-emby)](https://codecov.io/gh/troykelly/homeassistant-emby)
-
-A modern Home Assistant integration for [Emby Media Server](https://emby.media/) with full playback control, media browsing, real-time updates, and voice assistant support.
-
 <p align="center">
-  <img src="https://emby.media/resources/logowhite_1881.png" alt="Emby Logo" width="200">
+  <img src="https://emby.media/resources/logowhite_1881.png" alt="Emby Logo" width="180">
 </p>
 
-## ✨ Features
+<h1 align="center">Emby Media for Home Assistant</h1>
 
-| Feature | Description |
-|---------|-------------|
-| **🎬 Media Players** | Automatic entities for all connected Emby clients |
-| **⏯️ Playback Control** | Play, pause, stop, seek, volume, skip tracks |
-| **📺 Remote Control** | Send navigation commands to Emby clients |
-| **💬 Notifications** | Display messages on Emby client screens |
-| **📚 Media Browsing** | Browse your entire library from Home Assistant |
-| **🔊 Media Source** | Play Emby content on ANY Home Assistant media player |
-| **⚡ Real-Time Updates** | WebSocket connection for instant state sync |
-| **🎙️ Voice Control** | Search and play media with Google/Alexa |
-| **🏠 Automations** | Device triggers for playback events |
-| **📊 Server Sensors** | Monitor server status, library counts, plugins, and activity |
-| **📡 Live TV & DVR** | Schedule recordings, manage timers, monitor DVR status |
-| **🔧 Server Admin** | Run scheduled tasks, restart/shutdown server, library scan button |
-| **🎵 Instant Mix** | Create radio-style playlists from any song, album, or artist |
-| **🔗 Similar Items** | Discover related content with similar_items attribute |
-| **📋 Queue Management** | View queue position/size, clear queue service |
+<p align="center">
+  <strong>Your media server. Your smart home. Seamlessly connected.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/hacs/integration"><img src="https://img.shields.io/badge/HACS-Custom-41BDF5.svg" alt="HACS"></a>
+  <a href="https://github.com/troykelly/homeassistant-emby/releases"><img src="https://img.shields.io/github/v/release/troykelly/homeassistant-emby" alt="GitHub Release"></a>
+  <a href="https://github.com/troykelly/homeassistant-emby/actions"><img src="https://img.shields.io/github/actions/workflow/status/troykelly/homeassistant-emby/test.yml?label=tests" alt="Tests"></a>
+  <a href="https://codecov.io/gh/troykelly/homeassistant-emby"><img src="https://img.shields.io/codecov/c/github/troykelly/homeassistant-emby" alt="Coverage"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/troykelly/homeassistant-emby" alt="License"></a>
+</p>
+
+---
+
+<h2 align="center">🚀 Quick Start</h2>
+
+<table align="center">
+<tr>
+<td width="33%" align="center">
+
+**1️⃣ Install**
+
+Open HACS → Custom repositories
+Add: `troykelly/homeassistant-emby`
+Download **Emby Media**
+
+</td>
+<td width="33%" align="center">
+
+**2️⃣ Configure**
+
+Settings → Devices & Services
+Add Integration → **Emby Media**
+Enter host + API key
+
+</td>
+<td width="33%" align="center">
+
+**3️⃣ Enjoy**
+
+Your Emby clients appear
+as media players instantly!
+
+</td>
+</tr>
+</table>
+
+<p align="center">
+  <a href="#-installation"><strong>📖 Detailed Install Guide</strong></a> ·
+  <a href="#getting-an-api-key"><strong>🔑 Get API Key</strong></a> ·
+  <a href="docs/TROUBLESHOOTING.md"><strong>❓ Having Issues?</strong></a>
+</p>
+
+---
+
+<h3 align="center">📍 Jump to what you need</h3>
+
+<p align="center">
+  <a href="#-what-can-you-do-with-it">✨ Features</a> ·
+  <a href="#-installation">📥 Installation</a> ·
+  <a href="#-automate-your-media">🤖 Automations</a> ·
+  <a href="#-server-monitoring">📊 Sensors</a> ·
+  <a href="#-all-the-services">🔧 Services</a> ·
+  <a href="#-troubleshooting">🐛 Troubleshooting</a> ·
+  <a href="#-for-developers">👩‍💻 Developers</a>
+</p>
+
+---
+
+## ✨ What Can You Do With It?
+
+<table>
+<tr>
+<td width="50%">
+
+### 🎬 Control Any Emby Client
+
+Every device running Emby becomes controllable from Home Assistant. Play, pause, skip, seek, adjust volume—all from your dashboard, automations, or voice.
+
+**Works with:** TVs, Roku, Fire TV, Apple TV, phones, tablets, web browsers, and more.
+
+</td>
+<td width="50%">
+
+### 🏠 Smart Home + Media = Magic
+
+Lights dim when your movie starts. Playback pauses when the doorbell rings. Volume drops at night. Your media experience adapts to your life.
+
+**[See automation examples →](#-automate-your-media)**
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 🗣️ "Hey Google, play The Office"
+
+Full voice assistant integration. Search your library, play content by name, control playback—all by voice through Google Home, Alexa, or Home Assistant's Assist.
+
+</td>
+<td width="50%">
+
+### 📺 Browse Your Library
+
+Navigate your entire Emby library right from Home Assistant. Browse by genre, year, actor, or collection. Click to play on any connected device.
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 🔊 Play Emby Music Anywhere
+
+Cast your Emby music library to ANY Home Assistant media player—Sonos, Chromecast, smart speakers. Your music, everywhere.
+
+</td>
+<td width="50%">
+
+### ⚡ Real-Time Everything
+
+WebSocket connection means instant updates. See what's playing, track progress, react to events—no polling delays, no stale data.
+
+</td>
+</tr>
+</table>
+
+---
 
 ## 📋 Requirements
 
-- **Home Assistant** 2025.11.3 or later
-- **Emby Server** 4.9.1.90 or later
-- **Emby API Key** (see [Getting an API Key](#getting-an-api-key))
+| Component | Minimum Version |
+|-----------|----------------|
+| **Home Assistant** | 2025.11.3+ |
+| **Emby Server** | 4.9.1.90+ |
+| **HACS** | Latest (for easy installation) |
 
-## 🚀 Installation
+---
+
+## 📥 Installation
 
 ### Option 1: HACS (Recommended)
 
 1. Open **HACS** in Home Assistant
-2. Click the three dots menu (⋮) → **Custom repositories**
-3. Add `https://github.com/troykelly/homeassistant-emby` as an **Integration**
+2. Click ⋮ → **Custom repositories**
+3. Add `https://github.com/troykelly/homeassistant-emby` as **Integration**
 4. Search for **"Emby Media"** and click **Download**
 5. **Restart Home Assistant**
-6. Continue to [Configuration](#-configuration)
 
-### Option 2: Manual Installation
+### Option 2: Manual
 
 1. Download the [latest release](https://github.com/troykelly/homeassistant-emby/releases)
-2. Extract and copy `custom_components/embymedia` to your `config/custom_components/` folder
+2. Extract `embymedia` folder to `config/custom_components/`
 3. **Restart Home Assistant**
-4. Continue to [Configuration](#-configuration)
 
 <details>
-<summary>📁 Your folder structure should look like this</summary>
+<summary>📁 Expected folder structure</summary>
 
 ```
 config/
 ├── configuration.yaml
-├── custom_components/
-│   └── embymedia/
-│       ├── __init__.py
-│       ├── manifest.json
-│       ├── config_flow.py
-│       └── ... (other files)
+└── custom_components/
+    └── embymedia/
+        ├── __init__.py
+        ├── manifest.json
+        └── ... (other files)
 ```
 
 </details>
+
+---
 
 ## ⚙️ Configuration
 
-### Step 1: Get Your API Key
+### Getting an API Key
 
-1. Open your **Emby Server Dashboard** (usually `http://your-server:8096`)
-2. Go to **⚙️ Settings** → **Advanced** → **API Keys**
-3. Click **+ New API Key**
-4. Name it `Home Assistant` and click **OK**
-5. **Copy the generated key** (you'll need it next)
+1. Open **Emby Server Dashboard** (`http://your-server:8096`)
+2. Go to **Settings** → **Advanced** → **API Keys**
+3. Click **+ New API Key** → Name it "Home Assistant" → **OK**
+4. Copy the generated key
 
-<details>
-<summary>📸 Screenshot: Where to find API Keys</summary>
+### Adding the Integration
 
-Navigate to: Dashboard → Settings (gear icon) → Advanced → API Keys
+1. **Settings** → **Devices & Services** → **+ Add Integration**
+2. Search **"Emby Media"**
+3. Enter your details:
 
-</details>
+| Field | Example | Notes |
+|-------|---------|-------|
+| Host | `192.168.1.100` | IP or hostname |
+| Port | `8096` | Default HTTP port |
+| Use SSL | ☐ | Check for HTTPS |
+| API Key | `abc123...` | From step above |
+| Verify SSL | ☐ | Uncheck for self-signed certs |
 
-### Step 2: Add the Integration
+4. Click **Submit** — entities appear automatically!
 
-1. In Home Assistant, go to **Settings** → **Devices & Services**
-2. Click **+ Add Integration**
-3. Search for **"Emby Media"**
-4. Enter your connection details:
+**[📖 Full Configuration Reference →](docs/CONFIGURATION.md)**
 
-| Field | Description | Example |
-|-------|-------------|---------|
-| **Host** | Emby server hostname or IP | `192.168.1.100` or `emby.local` |
-| **Port** | Server port | `8096` (HTTP) or `8920` (HTTPS) |
-| **Use SSL** | Enable for HTTPS | ☐ for HTTP, ☑ for HTTPS |
-| **API Key** | Key from Step 1 | `abc123...` |
-| **Verify SSL** | Validate certificate | Disable for self-signed certs |
+---
 
-5. Click **Submit** - entities will appear automatically!
+## 🤖 Automate Your Media
 
-### Optional: YAML Configuration
-
-You can also configure via `configuration.yaml`:
-
-```yaml
-embymedia:
-  host: emby.local
-  api_key: !secret emby_api_key
-  port: 8096
-  ssl: false
-```
-
-See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for all options.
-
-## 🎮 Usage
-
-### Media Player Entities
-
-Each Emby client automatically creates a media player entity with an "Emby" prefix:
-
-- `media_player.emby_living_room_tv`
-- `media_player.emby_bedroom_roku`
-- `media_player.emby_samsung_tv`
-
-> **Note**: Device names are prefixed with "Emby" by default. You can disable this per entity type in integration options.
-
-**Lovelace Card Example:**
-```yaml
-type: media-control
-entity: media_player.emby_living_room_tv
-```
-
-### Browsing Media
-
-1. Click any Emby media player entity
-2. Click **"Browse Media"**
-3. Navigate: **Libraries** → **Categories** → **Content**
-
-**Available categories:**
-- 🎬 **Movies**: A-Z, Year, Decade, Genre, Studio, People, Tags, Collections
-- 📺 **TV Shows**: A-Z, Year, Decade, Genre, Studio → Series → Season → Episode
-- 🎵 **Music**: Artists A-Z, Albums A-Z, Genres, Playlists
-- 📡 **Live TV**: Channel listing
-- 👤 **People**: Browse by actors, directors, writers - see their filmography
-- 🏷️ **Tags**: Filter content by user-defined tags
-
-### Voice Commands
-
-Use with Google Home, Alexa, or other voice assistants:
-
-- *"Hey Google, play The Office on Living Room TV"*
-- *"Alexa, pause the TV"*
-- *"Hey Google, play jazz music in the kitchen"*
-
-### Remote Control
-
-Send navigation commands to Emby clients:
-
-```yaml
-service: remote.send_command
-target:
-  entity_id: remote.emby_living_room_tv
-data:
-  command: Select  # or: MoveUp, MoveDown, Back, GoHome
-```
-
-### Notifications
-
-Display messages on Emby client screens:
-
-```yaml
-service: notify.send_message
-target:
-  entity_id: notify.emby_living_room_tv
-data:
-  title: "Dinner Time!"
-  message: "Food is ready 🍕"
-```
-
-## 🤖 Automation Examples
-
-<details>
-<summary><b>🌙 Dim lights when movie starts</b></summary>
+### Dim Lights for Movie Night
 
 ```yaml
 automation:
-  - alias: "Dim lights for movies"
+  - alias: "Movie mode lighting"
     trigger:
       - platform: state
         entity_id: media_player.emby_living_room_tv
         to: "playing"
     condition:
       - condition: template
-        value_template: "{{ state_attr('media_player.emby_living_room_tv', 'media_content_type') == 'movie' }}"
+        value_template: "{{ state_attr(trigger.entity_id, 'media_content_type') == 'movie' }}"
     action:
       - service: light.turn_on
         target:
@@ -208,10 +226,8 @@ automation:
           brightness_pct: 10
           transition: 3
 ```
-</details>
 
-<details>
-<summary><b>🔔 Pause media when doorbell rings</b></summary>
+### Pause When Doorbell Rings
 
 ```yaml
 automation:
@@ -228,414 +244,345 @@ automation:
         target:
           entity_id: notify.emby_living_room_tv
         data:
-          title: "Doorbell"
-          message: "Someone is at the door"
+          message: "Someone's at the door! 🚪"
 ```
-</details>
 
-<details>
-<summary><b>📺 Send TV notification when laundry is done</b></summary>
+### Nightly Library Refresh
 
 ```yaml
 automation:
-  - alias: "Laundry notification"
-    trigger:
-      - platform: state
-        entity_id: sensor.washer_status
-        to: "complete"
-    action:
-      - service: notify.send_message
-        target:
-          entity_id: notify.emby_living_room_tv
-        data:
-          title: "Laundry"
-          message: "Washing machine is done!"
-```
-</details>
-
-<details>
-<summary><b>⏰ Nightly library refresh</b></summary>
-
-```yaml
-automation:
-  - alias: "Refresh Emby library at 3am"
+  - alias: "Refresh library at 3am"
     trigger:
       - platform: time
         at: "03:00:00"
     action:
       - service: button.press
         target:
-          entity_id: button.emby_server_refresh_library
+          entity_id: button.emby_server_run_library_scan
 ```
-</details>
 
-See [docs/AUTOMATIONS.md](docs/AUTOMATIONS.md) for more examples.
+<p align="center">
+  <strong><a href="docs/AUTOMATIONS.md">📖 50+ More Automation Examples →</a></strong>
+</p>
 
-## 📊 Server & Library Sensors
+---
 
-The integration provides sensors to monitor your Emby server:
+## 📊 Server Monitoring
 
-### Binary Sensors
+Get visibility into your Emby server with built-in sensors:
 
-| Sensor | Description |
-|--------|-------------|
-| `binary_sensor.{server}_connected` | Server connectivity status |
-| `binary_sensor.{server}_pending_restart` | Server needs restart |
-| `binary_sensor.{server}_update_available` | Server update available |
-| `binary_sensor.{server}_library_scan_active` | Library scan in progress (with progress % attribute) |
+### Server Health
+| Sensor | What it shows |
+|--------|---------------|
+| `binary_sensor.*_connected` | Is server reachable? |
+| `binary_sensor.*_pending_restart` | Restart required? |
+| `binary_sensor.*_update_available` | Update available? |
+| `binary_sensor.*_library_scan_active` | Scan in progress? (with % progress) |
 
-### Numeric Sensors
+### Library Statistics
+| Sensor | What it shows |
+|--------|---------------|
+| `sensor.*_movies` | Total movie count |
+| `sensor.*_tv_shows` | Total series count |
+| `sensor.*_episodes` | Total episode count |
+| `sensor.*_songs` | Total song count |
+| `sensor.*_albums` | Total album count |
+| `sensor.*_artists` | Total artist count |
 
-| Sensor | Description |
-|--------|-------------|
-| `sensor.{server}_server_version` | Current server version |
-| `sensor.{server}_running_tasks` | Number of running scheduled tasks |
-| `sensor.{server}_active_sessions` | Number of connected clients |
-| `sensor.{server}_plugins` | Installed plugin count (with plugin list in attributes) |
-| `sensor.{server}_connected_devices` | Registered device count |
-| `sensor.{server}_last_activity` | Most recent server activity |
-| `sensor.{server}_movies` | Total movies in library |
-| `sensor.{server}_tv_shows` | Total TV series in library |
-| `sensor.{server}_episodes` | Total episodes in library |
-| `sensor.{server}_songs` | Total songs in library |
-| `sensor.{server}_albums` | Total albums in library |
-| `sensor.{server}_artists` | Total artists in library |
+### Activity
+| Sensor | What it shows |
+|--------|---------------|
+| `sensor.*_active_sessions` | Connected clients |
+| `sensor.*_running_tasks` | Background tasks |
+| `sensor.*_plugins` | Installed plugins (with list) |
+| `sensor.*_last_activity` | Recent server activity |
 
-<details>
-<summary><b>📈 Sensor-based automation example</b></summary>
-
-```yaml
-automation:
-  - alias: "Alert when library scan completes"
-    trigger:
-      - platform: state
-        entity_id: binary_sensor.media_library_scan_active
-        from: "on"
-        to: "off"
-    action:
-      - service: notify.mobile_app
-        data:
-          title: "Emby"
-          message: "Library scan completed!"
-```
-</details>
+---
 
 ## 📺 Live TV & DVR
 
-The integration provides comprehensive Live TV support for Emby servers with Live TV configured.
+Full Live TV support for Emby servers with tuners configured:
 
-### Live TV Sensors
-
-| Sensor | Description |
-|--------|-------------|
-| `binary_sensor.{server}_live_tv_enabled` | Live TV enabled status (attributes: `tuner_count`, `active_recordings`) |
-| `sensor.{server}_recordings` | Total recordings count |
-| `sensor.{server}_active_recordings` | Currently recording count |
-| `sensor.{server}_scheduled_recordings` | Upcoming scheduled recordings |
-| `sensor.{server}_series_recording_rules` | Active series timer count |
-
-### Recording Management Services
-
-#### Schedule a Recording
-
-Schedule a one-time recording of a program:
+| Feature | Description |
+|---------|-------------|
+| **Browse Channels** | Navigate Live TV channels in media browser |
+| **Recording Sensors** | Track recordings, active recordings, scheduled timers |
+| **Schedule Recordings** | `embymedia.schedule_recording` service |
+| **Cancel Recordings** | `embymedia.cancel_recording` service |
+| **Series Timers** | Manage series recording rules |
 
 ```yaml
+# Schedule a recording
 service: embymedia.schedule_recording
 target:
   entity_id: media_player.emby_living_room_tv
 data:
   program_id: "142098"
-  pre_padding_seconds: 60   # Start 1 minute early (optional)
-  post_padding_seconds: 120 # End 2 minutes late (optional)
+  pre_padding_seconds: 60
+  post_padding_seconds: 120
 ```
 
-#### Cancel a Recording
+---
 
-Cancel a scheduled recording timer:
+## 🔧 All the Services
 
-```yaml
-service: embymedia.cancel_recording
-target:
-  entity_id: media_player.emby_living_room_tv
-data:
-  timer_id: "abc123def456"
-```
+### Playback Control
+Standard `media_player.*` services work as expected: play, pause, stop, seek, volume, next/previous track.
 
-#### Cancel a Series Timer
+### Emby-Specific Services
 
-Cancel a series recording rule (stops all future recordings):
+| Service | What it does |
+|---------|--------------|
+| `embymedia.send_message` | Display message on client screen |
+| `embymedia.send_command` | Send navigation commands (Up, Down, Select, Back, Home) |
+| `embymedia.mark_played` | Mark item as watched |
+| `embymedia.mark_unplayed` | Mark item as unwatched |
+| `embymedia.add_favorite` | Add to favorites |
+| `embymedia.remove_favorite` | Remove from favorites |
+| `embymedia.refresh_library` | Trigger library scan |
+| `embymedia.play_instant_mix` | Start radio-style mix from any song/album/artist |
+| `embymedia.play_similar` | Play similar content |
+| `embymedia.clear_queue` | Clear playback queue |
 
-```yaml
-service: embymedia.cancel_series_timer
-target:
-  entity_id: media_player.emby_living_room_tv
-data:
-  series_timer_id: "series123"
-```
+### Playlist Management
 
-<details>
-<summary><b>📺 Live TV automation example</b></summary>
+| Service | What it does |
+|---------|--------------|
+| `embymedia.create_playlist` | Create new Audio or Video playlist |
+| `embymedia.add_to_playlist` | Add items to playlist |
+| `embymedia.remove_from_playlist` | Remove items from playlist |
 
-```yaml
-automation:
-  - alias: "Notify when recording starts"
-    trigger:
-      - platform: numeric_state
-        entity_id: sensor.media_active_recordings
-        above: 0
-    action:
-      - service: notify.mobile_app
-        data:
-          title: "Emby Recording"
-          message: "A recording has started"
-```
-</details>
+### Collection Management
 
-## 🎵 Playlist Management
+| Service | What it does |
+|---------|--------------|
+| `embymedia.create_collection` | Create a new collection |
+| `embymedia.add_to_collection` | Add items to collection |
+| `embymedia.remove_from_collection` | Remove items from collection |
 
-Create and manage Emby playlists directly from Home Assistant.
+### Live TV & DVR
 
-### Create a Playlist
+| Service | What it does |
+|---------|--------------|
+| `embymedia.schedule_recording` | Schedule a one-time recording |
+| `embymedia.cancel_recording` | Cancel a scheduled recording |
+| `embymedia.cancel_series_timer` | Cancel a series recording rule |
 
-```yaml
-service: embymedia.create_playlist
-target:
-  entity_id: media_player.emby_living_room_tv
-data:
-  name: "Road Trip Mix"
-  media_type: "Audio"
-  user_id: "your_user_id"
-  item_ids:  # Optional - initial items
-    - "abc123"
-    - "def456"
-```
+### Server Administration
 
-### Add Items to Playlist
+| Service | What it does |
+|---------|--------------|
+| `embymedia.run_scheduled_task` | Run any scheduled task |
+| `embymedia.restart_server` | Restart Emby server ⚠️ |
+| `embymedia.shutdown_server` | Shutdown Emby server ⚠️ |
 
-```yaml
-service: embymedia.add_to_playlist
-target:
-  entity_id: media_player.emby_living_room_tv
-data:
-  playlist_id: "playlist123"
-  item_ids:
-    - "ghi789"
-    - "jkl012"
-  user_id: "your_user_id"
-```
+<p align="center">
+  <strong><a href="docs/SERVICES.md">📖 Complete Services Reference →</a></strong>
+</p>
 
-### Remove Items from Playlist
+---
 
-> **Important:** Use `playlist_item_ids` (NOT media item IDs). Get these from the playlist when browsing.
+## 🎵 Media Browsing
 
-```yaml
-service: embymedia.remove_from_playlist
-target:
-  entity_id: media_player.emby_living_room_tv
-data:
-  playlist_id: "playlist123"
-  playlist_item_ids:
-    - "1"
-    - "2"
-```
+Browse your entire library from Home Assistant:
 
-### Playlist Sensor
+| Library | Browse Options |
+|---------|---------------|
+| **Movies** | A-Z, Year, Decade, Genre, Studio, Collections, People, Tags |
+| **TV Shows** | A-Z, Year, Decade, Genre, Studio → Series → Season → Episode |
+| **Music** | Artists, Albums, Genres, Playlists (all with A-Z filtering) |
+| **Live TV** | Channel listing |
+| **Playlists** | All user playlists |
+| **Collections** | All collections |
 
-When a user is configured, a playlist count sensor is available:
+### Cast Emby Content Anywhere
 
-- `sensor.{server}_playlists` - Total playlists count
+The **Media Source** provider lets you play Emby content on ANY Home Assistant media player:
 
-**Notes:**
-- Playlists can contain either Audio OR Video items, not mixed
-- Playlists are user-specific - each user has their own playlists
+- 📺 Cast to Chromecast
+- 🔊 Stream to Sonos
+- 🎵 Play on Google/Nest speakers
+- 📻 Send to any media_player entity
 
-## 📦 Collection Management
-
-Create and manage Emby collections (BoxSets) to organize your media.
-
-### Create a Collection
-
-```yaml
-service: embymedia.create_collection
-target:
-  entity_id: media_player.emby_living_room_tv
-data:
-  collection_name: "Marvel Movies"
-  item_ids:  # Optional - initial items
-    - "abc123"
-    - "def456"
-```
-
-### Add Items to Collection
-
-```yaml
-service: embymedia.add_to_collection
-target:
-  entity_id: media_player.emby_living_room_tv
-data:
-  collection_id: "collection123"
-  item_ids:
-    - "ghi789"
-    - "jkl012"
-```
-
-### Collection Sensor
-
-When a user is configured, a collection count sensor is available:
-
-- `sensor.{server}_collections` - Total collections count
-
-## 🔧 Server Administration
-
-Control your Emby server directly from Home Assistant.
-
-### Run Scheduled Tasks
-
-Trigger any Emby scheduled task on demand:
-
-```yaml
-service: embymedia.run_scheduled_task
-data:
-  task_id: "6330ee8fb4a957f33981f89aa78b030f"  # Get from server coordinator attributes
-```
-
-### Library Scan Button
-
-A button entity is automatically created for quick library scans:
-
-- `button.{server}_run_library_scan` - Press to trigger a full library scan
-
-### Server Control
-
-⚠️ **Use with caution** - requires administrator privileges:
-
-```yaml
-# Restart Emby server
-service: embymedia.restart_server
-target:
-  entity_id: media_player.emby_living_room_tv
-
-# Shutdown Emby server
-service: embymedia.shutdown_server
-target:
-  entity_id: media_player.emby_living_room_tv
-```
-
-<details>
-<summary><b>🔄 Automation: Restart server weekly</b></summary>
-
-```yaml
-automation:
-  - alias: "Weekly Emby restart"
-    trigger:
-      - platform: time
-        at: "04:00:00"
-    condition:
-      - condition: time
-        weekday:
-          - sun
-    action:
-      - service: embymedia.restart_server
-        target:
-          entity_id: media_player.emby_living_room_tv
-```
-</details>
-
-## ⚙️ Advanced Options
-
-Configure in **Settings** → **Devices & Services** → **Emby Media** → **Configure**:
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| Scan Interval | 10s | Polling frequency (5-300 seconds) |
-| Enable WebSocket | ✓ | Real-time updates (recommended) |
-| Ignored Devices | — | Hide specific clients (comma-separated) |
-| Ignore Web Players | ✗ | Hide browser-based players |
-| Direct Play | ✓ | Try direct play before transcoding |
-| Video Container | mp4 | Transcode format (mp4, mkv, webm) |
+---
 
 ## 🐛 Troubleshooting
 
-### Common Issues
-
 <details>
-<summary><b>❌ Connection Failed</b></summary>
+<summary><strong>❌ Connection Failed</strong></summary>
 
-1. **Verify Emby is running**: Open `http://your-server:8096` in a browser
-2. **Check firewall**: Ensure port 8096 (or your port) is open
-3. **Try IP instead of hostname**: Use `192.168.1.x` instead of `emby.local`
-4. **For HTTPS**: Try disabling "Verify SSL" if using self-signed certificates
+1. Verify Emby is running: Open `http://your-server:8096` in browser
+2. Check firewall allows the port
+3. Try IP address instead of hostname
+4. For HTTPS: Try disabling "Verify SSL"
 
 </details>
 
 <details>
-<summary><b>🔑 Invalid API Key</b></summary>
+<summary><strong>🔑 Invalid API Key</strong></summary>
 
 1. Generate a **new** API key in Emby Dashboard
-2. Ensure no extra spaces when copying
-3. Check the key hasn't been revoked
+2. Check for extra spaces when pasting
+3. Verify key hasn't been revoked
 
 </details>
 
 <details>
-<summary><b>👻 No Entities Appearing</b></summary>
+<summary><strong>👻 No Entities Appearing</strong></summary>
 
-1. Ensure an Emby client is **actively connected** (open Emby on a device)
-2. Check if the device supports **remote control** (not all clients do)
-3. Verify the device isn't in the **Ignored Devices** list
+1. Ensure an Emby client is **actively connected**
+2. Verify device supports remote control
+3. Check device isn't in "Ignored Devices" list
 4. Check Home Assistant logs for errors
 
 </details>
 
 <details>
-<summary><b>⚡ WebSocket Keeps Disconnecting</b></summary>
+<summary><strong>⚡ WebSocket Disconnecting</strong></summary>
 
-1. Check network stability between HA and Emby
-2. Try disabling WebSocket in options (uses polling instead)
-3. Ensure no proxy is interfering with WebSocket connections
+1. Check network stability
+2. Try disabling WebSocket (falls back to polling)
+3. Ensure no proxy is blocking WebSocket
 
 </details>
 
-### Getting Diagnostics
+### Get Diagnostics
 
-1. Go to **Settings** → **Devices & Services**
-2. Find **Emby Media** and click the three dots (⋮)
-3. Click **Download Diagnostics**
-4. Share the downloaded file when reporting issues (API keys are automatically redacted)
+1. **Settings** → **Devices & Services**
+2. Find **Emby Media** → Click ⋮ → **Download Diagnostics**
 
-### Need Help?
+Share the file when reporting issues (API keys are auto-redacted).
 
-- 📖 [Full Troubleshooting Guide](docs/TROUBLESHOOTING.md)
-- 🐛 [Report a Bug](https://github.com/troykelly/homeassistant-emby/issues/new?template=bug_report.md)
-- 💡 [Request a Feature](https://github.com/troykelly/homeassistant-emby/issues/new?template=feature_request.md)
+<p align="center">
+  <strong><a href="docs/TROUBLESHOOTING.md">📖 Full Troubleshooting Guide →</a></strong>
+</p>
+
+---
+
+## ⚙️ Advanced Configuration
+
+### Options (Settings → Devices & Services → Emby Media → Configure)
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| **Scan Interval** | 10s | Polling frequency (5-300s) |
+| **WebSocket** | ✓ | Real-time updates |
+| **Ignored Devices** | — | Hide specific clients |
+| **Ignore Web Players** | ✗ | Hide browser sessions |
+| **Direct Play** | ✓ | Try direct play first |
+| **Video Container** | mp4 | Transcode format |
+| **Prefix entities with "Emby"** | ✓ | Per-entity-type toggles |
+
+### YAML Configuration (Optional)
+
+For those who prefer YAML, basic connection settings can be imported:
+
+```yaml
+embymedia:
+  host: emby.local
+  api_key: !secret emby_api_key
+```
+
+> Advanced options are configured through the UI after initial setup.
+
+<p align="center">
+  <strong><a href="docs/CONFIGURATION.md">📖 Full Configuration Reference →</a></strong>
+</p>
+
+---
+
+## 👩‍💻 For Developers
+
+### Entity Structure
+
+Each Emby client creates multiple entities:
+
+| Platform | Entity | Purpose |
+|----------|--------|---------|
+| `media_player` | `media_player.emby_*` | Playback control |
+| `remote` | `remote.emby_*` | Navigation commands |
+| `notify` | `notify.emby_*` | On-screen messages |
+| `button` | `button.emby_*` | Server actions |
+| `sensor` | `sensor.emby_*` | Server stats |
+| `binary_sensor` | `binary_sensor.emby_*` | Server status |
+| `image` | `image.emby_*` | Discovery cover art |
+
+### Device Triggers
+
+Available for automations:
+
+- `playback_started` / `playback_stopped`
+- `playback_paused` / `playback_resumed`
+- `media_changed`
+- `session_connected` / `session_disconnected`
+
+### WebSocket Events
+
+The integration fires custom events:
+
+| Event | When |
+|-------|------|
+| `embymedia_library_updated` | Items added/removed/changed |
+| `embymedia_user_data_changed` | Favorites, watched status, ratings |
+| `embymedia_notification` | Server notifications |
+| `embymedia_user_changed` | User account changes |
+
+### Contributing
+
+We welcome contributions! The project uses:
+
+- **Python 3.13+**
+- **Strict TDD** (100% test coverage required)
+- **Strict typing** (no `Any` types)
+- **mypy** + **ruff** for code quality
+
+```bash
+# Clone and setup
+git clone https://github.com/troykelly/homeassistant-emby.git
+cd homeassistant-emby
+pip install -r requirements_test.txt
+
+# Run tests
+pytest tests/ --cov=custom_components.embymedia
+
+# Type check
+mypy custom_components/embymedia/
+```
+
+<p align="center">
+  <strong><a href="CONTRIBUTING.md">📖 Contributing Guide →</a></strong>
+</p>
+
+---
 
 ## 📚 Documentation
 
 | Document | Description |
 |----------|-------------|
-| [Installation Guide](docs/INSTALLATION.md) | Detailed setup instructions |
-| [Configuration Reference](docs/CONFIGURATION.md) | All options explained |
-| [Automation Examples](docs/AUTOMATIONS.md) | Ready-to-use automations |
-| [Troubleshooting](docs/TROUBLESHOOTING.md) | Common issues and solutions |
-| [Services Reference](docs/SERVICES.md) | Available service calls |
-| [Changelog](CHANGELOG.md) | Version history |
+| **[Installation](docs/INSTALLATION.md)** | Detailed setup instructions |
+| **[Configuration](docs/CONFIGURATION.md)** | All options explained |
+| **[Services](docs/SERVICES.md)** | Complete service reference |
+| **[Automations](docs/AUTOMATIONS.md)** | 50+ ready-to-use examples |
+| **[Troubleshooting](docs/TROUBLESHOOTING.md)** | Common issues & solutions |
+| **[Changelog](CHANGELOG.md)** | Version history |
+| **[Contributing](CONTRIBUTING.md)** | Development guidelines |
 
-## 🤝 Contributing
-
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## 📄 License
-
-This project is licensed under the MIT License - see [LICENSE](LICENSE) file.
+---
 
 ## 🙏 Acknowledgments
 
-- [Home Assistant](https://www.home-assistant.io/) - The amazing smart home platform
-- [Emby](https://emby.media/) - Media server software
-- [pyEmby](https://github.com/mezz64/pyEmby) - Reference implementation
+- [Home Assistant](https://www.home-assistant.io/) — The incredible smart home platform
+- [Emby](https://emby.media/) — Media server software
+- The Home Assistant community for feedback and testing
 
 ---
+
+<p align="center">
+  <strong>Questions? Issues? Ideas?</strong><br>
+  <a href="https://github.com/troykelly/homeassistant-emby/issues/new?template=bug_report.md">🐛 Report Bug</a> ·
+  <a href="https://github.com/troykelly/homeassistant-emby/issues/new?template=feature_request.md">💡 Request Feature</a> ·
+  <a href="https://github.com/troykelly/homeassistant-emby/discussions">💬 Discussions</a>
+</p>
 
 <p align="center">
   Made with ❤️ for the Home Assistant community
