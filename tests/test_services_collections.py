@@ -414,3 +414,433 @@ class TestRemoveFromCollectionService:
                     collection_id="collection-123",
                     item_ids=["item-1", "item-2"],
                 )
+
+
+class TestCollectionServicesConnectionErrors:
+    """Tests for collection services connection error handling."""
+
+    @pytest.mark.asyncio
+    async def test_create_collection_connection_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test create_collection service handles connection errors."""
+        from homeassistant.exceptions import HomeAssistantError
+
+        from custom_components.embymedia.exceptions import EmbyConnectionError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-1",
+                    }
+                ]
+            )
+            client.async_create_collection = AsyncMock(
+                side_effect=EmbyConnectionError("Connection refused")
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+                with pytest.raises(HomeAssistantError) as exc_info:
+                    await hass.services.async_call(
+                        DOMAIN,
+                        "create_collection",
+                        {
+                            ATTR_ENTITY_ID: "media_player.emby_test_device",
+                            "collection_name": "Test Collection",
+                        },
+                        blocking=True,
+                    )
+
+                assert "Connection error" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_add_to_collection_connection_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test add_to_collection service handles connection errors."""
+        from homeassistant.exceptions import HomeAssistantError
+
+        from custom_components.embymedia.exceptions import EmbyConnectionError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-1",
+                    }
+                ]
+            )
+            client.async_add_to_collection = AsyncMock(
+                side_effect=EmbyConnectionError("Connection timeout")
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+                with pytest.raises(HomeAssistantError) as exc_info:
+                    await hass.services.async_call(
+                        DOMAIN,
+                        "add_to_collection",
+                        {
+                            ATTR_ENTITY_ID: "media_player.emby_test_device",
+                            "collection_id": "collection-123",
+                            "item_ids": ["item-1"],
+                        },
+                        blocking=True,
+                    )
+
+                assert "Connection error" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_remove_from_collection_connection_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test remove_from_collection service handles connection errors."""
+        from homeassistant.exceptions import HomeAssistantError
+
+        from custom_components.embymedia.exceptions import EmbyConnectionError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-1",
+                    }
+                ]
+            )
+            client.async_remove_from_collection = AsyncMock(
+                side_effect=EmbyConnectionError("Server unreachable")
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+                with pytest.raises(HomeAssistantError) as exc_info:
+                    await hass.services.async_call(
+                        DOMAIN,
+                        "remove_from_collection",
+                        {
+                            ATTR_ENTITY_ID: "media_player.emby_test_device",
+                            "collection_id": "collection-123",
+                            "item_ids": ["item-1"],
+                        },
+                        blocking=True,
+                    )
+
+                assert "Connection error" in str(exc_info.value)
+
+
+class TestCollectionServicesEmbyErrors:
+    """Tests for collection services EmbyError handling."""
+
+    @pytest.mark.asyncio
+    async def test_create_collection_emby_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test create_collection service handles EmbyError."""
+        from homeassistant.exceptions import HomeAssistantError
+
+        from custom_components.embymedia.exceptions import EmbyError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-1",
+                    }
+                ]
+            )
+            client.async_create_collection = AsyncMock(
+                side_effect=EmbyError("Collection already exists")
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+                with pytest.raises(HomeAssistantError) as exc_info:
+                    await hass.services.async_call(
+                        DOMAIN,
+                        "create_collection",
+                        {
+                            ATTR_ENTITY_ID: "media_player.emby_test_device",
+                            "collection_name": "Test Collection",
+                        },
+                        blocking=True,
+                    )
+
+                assert "Collection already exists" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_add_to_collection_emby_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test add_to_collection service handles EmbyError."""
+        from homeassistant.exceptions import HomeAssistantError
+
+        from custom_components.embymedia.exceptions import EmbyError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-1",
+                    }
+                ]
+            )
+            client.async_add_to_collection = AsyncMock(side_effect=EmbyError("Item not found"))
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+                with pytest.raises(HomeAssistantError) as exc_info:
+                    await hass.services.async_call(
+                        DOMAIN,
+                        "add_to_collection",
+                        {
+                            ATTR_ENTITY_ID: "media_player.emby_test_device",
+                            "collection_id": "collection-123",
+                            "item_ids": ["item-1"],
+                        },
+                        blocking=True,
+                    )
+
+                assert "Item not found" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_remove_from_collection_emby_error(
+        self,
+        hass: HomeAssistant,
+    ) -> None:
+        """Test remove_from_collection service handles EmbyError."""
+        from homeassistant.exceptions import HomeAssistantError
+
+        from custom_components.embymedia.exceptions import EmbyError
+
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_HOST: "emby.local",
+                CONF_PORT: 8096,
+                CONF_SSL: False,
+                CONF_API_KEY: "test-api-key",
+                CONF_VERIFY_SSL: True,
+            },
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(
+                return_value=[
+                    {
+                        "Id": "session-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Emby Web",
+                        "SupportsRemoteControl": True,
+                        "UserId": "user-1",
+                    }
+                ]
+            )
+            client.async_remove_from_collection = AsyncMock(
+                side_effect=EmbyError("Permission denied")
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_entry.entry_id)
+                await hass.async_block_till_done()
+
+                with pytest.raises(HomeAssistantError) as exc_info:
+                    await hass.services.async_call(
+                        DOMAIN,
+                        "remove_from_collection",
+                        {
+                            ATTR_ENTITY_ID: "media_player.emby_test_device",
+                            "collection_id": "collection-123",
+                            "item_ids": ["item-1"],
+                        },
+                        blocking=True,
+                    )
+
+                assert "Permission denied" in str(exc_info.value)
