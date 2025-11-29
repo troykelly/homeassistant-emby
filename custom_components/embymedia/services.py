@@ -47,6 +47,8 @@ SERVICE_REMOVE_FROM_COLLECTION = "remove_from_collection"
 SERVICE_RUN_SCHEDULED_TASK = "run_scheduled_task"
 SERVICE_RESTART_SERVER = "restart_server"
 SERVICE_SHUTDOWN_SERVER = "shutdown_server"
+# Queue management services (Phase 14)
+SERVICE_CLEAR_QUEUE = "clear_queue"
 
 # Service attributes
 ATTR_MESSAGE = "message"
@@ -222,6 +224,14 @@ RUN_SCHEDULED_TASK_SCHEMA = vol.Schema(
 RESTART_SERVER_SCHEMA = vol.Schema({})
 
 SHUTDOWN_SERVER_SCHEMA = vol.Schema({})
+
+# Queue management service schemas (Phase 14)
+CLEAR_QUEUE_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_ids,
+        vol.Optional(ATTR_DEVICE_ID): vol.All(cv.ensure_list, [cv.string]),
+    }
+)
 
 
 def _validate_emby_id(id_value: str, id_name: str) -> None:
@@ -957,6 +967,31 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         except EmbyError as err:
             raise HomeAssistantError(f"Failed to shutdown server: {err}") from err
 
+    async def async_clear_queue(call: ServiceCall) -> None:
+        """Clear the playback queue for an Emby session.
+
+        This stops playback and clears the current queue.
+        """
+        entity_ids = _get_entity_ids_from_call(hass, call)
+
+        for entity_id in entity_ids:
+            coordinator = _get_coordinator_for_entity(hass, entity_id)
+            session_id = _get_session_id_for_entity(hass, entity_id, coordinator)
+
+            if session_id is None:
+                raise HomeAssistantError(
+                    f"Session not found for {entity_id}. The device may be offline."
+                )
+
+            try:
+                await coordinator.client.async_stop_playback(session_id)
+            except EmbyConnectionError as err:
+                raise HomeAssistantError(
+                    f"Failed to clear queue for {entity_id}: Connection error"
+                ) from err
+            except EmbyError as err:
+                raise HomeAssistantError(f"Failed to clear queue for {entity_id}: {err}") from err
+
     # Register services
     hass.services.async_register(
         DOMAIN,
@@ -1088,6 +1123,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         async_shutdown_server,
         schema=SHUTDOWN_SERVER_SCHEMA,
     )
+    # Queue management services (Phase 14)
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CLEAR_QUEUE,
+        async_clear_queue,
+        schema=CLEAR_QUEUE_SCHEMA,
+    )
 
     _LOGGER.debug("Emby services registered")
 
@@ -1126,6 +1168,8 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_RUN_SCHEDULED_TASK)
     hass.services.async_remove(DOMAIN, SERVICE_RESTART_SERVER)
     hass.services.async_remove(DOMAIN, SERVICE_SHUTDOWN_SERVER)
+    # Queue management services (Phase 14)
+    hass.services.async_remove(DOMAIN, SERVICE_CLEAR_QUEUE)
 
     _LOGGER.debug("Emby services unregistered")
 

@@ -475,6 +475,33 @@ script:
           item_id: "{{ movie_id }}"
 ```
 
+### embymedia.clear_queue
+
+Clear the playback queue and stop playback on an Emby client.
+
+```yaml
+service: embymedia.clear_queue
+target:
+  entity_id: media_player.living_room_tv
+```
+
+This service stops the current playback and clears the queue. Useful for resetting a player to idle state.
+
+**Example Automation:**
+
+```yaml
+automation:
+  - alias: "Clear queue when leaving home"
+    trigger:
+      - platform: state
+        entity_id: person.john
+        from: "home"
+    action:
+      - service: embymedia.clear_queue
+        target:
+          entity_id: media_player.living_room_tv
+```
+
 ### embymedia.create_playlist
 
 Create a new playlist on the Emby server.

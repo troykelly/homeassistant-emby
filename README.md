@@ -28,6 +28,9 @@ A modern Home Assistant integration for [Emby Media Server](https://emby.media/)
 | **📊 Server Sensors** | Monitor server status, library counts, plugins, and activity |
 | **📡 Live TV & DVR** | Schedule recordings, manage timers, monitor DVR status |
 | **🔧 Server Admin** | Run scheduled tasks, restart/shutdown server, library scan button |
+| **🎵 Instant Mix** | Create radio-style playlists from any song, album, or artist |
+| **🔗 Similar Items** | Discover related content with similar_items attribute |
+| **📋 Queue Management** | View queue position/size, clear queue service |
 
 ## 📋 Requirements
 
