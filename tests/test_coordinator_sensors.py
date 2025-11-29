@@ -453,3 +453,152 @@ class TestCoordinatorErrorHandling:
 
         with pytest.raises(UpdateFailed, match="Error fetching library data"):
             await coordinator._async_update_data()
+
+
+class TestCoordinatorParallelExecution:
+    """Test that coordinators use asyncio.gather for parallel API calls."""
+
+    async def test_server_coordinator_parallel_api_calls(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test that ServerCoordinator API calls run in parallel.
+
+        The server coordinator makes independent API calls that should run in parallel.
+        If they ran sequentially at 50ms each, it would take ~250ms.
+        In parallel, they should complete in ~50ms (plus overhead).
+        """
+        import asyncio
+        import time
+
+        from custom_components.embymedia.coordinator_sensors import EmbyServerCoordinator
+
+        delay_seconds = 0.05  # 50ms per call
+
+        async def slow_server_info(*args: object, **kwargs: object) -> dict[str, object]:
+            await asyncio.sleep(delay_seconds)
+            return {
+                "Id": "test",
+                "ServerName": "Test",
+                "Version": "1.0.0",
+                "HasPendingRestart": False,
+                "HasUpdateAvailable": False,
+            }
+
+        async def slow_tasks(*args: object, **kwargs: object) -> list[object]:
+            await asyncio.sleep(delay_seconds)
+            return []
+
+        async def slow_live_tv(*args: object, **kwargs: object) -> dict[str, object]:
+            await asyncio.sleep(delay_seconds)
+            return {"IsEnabled": False}
+
+        async def slow_activity(*args: object, **kwargs: object) -> dict[str, object]:
+            await asyncio.sleep(delay_seconds)
+            return {"Items": [], "TotalRecordCount": 0}
+
+        async def slow_devices(*args: object, **kwargs: object) -> dict[str, object]:
+            await asyncio.sleep(delay_seconds)
+            return {"Items": []}
+
+        async def slow_plugins(*args: object, **kwargs: object) -> list[object]:
+            await asyncio.sleep(delay_seconds)
+            return []
+
+        mock_client = MagicMock()
+        mock_client.async_get_server_info = AsyncMock(side_effect=slow_server_info)
+        mock_client.async_get_scheduled_tasks = AsyncMock(side_effect=slow_tasks)
+        mock_client.async_get_live_tv_info = AsyncMock(side_effect=slow_live_tv)
+        mock_client.async_get_activity_log = AsyncMock(side_effect=slow_activity)
+        mock_client.async_get_devices = AsyncMock(side_effect=slow_devices)
+        mock_client.async_get_plugins = AsyncMock(side_effect=slow_plugins)
+
+        coordinator = EmbyServerCoordinator(
+            hass=hass,
+            client=mock_client,
+            server_id="test-server-id",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        start = time.time()
+        await coordinator._async_update_data()
+        elapsed = time.time() - start
+
+        # 6 calls at 50ms each:
+        # Sequential: 300ms minimum
+        # Parallel: ~50ms (plus overhead)
+        assert elapsed < 0.2, (
+            f"API calls took {elapsed:.3f}s - " f"should be < 0.2s if running in parallel"
+        )
+
+    async def test_library_coordinator_parallel_api_calls(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test that LibraryCoordinator API calls run in parallel.
+
+        The library coordinator makes independent API calls that should run in parallel.
+        With a user_id, it makes 7 calls total. Sequential would take 350ms at 50ms each.
+        """
+        import asyncio
+        import time
+
+        from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
+
+        delay_seconds = 0.05  # 50ms per call
+
+        async def slow_counts(*args: object, **kwargs: object) -> dict[str, int]:
+            await asyncio.sleep(delay_seconds)
+            return {
+                "MovieCount": 100,
+                "SeriesCount": 50,
+                "EpisodeCount": 500,
+                "ArtistCount": 25,
+                "AlbumCount": 75,
+                "SongCount": 1000,
+            }
+
+        async def slow_folders(*args: object, **kwargs: object) -> list[object]:
+            await asyncio.sleep(delay_seconds)
+            return []
+
+        async def slow_user_count(*args: object, **kwargs: object) -> int:
+            await asyncio.sleep(delay_seconds)
+            return 0
+
+        async def slow_playlists(*args: object, **kwargs: object) -> list[object]:
+            await asyncio.sleep(delay_seconds)
+            return []
+
+        async def slow_collections(*args: object, **kwargs: object) -> list[object]:
+            await asyncio.sleep(delay_seconds)
+            return []
+
+        mock_client = MagicMock()
+        mock_client.async_get_item_counts = AsyncMock(side_effect=slow_counts)
+        mock_client.async_get_virtual_folders = AsyncMock(side_effect=slow_folders)
+        mock_client.async_get_user_item_count = AsyncMock(side_effect=slow_user_count)
+        mock_client.async_get_playlists = AsyncMock(side_effect=slow_playlists)
+        mock_client.async_get_collections = AsyncMock(side_effect=slow_collections)
+
+        coordinator = EmbyLibraryCoordinator(
+            hass=hass,
+            client=mock_client,
+            server_id="test-server-id",
+            config_entry=mock_config_entry,
+            user_id="test-user-id",
+        )
+
+        start = time.time()
+        await coordinator._async_update_data()
+        elapsed = time.time() - start
+
+        # 7 calls at 50ms each (counts, folders, 3x user_count, playlists, collections):
+        # Sequential: 350ms minimum
+        # Parallel: ~50ms (plus overhead)
+        assert elapsed < 0.2, (
+            f"API calls took {elapsed:.3f}s - " f"should be < 0.2s if running in parallel"
+        )
