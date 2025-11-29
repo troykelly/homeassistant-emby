@@ -113,20 +113,31 @@ class TestImageProxyGet:
         """Test that GET request proxies to Emby server."""
         mock_config_entry.add_to_hass(hass)
 
-        # Mock the aiohttp ClientSession response
+        # Mock the aiohttp ClientSession response with streaming
         mock_response = MagicMock()
         mock_response.status = HTTPStatus.OK
         mock_response.headers = {"Content-Type": "image/jpeg"}
-        mock_response.read = AsyncMock(return_value=b"fake image data")
+
+        # Mock iter_chunked for streaming
+        async def mock_iter_chunked(chunk_size: int) -> AsyncMock:
+            yield b"fake image data"
+
+        mock_response.content = MagicMock()
+        mock_response.content.iter_chunked = mock_iter_chunked
 
         mock_session = MagicMock()
         mock_session.get = MagicMock(return_value=AsyncMock())
         mock_session.get.return_value.__aenter__ = AsyncMock(return_value=mock_response)
         mock_session.get.return_value.__aexit__ = AsyncMock(return_value=None)
 
-        with patch(
-            "custom_components.embymedia.image_proxy.async_get_clientsession",
-            return_value=mock_session,
+        with (
+            patch(
+                "custom_components.embymedia.image_proxy.async_get_clientsession",
+                return_value=mock_session,
+            ),
+            patch.object(web.StreamResponse, "prepare", new_callable=AsyncMock),
+            patch.object(web.StreamResponse, "write", new_callable=AsyncMock),
+            patch.object(web.StreamResponse, "write_eof", new_callable=AsyncMock),
         ):
             view = EmbyImageProxyView()
             view.hass = hass
@@ -142,8 +153,9 @@ class TestImageProxyGet:
                 image_type="Primary",
             )
 
+            # Now returns StreamResponse for successful requests
             assert response.status == HTTPStatus.OK
-            assert response.body == b"fake image data"
+            assert isinstance(response, web.StreamResponse)
 
     async def test_get_image_includes_query_params(
         self,
@@ -157,7 +169,13 @@ class TestImageProxyGet:
         mock_response = MagicMock()
         mock_response.status = HTTPStatus.OK
         mock_response.headers = {"Content-Type": "image/jpeg"}
-        mock_response.read = AsyncMock(return_value=b"image data")
+
+        # Mock iter_chunked for streaming
+        async def mock_iter_chunked(chunk_size: int) -> AsyncMock:
+            yield b"image data"
+
+        mock_response.content = MagicMock()
+        mock_response.content.iter_chunked = mock_iter_chunked
 
         mock_session = MagicMock()
 
@@ -175,9 +193,14 @@ class TestImageProxyGet:
 
         mock_session.get = capture_url
 
-        with patch(
-            "custom_components.embymedia.image_proxy.async_get_clientsession",
-            return_value=mock_session,
+        with (
+            patch(
+                "custom_components.embymedia.image_proxy.async_get_clientsession",
+                return_value=mock_session,
+            ),
+            patch.object(web.StreamResponse, "prepare", new_callable=AsyncMock),
+            patch.object(web.StreamResponse, "write", new_callable=AsyncMock),
+            patch.object(web.StreamResponse, "write_eof", new_callable=AsyncMock),
         ):
             view = EmbyImageProxyView()
             view.hass = hass
@@ -229,16 +252,27 @@ class TestImageProxyGet:
         mock_response = MagicMock()
         mock_response.status = HTTPStatus.OK
         mock_response.headers = {"Content-Type": "image/jpeg"}
-        mock_response.read = AsyncMock(return_value=b"image data")
+
+        # Mock iter_chunked for streaming
+        async def mock_iter_chunked(chunk_size: int) -> AsyncMock:
+            yield b"image data"
+
+        mock_response.content = MagicMock()
+        mock_response.content.iter_chunked = mock_iter_chunked
 
         mock_session = MagicMock()
         mock_session.get = MagicMock(return_value=AsyncMock())
         mock_session.get.return_value.__aenter__ = AsyncMock(return_value=mock_response)
         mock_session.get.return_value.__aexit__ = AsyncMock(return_value=None)
 
-        with patch(
-            "custom_components.embymedia.image_proxy.async_get_clientsession",
-            return_value=mock_session,
+        with (
+            patch(
+                "custom_components.embymedia.image_proxy.async_get_clientsession",
+                return_value=mock_session,
+            ),
+            patch.object(web.StreamResponse, "prepare", new_callable=AsyncMock),
+            patch.object(web.StreamResponse, "write", new_callable=AsyncMock),
+            patch.object(web.StreamResponse, "write_eof", new_callable=AsyncMock),
         ):
             view = EmbyImageProxyView()
             view.hass = hass
@@ -269,16 +303,27 @@ class TestImageProxyGet:
         mock_response = MagicMock()
         mock_response.status = HTTPStatus.OK
         mock_response.headers = {"Content-Type": "image/jpeg"}
-        mock_response.read = AsyncMock(return_value=b"image data")
+
+        # Mock iter_chunked for streaming
+        async def mock_iter_chunked(chunk_size: int) -> AsyncMock:
+            yield b"image data"
+
+        mock_response.content = MagicMock()
+        mock_response.content.iter_chunked = mock_iter_chunked
 
         mock_session = MagicMock()
         mock_session.get = MagicMock(return_value=AsyncMock())
         mock_session.get.return_value.__aenter__ = AsyncMock(return_value=mock_response)
         mock_session.get.return_value.__aexit__ = AsyncMock(return_value=None)
 
-        with patch(
-            "custom_components.embymedia.image_proxy.async_get_clientsession",
-            return_value=mock_session,
+        with (
+            patch(
+                "custom_components.embymedia.image_proxy.async_get_clientsession",
+                return_value=mock_session,
+            ),
+            patch.object(web.StreamResponse, "prepare", new_callable=AsyncMock),
+            patch.object(web.StreamResponse, "write", new_callable=AsyncMock),
+            patch.object(web.StreamResponse, "write_eof", new_callable=AsyncMock),
         ):
             view = EmbyImageProxyView()
             view.hass = hass
@@ -393,16 +438,27 @@ class TestImageProxyGet:
         mock_response = MagicMock()
         mock_response.status = HTTPStatus.OK
         mock_response.headers = {"Content-Type": "image/jpeg"}
-        mock_response.read = AsyncMock(return_value=b"image data")
+
+        # Mock iter_chunked for streaming
+        async def mock_iter_chunked(chunk_size: int) -> AsyncMock:
+            yield b"image data"
+
+        mock_response.content = MagicMock()
+        mock_response.content.iter_chunked = mock_iter_chunked
 
         mock_session = MagicMock()
         mock_session.get = MagicMock(return_value=AsyncMock())
         mock_session.get.return_value.__aenter__ = AsyncMock(return_value=mock_response)
         mock_session.get.return_value.__aexit__ = AsyncMock(return_value=None)
 
-        with patch(
-            "custom_components.embymedia.image_proxy.async_get_clientsession",
-            return_value=mock_session,
+        with (
+            patch(
+                "custom_components.embymedia.image_proxy.async_get_clientsession",
+                return_value=mock_session,
+            ),
+            patch.object(web.StreamResponse, "prepare", new_callable=AsyncMock),
+            patch.object(web.StreamResponse, "write", new_callable=AsyncMock),
+            patch.object(web.StreamResponse, "write_eof", new_callable=AsyncMock),
         ):
             view = EmbyImageProxyView()
             view.hass = hass
@@ -459,7 +515,13 @@ class TestImageProxyResize:
         mock_response = MagicMock()
         mock_response.status = HTTPStatus.OK
         mock_response.headers = {"Content-Type": "image/jpeg"}
-        mock_response.read = AsyncMock(return_value=b"resized image")
+
+        # Mock iter_chunked for streaming
+        async def mock_iter_chunked(chunk_size: int) -> AsyncMock:
+            yield b"resized image"
+
+        mock_response.content = MagicMock()
+        mock_response.content.iter_chunked = mock_iter_chunked
 
         captured_url: str | None = None
 
@@ -474,9 +536,14 @@ class TestImageProxyResize:
         mock_session = MagicMock()
         mock_session.get = capture_url
 
-        with patch(
-            "custom_components.embymedia.image_proxy.async_get_clientsession",
-            return_value=mock_session,
+        with (
+            patch(
+                "custom_components.embymedia.image_proxy.async_get_clientsession",
+                return_value=mock_session,
+            ),
+            patch.object(web.StreamResponse, "prepare", new_callable=AsyncMock),
+            patch.object(web.StreamResponse, "write", new_callable=AsyncMock),
+            patch.object(web.StreamResponse, "write_eof", new_callable=AsyncMock),
         ):
             view = EmbyImageProxyView()
             view.hass = hass
@@ -587,3 +654,131 @@ class TestImageProxyErrors:
 
             assert response.status == HTTPStatus.BAD_GATEWAY
             assert "Error fetching image" in response.text
+
+
+class TestImageProxyStreaming:
+    """Tests for image proxy streaming functionality (Phase 22)."""
+
+    @pytest.fixture
+    def mock_coordinator(self) -> MagicMock:
+        """Create a mock coordinator."""
+        coordinator = MagicMock()
+        coordinator.client = MagicMock()
+        coordinator.client.base_url = "http://emby.local:8096"
+        coordinator.client._api_key = "test-api-key"
+        return coordinator
+
+    @pytest.fixture
+    def mock_config_entry(self, mock_coordinator: MagicMock) -> MockConfigEntry:
+        """Create a mock config entry with runtime data."""
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                "host": "emby.local",
+                "port": 8096,
+                "api_key": "test-api-key",
+            },
+            unique_id="server-123",
+        )
+        entry.runtime_data = MagicMock(session_coordinator=mock_coordinator)
+        return entry
+
+    async def test_streaming_response_used(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test that streaming response is used instead of loading full body."""
+        mock_config_entry.add_to_hass(hass)
+
+        # Create mock response with iter_chunked
+        mock_response = MagicMock()
+        mock_response.status = HTTPStatus.OK
+        mock_response.headers = {"Content-Type": "image/jpeg"}
+
+        # Mock the iter_chunked async iterator
+        chunks = [b"chunk1", b"chunk2", b"chunk3"]
+
+        async def mock_iter_chunked(chunk_size: int) -> AsyncMock:
+            for chunk in chunks:
+                yield chunk
+
+        mock_response.content = MagicMock()
+        mock_response.content.iter_chunked = mock_iter_chunked
+
+        mock_session = MagicMock()
+        mock_context = MagicMock()
+        mock_context.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(return_value=mock_context)
+
+        # Mock StreamResponse.prepare and write methods
+        with (
+            patch(
+                "custom_components.embymedia.image_proxy.async_get_clientsession",
+                return_value=mock_session,
+            ),
+            patch.object(web.StreamResponse, "prepare", new_callable=AsyncMock) as mock_prepare,
+            patch.object(web.StreamResponse, "write", new_callable=AsyncMock),
+            patch.object(web.StreamResponse, "write_eof", new_callable=AsyncMock),
+        ):
+            view = EmbyImageProxyView()
+            view.hass = hass
+
+            # Create mock request with proper app attribute
+            request = MagicMock(spec=web.Request)
+            request.query = {}
+
+            response = await view.get(
+                request,
+                server_id="server-123",
+                item_id="item-456",
+                image_type="Primary",
+            )
+
+            # Response should be a StreamResponse
+            assert isinstance(response, web.StreamResponse)
+            # prepare should have been called with the request
+            mock_prepare.assert_called_once_with(request)
+
+    async def test_streaming_handles_error_status(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_coordinator: MagicMock,
+    ) -> None:
+        """Test that error status codes return regular Response (not streaming)."""
+        mock_config_entry.add_to_hass(hass)
+
+        mock_response = MagicMock()
+        mock_response.status = HTTPStatus.NOT_FOUND
+        mock_response.headers = {"Content-Type": "application/json"}
+        mock_response.read = AsyncMock(return_value=b"Not Found")
+
+        mock_session = MagicMock()
+        mock_context = MagicMock()
+        mock_context.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_context.__aexit__ = AsyncMock(return_value=None)
+        mock_session.get = MagicMock(return_value=mock_context)
+
+        with patch(
+            "custom_components.embymedia.image_proxy.async_get_clientsession",
+            return_value=mock_session,
+        ):
+            view = EmbyImageProxyView()
+            view.hass = hass
+
+            request = MagicMock(spec=web.Request)
+            request.query = {}
+
+            response = await view.get(
+                request,
+                server_id="server-123",
+                item_id="item-456",
+                image_type="Primary",
+            )
+
+            # Error responses should return a regular Response with the status code
+            assert isinstance(response, web.Response)
+            assert response.status == HTTPStatus.NOT_FOUND
