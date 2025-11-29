@@ -334,3 +334,66 @@ cancel_series_timer:
       required: true
       selector:
         text:
+
+create_collection:
+  name: Create Collection
+  description: Create a new collection on the Emby server.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    name:
+      name: Collection Name
+      description: The name for the new collection.
+      required: true
+      example: "My Movie Collection"
+      selector:
+        text:
+    item_ids:
+      name: Item IDs
+      description: Optional list of item IDs to add to the collection.
+      selector:
+        object:
+
+add_to_collection:
+  name: Add to Collection
+  description: Add items to an existing collection.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    collection_id:
+      name: Collection ID
+      description: The ID of the collection to add items to.
+      required: true
+      selector:
+        text:
+    item_ids:
+      name: Item IDs
+      description: List of item IDs to add to the collection.
+      required: true
+      selector:
+        object:
+
+remove_from_collection:
+  name: Remove from Collection
+  description: Remove items from a collection.
+  target:
+    entity:
+      integration: embymedia
+      domain: media_player
+  fields:
+    collection_id:
+      name: Collection ID
+      description: The ID of the collection to remove items from.
+      required: true
+      selector:
+        text:
+    item_ids:
+      name: Item IDs
+      description: List of item IDs to remove from the collection.
+      required: true
+      selector:
+        object:

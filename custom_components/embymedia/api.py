@@ -37,11 +37,13 @@ if TYPE_CHECKING:
     from .const import (
         EmbyActivityLogResponse,
         EmbyBrowseItem,
+        EmbyCollectionCreateResponse,
         EmbyDevicesResponse,
         EmbyItemCounts,
         EmbyItemsResponse,
         EmbyLibraryItem,
         EmbyLiveTvInfo,
+        EmbyPersonsResponse,
         EmbyProgram,
         EmbyPublicInfo,
         EmbyRecording,
@@ -49,6 +51,7 @@ if TYPE_CHECKING:
         EmbySeriesTimer,
         EmbyServerInfo,
         EmbySessionResponse,
+        EmbyTag,
         EmbyTimer,
         EmbyTimerDefaults,
         EmbyUser,
@@ -2521,6 +2524,293 @@ class EmbyClient:
             endpoint = f"{endpoint}?UserId={user_id}"
         response = await self._request(HTTP_GET, endpoint)
         return response  # type: ignore[return-value]
+
+    # =========================================================================
+    # Collection Management API Methods (Phase 19)
+    # =========================================================================
+
+    async def async_create_collection(
+        self,
+        name: str,
+        item_ids: list[str] | None = None,
+    ) -> EmbyCollectionCreateResponse:
+        """Create a new collection (BoxSet).
+
+        Args:
+            name: Collection name.
+            item_ids: Optional list of item IDs to add initially.
+
+        Returns:
+            Collection response with new collection ID and name.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        from urllib.parse import quote
+
+        params = [f"Name={quote(name)}"]
+        if item_ids:
+            params.append(f"Ids={','.join(item_ids)}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Collections?{query_string}"
+        response = await self._request_post_json(endpoint)
+        return response  # type: ignore[return-value]
+
+    async def async_add_to_collection(
+        self,
+        collection_id: str,
+        item_ids: list[str],
+    ) -> None:
+        """Add items to a collection.
+
+        Args:
+            collection_id: The collection ID.
+            item_ids: List of item IDs to add.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        ids_param = ",".join(item_ids)
+        endpoint = f"/Collections/{collection_id}/Items?Ids={ids_param}"
+        await self._request_post(endpoint)
+
+    async def async_remove_from_collection(
+        self,
+        collection_id: str,
+        item_ids: list[str],
+    ) -> None:
+        """Remove items from a collection.
+
+        Args:
+            collection_id: The collection ID.
+            item_ids: List of item IDs to remove.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        ids_param = ",".join(item_ids)
+        endpoint = f"/Collections/{collection_id}/Items?Ids={ids_param}"
+        await self._request_delete(endpoint)
+
+    async def async_get_collections(
+        self,
+        user_id: str,
+    ) -> list[EmbyBrowseItem]:
+        """Get all collections (BoxSets) for a user.
+
+        Args:
+            user_id: The user ID.
+
+        Returns:
+            List of collection items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        result = await self.async_get_items(
+            user_id,
+            include_item_types="BoxSet",
+            recursive=True,
+            sort_by="SortName",
+            sort_order="Ascending",
+        )
+        return result.get("Items", [])
+
+    # =========================================================================
+    # Person Browsing API Methods (Phase 19)
+    # =========================================================================
+
+    async def async_get_persons(
+        self,
+        user_id: str,
+        parent_id: str | None = None,
+        person_types: str | None = None,
+        limit: int = 100,
+        start_index: int = 0,
+    ) -> EmbyPersonsResponse:
+        """Get persons (actors, directors, writers) from the library.
+
+        Args:
+            user_id: The user ID.
+            parent_id: Optional parent library ID to filter persons.
+            person_types: Optional person types to filter (e.g., "Actor,Director").
+            limit: Maximum number of results to return.
+            start_index: Pagination offset.
+
+        Returns:
+            Persons response with list of persons.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        # Check cache first (persons lists are relatively stable)
+        cache_key = self._browse_cache.generate_key(
+            "persons",
+            user_id,
+            parent_id=parent_id,
+            person_types=person_types,
+            limit=str(limit),
+            start_index=str(start_index),
+        )
+        cached = self._browse_cache.get(cache_key)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
+
+        params = [
+            f"UserId={user_id}",
+            "SortBy=SortName",
+            "SortOrder=Ascending",
+            f"Limit={limit}",
+            f"StartIndex={start_index}",
+        ]
+        if parent_id:
+            params.append(f"ParentId={parent_id}")
+        if person_types:
+            params.append(f"PersonTypes={person_types}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Persons?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+
+        # Cache the result
+        self._browse_cache.set(cache_key, response)
+        return response  # type: ignore[return-value]
+
+    async def async_get_person_items(
+        self,
+        user_id: str,
+        person_id: str,
+        include_item_types: str | None = None,
+        limit: int = 100,
+    ) -> list[EmbyBrowseItem]:
+        """Get items featuring a specific person.
+
+        Args:
+            user_id: The user ID.
+            person_id: The person ID.
+            include_item_types: Optional item types to filter (e.g., "Movie,Series").
+            limit: Maximum number of results.
+
+        Returns:
+            List of items featuring this person.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        params = [
+            f"PersonIds={person_id}",
+            "Recursive=true",
+            "SortBy=SortName",
+            "SortOrder=Ascending",
+            f"Limit={limit}",
+        ]
+        if include_item_types:
+            params.append(f"IncludeItemTypes={include_item_types}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Users/{user_id}/Items?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
+
+    # =========================================================================
+    # Tag Browsing API Methods (Phase 19)
+    # =========================================================================
+
+    async def async_get_tags(
+        self,
+        user_id: str,
+        parent_id: str | None = None,
+        include_item_types: str | None = None,
+    ) -> list[EmbyTag]:
+        """Get user-defined tags from the library.
+
+        Args:
+            user_id: The user ID.
+            parent_id: Optional parent library ID to filter tags.
+            include_item_types: Optional item types to filter tags.
+
+        Returns:
+            List of tag items.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        # Check cache first
+        cache_key = self._browse_cache.generate_key(
+            "tags",
+            user_id,
+            parent_id=parent_id,
+            include_item_types=include_item_types,
+        )
+        cached = self._browse_cache.get(cache_key)
+        if cached is not None:
+            return cached  # type: ignore[return-value]
+
+        params = [f"UserId={user_id}", "SortBy=SortName", "SortOrder=Ascending"]
+        if parent_id:
+            params.append(f"ParentId={parent_id}")
+        if include_item_types:
+            params.append(f"IncludeItemTypes={include_item_types}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Tags?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyTag] = response.get("Items", [])  # type: ignore[assignment]
+
+        # Cache the result
+        self._browse_cache.set(cache_key, items)
+        return items
+
+    async def async_get_items_by_tag(
+        self,
+        user_id: str,
+        tag_id: str,
+        parent_id: str | None = None,
+        include_item_types: str | None = None,
+        limit: int = 100,
+    ) -> list[EmbyBrowseItem]:
+        """Get items with a specific tag.
+
+        Args:
+            user_id: The user ID.
+            tag_id: The tag ID to filter by.
+            parent_id: Optional parent library ID.
+            include_item_types: Optional item types to filter.
+            limit: Maximum number of results.
+
+        Returns:
+            List of items with this tag.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        params = [
+            f"TagIds={tag_id}",
+            "Recursive=true",
+            "SortBy=SortName",
+            "SortOrder=Ascending",
+            f"Limit={limit}",
+        ]
+        if parent_id:
+            params.append(f"ParentId={parent_id}")
+        if include_item_types:
+            params.append(f"IncludeItemTypes={include_item_types}")
+
+        query_string = "&".join(params)
+        endpoint = f"/Users/{user_id}/Items?{query_string}"
+        response = await self._request(HTTP_GET, endpoint)
+        items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
+        return items
 
     async def close(self) -> None:
         """Close the client session.

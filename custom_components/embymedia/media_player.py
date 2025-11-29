@@ -37,7 +37,7 @@ from .exceptions import EmbyError
 from .models import MediaType as EmbyMediaType
 
 if TYPE_CHECKING:
-    from .const import EmbyBrowseItem, EmbyConfigEntry, EmbyLibraryItem
+    from .const import EmbyBrowseItem, EmbyConfigEntry, EmbyLibraryItem, EmbyPerson
 
 from .coordinator import EmbyDataUpdateCoordinator
 
@@ -839,6 +839,14 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
             return await self._async_browse_movie_studios(user_id, ids[0])
         if content_type == "moviestudioitems" and len(ids) >= 2:
             return await self._async_browse_movies_by_studio(user_id, ids[0], ids[1])
+        if content_type == "moviepeople" and ids:
+            return await self._async_browse_movie_people(user_id, ids[0])
+        if content_type == "person" and len(ids) >= 2:
+            return await self._async_browse_person(user_id, ids[1], ids[0])
+        if content_type == "movietags" and ids:
+            return await self._async_browse_movie_tags(user_id, ids[0])
+        if content_type == "movietag" and len(ids) >= 2:
+            return await self._async_browse_movies_by_tag(user_id, ids[0], ids[1])
 
         # TV library routing
         if content_type == "tvlibrary" and ids:
@@ -1705,6 +1713,8 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
             ("Decade", "moviedecade", MediaClass.DIRECTORY),
             ("Genre", "moviegenre", MediaClass.DIRECTORY),
             ("Studio", "moviestudio", MediaClass.DIRECTORY),
+            ("People", "moviepeople", MediaClass.DIRECTORY),
+            ("Tags", "movietags", MediaClass.DIRECTORY),
             ("Collections", "moviecollection", MediaClass.DIRECTORY),
         ]
 
@@ -2151,6 +2161,192 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
             media_content_id=encode_content_id("moviestudioitems", library_id, studio_id),
             media_content_type=MediaType.VIDEO,
             title="Movies by Studio",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_movie_people(self, user_id: str, library_id: str) -> BrowseMedia:
+        """Browse people (actors, directors, writers) in movie library.
+
+        Args:
+            user_id: The user ID for API calls.
+            library_id: The movies library ID.
+
+        Returns:
+            BrowseMedia with person list as children.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        # Fetch persons from movie library
+        persons_response = await client.async_get_persons(
+            user_id,
+            parent_id=library_id,
+            limit=200,
+        )
+        persons = persons_response.get("Items", [])
+
+        children: list[BrowseMedia] = []
+        for person in persons:
+            children.append(self._person_to_browse_media(person, library_id))
+
+        return BrowseMedia(
+            media_class=MediaClass.DIRECTORY,
+            media_content_id=encode_content_id("moviepeople", library_id),
+            media_content_type=MediaType.VIDEO,
+            title="People",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_person(
+        self, user_id: str, person_id: str, library_id: str
+    ) -> BrowseMedia:
+        """Browse a person's filmography.
+
+        Args:
+            user_id: The user ID for API calls.
+            person_id: The person ID.
+            library_id: The library ID for filtering.
+
+        Returns:
+            BrowseMedia with person's works as children.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        # Fetch items featuring this person
+        items = await client.async_get_person_items(
+            user_id,
+            person_id,
+            include_item_types="Movie,Series",
+            limit=200,
+        )
+
+        children: list[BrowseMedia] = []
+        for item in items:
+            children.append(self._item_to_browse_media(item))
+
+        return BrowseMedia(
+            media_class=MediaClass.DIRECTORY,
+            media_content_id=encode_content_id("person", library_id, person_id),
+            media_content_type=MediaType.VIDEO,
+            title="Filmography",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    def _person_to_browse_media(self, person: EmbyPerson, library_id: str) -> BrowseMedia:
+        """Convert a person item to BrowseMedia.
+
+        Args:
+            person: The person from API.
+            library_id: The library ID for content_id.
+
+        Returns:
+            BrowseMedia representation of the person.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        # Get thumbnail if available
+        thumbnail: str | None = None
+        image_tags = person.get("ImageTags", {})
+        if isinstance(image_tags, dict) and "Primary" in image_tags:
+            person_id = str(person.get("Id", ""))
+            thumbnail = client.get_image_url(
+                person_id, image_type="Primary", tag=str(image_tags["Primary"])
+            )
+
+        return BrowseMedia(
+            media_class=MediaClass.DIRECTORY,
+            media_content_id=encode_content_id("person", library_id, str(person.get("Id", ""))),
+            media_content_type=MediaType.VIDEO,
+            title=str(person.get("Name", "Unknown")),
+            can_play=False,
+            can_expand=True,
+            thumbnail=thumbnail,
+        )
+
+    async def _async_browse_movie_tags(self, user_id: str, library_id: str) -> BrowseMedia:
+        """Browse tags in movie library.
+
+        Args:
+            user_id: The user ID for API calls.
+            library_id: The movies library ID.
+
+        Returns:
+            BrowseMedia with tags as children.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        # Fetch tags from movie library
+        tags = await client.async_get_tags(
+            user_id,
+            parent_id=library_id,
+            include_item_types="Movie",
+        )
+
+        children: list[BrowseMedia] = []
+        for tag in tags:
+            children.append(
+                BrowseMedia(
+                    media_class=MediaClass.DIRECTORY,
+                    media_content_id=encode_content_id("movietag", library_id, tag["Id"]),
+                    media_content_type=MediaType.VIDEO,
+                    title=tag["Name"],
+                    can_play=False,
+                    can_expand=True,
+                    thumbnail=None,
+                )
+            )
+
+        return BrowseMedia(
+            media_class=MediaClass.DIRECTORY,
+            media_content_id=encode_content_id("movietags", library_id),
+            media_content_type=MediaType.VIDEO,
+            title="Tags",
+            can_play=False,
+            can_expand=True,
+            children=children,
+        )
+
+    async def _async_browse_movies_by_tag(
+        self, user_id: str, library_id: str, tag_id: str
+    ) -> BrowseMedia:
+        """Browse movies with a specific tag.
+
+        Args:
+            user_id: The user ID for API calls.
+            library_id: The movies library ID.
+            tag_id: The tag ID to filter by.
+
+        Returns:
+            BrowseMedia with movies having that tag as children.
+        """
+        coordinator: EmbyDataUpdateCoordinator = self.coordinator
+        client = coordinator.client
+
+        items = await client.async_get_items_by_tag(
+            user_id,
+            tag_id,
+            parent_id=library_id,
+            include_item_types="Movie",
+        )
+
+        children: list[BrowseMedia] = []
+        for item in items:
+            children.append(self._item_to_browse_media(item))
+
+        return BrowseMedia(
+            media_class=MediaClass.DIRECTORY,
+            media_content_id=encode_content_id("movietag", library_id, tag_id),
+            media_content_type=MediaType.VIDEO,
+            title="Movies by Tag",
             can_play=False,
             can_expand=True,
             children=children,

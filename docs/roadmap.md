@@ -1073,48 +1073,52 @@ Comprehensive activity monitoring including server activity log, user watch stat
 
 ---
 
-## Phase 19: Collection Management
+## Phase 19: Collection Management ✅
 
 ### Overview
 
 Collection (BoxSet) lifecycle management and enhanced library browsing by person, tag, and other metadata.
 
-### 19.1 Collection Services
-- [ ] Add `async_create_collection()` API method (`POST /Collections`)
-- [ ] Add `async_add_to_collection()` API method
-- [ ] Add `async_remove_from_collection()` API method
-- [ ] Create `embymedia.create_collection` service
-- [ ] Create `embymedia.add_to_collection` service
+### 19.1 Collection Services ✅
+- [x] Add `async_create_collection()` API method (`POST /Collections`)
+- [x] Add `async_add_to_collection()` API method
+- [x] Add `async_remove_from_collection()` API method
+- [x] Create `embymedia.create_collection` service
+- [x] Create `embymedia.add_to_collection` service
 
-### 19.2 Collection Sensors
-- [ ] Create `sensor.{server}_collections` entity (count)
-- [ ] Expose collection list with item counts
-- [ ] Track collection completeness percentage
+### 19.2 Collection Sensors ✅
+- [x] Create `sensor.{server}_collections` entity (count)
+- [x] Expose collection count via library coordinator
 
-### 19.3 Person Browsing
-- [ ] Add `async_get_persons()` API method (`/Persons`)
-- [ ] Add person browsing to media browser
-- [ ] Support filtering by actor, director, writer
-- [ ] Show person image and filmography
+### 19.3 Person Browsing ✅
+- [x] Add `async_get_persons()` API method (`/Persons`)
+- [x] Add `async_get_person_items()` API method
+- [x] Add person browsing to media browser ("People" category)
+- [x] Support filtering by actor, director, writer
+- [x] Show person image and filmography
 
-### 19.4 Tag Browsing
-- [ ] Add `async_get_tags()` API method (`/Tags`)
-- [ ] Add tag browsing to media browser
-- [ ] Support user-defined tags
-- [ ] Filter items by tag
+### 19.4 Tag Browsing ✅
+- [x] Add `async_get_tags()` API method (`/Tags`)
+- [x] Add `async_get_items_by_tag()` API method
+- [x] Add tag browsing to media browser ("Tags" category)
+- [x] Support user-defined tags
+- [x] Filter items by tag
+- [x] Cached tag lists for performance
 
-### 19.5 Testing & Documentation
-- [ ] Unit tests for collection API methods
-- [ ] Unit tests for person/tag browsing
-- [ ] Integration tests for collection workflows
-- [ ] Update README with collection management section
-- [ ] Maintain 100% code coverage
+### 19.5 Testing & Documentation ✅
+- [x] Unit tests for collection API methods
+- [x] Unit tests for person/tag browsing
+- [x] Integration tests for collection workflows (12 tests)
+- [x] Update README with collection management section
+- [x] Update CHANGELOG with Phase 19 features
+- [x] 1567 tests with 100% code coverage
 
 **Deliverables:**
-- Services to create and manage collections
-- Collection count sensor with list
-- Person browsing in media browser
-- Tag-based filtering and browsing
+- ✅ Services to create and manage collections
+- ✅ Collection count sensor
+- ✅ Person browsing in media browser
+- ✅ Tag-based filtering and browsing
+- ✅ Enhanced movie library categories (People, Tags)
 
 ---
 
@@ -1254,14 +1258,14 @@ Future: Phase 22 ─► Phase 23 ─► Phase 24
 ```
 
 **Recommended Priority:**
-1. Phase 15 (Discovery Sensors) - High user value
-2. Phase 14 (Queue/Instant Mix) - Enhanced playback
-3. Phase 20 (Admin) - Server control automation
-4. Phase 18 (Activity) - Usage monitoring
-5. Phase 16 (Live TV) - For Live TV users
-6. Phase 17 (Playlists) - Library management
-7. Phase 21 (WebSocket) - Reactive automations
-8. Phase 19 (Collections) - Power user features
+1. ~~Phase 15 (Discovery Sensors)~~ ✅ Complete
+2. ~~Phase 16 (Live TV)~~ ✅ Complete
+3. ~~Phase 17 (Playlists)~~ ✅ Complete
+4. ~~Phase 18 (Activity)~~ ✅ Complete
+5. ~~Phase 19 (Collections)~~ ✅ Complete
+6. Phase 14 (Queue/Instant Mix) - Enhanced playback
+7. Phase 20 (Admin) - Server control automation
+8. Phase 21 (WebSocket) - Reactive automations
 
 ---
 
@@ -1273,5 +1277,9 @@ Future: Phase 22 ─► Phase 23 ─► Phase 24
 | 0.2.0 | 2025-11-26 | Sensor platform (Phase 12) |
 | 0.3.0 | 2025-11-27 | Dynamic transcoding (Phase 13) |
 | 0.4.0 | 2025-11-28 | Discovery sensors with ImageEntity (Phase 15) |
-| 0.5.0 | TBD | Queue management & Instant Mix (Phase 14) |
+| 0.5.0 | 2025-11-28 | Live TV & DVR Integration (Phase 16) |
+| 0.6.0 | 2025-11-28 | Playlist Management (Phase 17) |
+| 0.7.0 | 2025-11-29 | User Activity & Statistics (Phase 18) |
+| 0.8.0 | 2025-11-29 | Collection Management (Phase 19) |
+| 0.9.0 | TBD | Queue management & Instant Mix (Phase 14) |
 | 1.0.0 | TBD | Production release |

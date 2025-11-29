@@ -1215,6 +1215,71 @@ class EmbyDevicesResponse(TypedDict):
 
 
 # =============================================================================
+# TypedDicts for Collection Management API (Phase 19)
+# =============================================================================
+
+
+class EmbyCollectionCreateResponse(TypedDict):
+    """Response from POST /Collections endpoint.
+
+    Returns the newly created collection (BoxSet) information.
+    """
+
+    Id: str  # The created collection ID
+    Name: str  # The collection name
+
+
+# =============================================================================
+# Person Types (Phase 19)
+# =============================================================================
+
+
+class EmbyPerson(TypedDict, total=False):
+    """Type definition for person from /Persons endpoint.
+
+    Represents an actor, director, writer, or other person in the library.
+    """
+
+    Id: str
+    Name: str
+    Type: str  # "Person"
+    PrimaryImageTag: str
+    ImageTags: dict[str, str]
+    Role: str  # "Actor", "Director", "Writer", etc.
+
+
+class EmbyPersonsResponse(TypedDict):
+    """Response from /Persons endpoint."""
+
+    Items: list[EmbyPerson]
+    TotalRecordCount: int
+    StartIndex: int
+
+
+# =============================================================================
+# Tag Types (Phase 19)
+# =============================================================================
+
+
+class EmbyTag(TypedDict, total=False):
+    """Type definition for tag from /Tags endpoint.
+
+    Represents a user-defined tag.
+    """
+
+    Id: str
+    Name: str
+    Type: str  # "Tag"
+
+
+class EmbyTagsResponse(TypedDict):
+    """Response from /Tags endpoint."""
+
+    Items: list[EmbyTag]
+    TotalRecordCount: int
+
+
+# =============================================================================
 # Utility Functions
 # =============================================================================
 

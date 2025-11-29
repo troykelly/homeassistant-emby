@@ -1,169 +1,172 @@
 {
   "exceptions": {
     "connection_failed": {
-      "message": "Falha ao conectar ao servidor Emby em {host}:{port}. Verifique se o servidor está em execução e se o host/porta estão corretos."
+      "message": "Failed to connect to Emby server at {host}:{port}. Please check that the server is running and the host/port are correct."
     },
     "authentication_failed": {
-      "message": "Falha na autenticação. Verifique sua chave API."
+      "message": "Authentication failed. Please check your API key."
     },
     "server_error": {
-      "message": "O servidor Emby retornou um erro. Verifique os logs do servidor."
+      "message": "The Emby server returned an error. Please check the server logs."
     },
     "not_found": {
-      "message": "O recurso solicitado não foi encontrado no servidor."
+      "message": "The requested resource was not found on the server."
     },
     "timeout": {
-      "message": "Tempo limite de conexão esgotado. O servidor pode estar inacessível."
+      "message": "Connection timed out. The server may be unreachable."
     },
     "ssl_error": {
-      "message": "Falha na verificação do certificado SSL. Verifique seu certificado ou desative a verificação."
+      "message": "SSL certificate verification failed. Check your certificate or disable verification."
     },
     "websocket_error": {
-      "message": "Erro de conexão WebSocket. Atualizações em tempo real podem não estar disponíveis."
+      "message": "WebSocket connection error. Real-time updates may not be available."
     },
     "websocket_auth_failed": {
-      "message": "Falha na autenticação WebSocket. Verifique sua chave API."
+      "message": "WebSocket authentication failed. Please check your API key."
     }
   },
   "config": {
     "step": {
       "user": {
-        "title": "Conectar ao servidor Emby",
-        "description": "Insira os detalhes de conexão do seu servidor Emby.",
+        "title": "Connect to Emby Server",
+        "description": "Enter your Emby server connection details.",
         "data": {
           "host": "Host",
-          "port": "Porta",
-          "ssl": "Usar SSL",
-          "api_key": "Chave API",
-          "verify_ssl": "Verificar certificado SSL"
+          "port": "Port",
+          "ssl": "Use SSL",
+          "api_key": "API Key",
+          "verify_ssl": "Verify SSL Certificate"
         },
         "data_description": {
-          "host": "Nome do host ou endereço IP do seu servidor Emby (ex.: 192.168.1.100 ou emby.local)",
-          "port": "Número da porta (padrão: 8096, ou 8920 para HTTPS)",
-          "ssl": "Ativar conexão HTTPS",
-          "api_key": "Chave API do Painel Emby > Avançado > Chaves API",
-          "verify_ssl": "Verificar certificado SSL (desative apenas para certificados autoassinados)"
+          "host": "Hostname or IP address of your Emby server (e.g., 192.168.1.100 or emby.local)",
+          "port": "Port number (default: 8096, or 8920 for HTTPS)",
+          "ssl": "Enable HTTPS connection",
+          "api_key": "API key from Emby Dashboard > Advanced > API Keys",
+          "verify_ssl": "Verify SSL certificate (disable only for self-signed certificates)"
         }
       },
       "user_select": {
-        "title": "Selecionar utilizador",
-        "description": "Selecione um contexto de utilizador para {server_name}. Escolha 'Usar contexto de administrador' para usar a chave API sem um utilizador específico.",
+        "title": "Select User",
+        "description": "Select a user context for {server_name}. Choose 'Use admin context' to use the API key without a specific user.",
         "data": {
-          "user_id": "Utilizador"
+          "user_id": "User"
         },
         "data_description": {
-          "user_id": "O utilizador cujas bibliotecas e permissões serão usadas"
+          "user_id": "The user whose libraries and permissions will be used"
         }
       },
       "reauth_confirm": {
-        "title": "Reautenticar servidor Emby",
-        "description": "A chave API para {server_name} não é mais válida. Insira uma nova chave API."
+        "title": "Re-authenticate Emby Server",
+        "description": "The API key for {server_name} is no longer valid. Please enter a new API key."
       },
       "entity_options": {
-        "title": "Opções de nomenclatura de entidades",
-        "description": "Configure como os nomes das entidades aparecem para {server_name}. Por padrão, os nomes dos dispositivos têm o prefixo 'Emby' (ex.: 'Emby TV Sala'). Pode desativar isto para nomes mais limpos.",
+        "title": "Entity Naming Options",
+        "description": "Configure how entity names appear for {server_name}. By default, device names are prefixed with 'Emby' (e.g., 'Emby Living Room TV'). You can disable this for cleaner names.",
         "data": {
-          "prefix_media_player": "Prefixar nomes de leitores com 'Emby'",
-          "prefix_notify": "Prefixar nomes de notificações com 'Emby'",
-          "prefix_remote": "Prefixar nomes de controlos remotos com 'Emby'",
-          "prefix_button": "Prefixar nomes de botões com 'Emby'"
+          "prefix_media_player": "Prefix media player names with 'Emby'",
+          "prefix_notify": "Prefix notify names with 'Emby'",
+          "prefix_remote": "Prefix remote names with 'Emby'",
+          "prefix_button": "Prefix button names with 'Emby'"
         },
         "data_description": {
-          "prefix_media_player": "Quando ativado, os nomes dos leitores começarão com 'Emby' (ex.: 'Emby TV Sala')",
-          "prefix_notify": "Quando ativado, os dispositivos de notificação terão o prefixo 'Emby'",
-          "prefix_remote": "Quando ativado, os controlos remotos terão o prefixo 'Emby'",
-          "prefix_button": "Quando ativado, os botões de ações do servidor terão o prefixo 'Emby'"
+          "prefix_media_player": "When enabled, media player device names will start with 'Emby' (e.g., 'Emby Living Room TV')",
+          "prefix_notify": "When enabled, notification devices will have 'Emby' prefix",
+          "prefix_remote": "When enabled, remote control devices will have 'Emby' prefix",
+          "prefix_button": "When enabled, server action buttons will have 'Emby' prefix"
         }
       }
     },
     "error": {
-      "cannot_connect": "Falha ao conectar ao servidor Emby. Verifique o host e a porta.",
-      "invalid_auth": "Chave API inválida. Verifique sua chave API no Painel Emby > Avançado > Chaves API.",
-      "invalid_host": "Nome do host ou endereço IP inválido",
-      "invalid_port": "A porta deve estar entre 1 e 65535",
-      "timeout": "Tempo limite de conexão esgotado. O servidor pode estar inacessível ou lento para responder.",
-      "ssl_error": "Falha na verificação do certificado SSL. Ative a opção 'Verificar certificado SSL' ou verifique seu certificado.",
-      "unsupported_version": "Esta versão do servidor Emby não é suportada. Atualize para a versão 4.9.1.90 ou posterior.",
-      "unknown": "Ocorreu um erro inesperado. Verifique os logs para mais detalhes."
+      "cannot_connect": "Failed to connect to Emby server. Please check the host and port.",
+      "invalid_auth": "Invalid API key. Please check your API key in Emby Dashboard > Advanced > API Keys.",
+      "invalid_host": "Invalid hostname or IP address",
+      "invalid_port": "Port must be between 1 and 65535",
+      "timeout": "Connection timed out. The server may be unreachable or slow to respond.",
+      "ssl_error": "SSL certificate verification failed. Enable 'Verify SSL Certificate' option or check your certificate.",
+      "unsupported_version": "This Emby server version is not supported. Please upgrade to version 4.9.1.90 or later.",
+      "unknown": "An unexpected error occurred. Please check the logs for details."
     },
     "abort": {
-      "already_configured": "Este servidor Emby já está configurado",
-      "reauth_successful": "Reautenticação bem-sucedida",
-      "unsupported_version": "Esta versão do servidor Emby não é suportada"
+      "already_configured": "This Emby server is already configured",
+      "reauth_successful": "Re-authentication successful",
+      "unsupported_version": "This Emby server version is not supported"
     }
   },
   "entity": {
     "binary_sensor": {
       "server_connected": {
-        "name": "Servidor conectado"
+        "name": "Server Connected"
       },
       "pending_restart": {
-        "name": "Reinício pendente"
+        "name": "Pending Restart"
       },
       "update_available": {
-        "name": "Atualização disponível"
+        "name": "Update Available"
       },
       "library_scan_active": {
-        "name": "Verificação de biblioteca ativa"
+        "name": "Library Scan Active"
       },
       "live_tv_enabled": {
-        "name": "TV ao vivo ativada"
+        "name": "Live TV Enabled"
       }
     },
     "sensor": {
       "server_version": {
-        "name": "Versão do servidor"
+        "name": "Server Version"
       },
       "running_tasks": {
-        "name": "Tarefas em execução"
+        "name": "Running Tasks"
       },
       "active_sessions": {
-        "name": "Sessões ativas"
+        "name": "Active Sessions"
       },
       "movie_count": {
-        "name": "Filmes"
+        "name": "Movies"
       },
       "series_count": {
-        "name": "Séries de TV"
+        "name": "TV Shows"
       },
       "episode_count": {
-        "name": "Episódios"
+        "name": "Episodes"
       },
       "song_count": {
-        "name": "Músicas"
+        "name": "Songs"
       },
       "album_count": {
-        "name": "Álbuns"
+        "name": "Albums"
       },
       "artist_count": {
-        "name": "Artistas"
+        "name": "Artists"
       },
       "playlist_count": {
-        "name": "Listas de reprodução"
+        "name": "Playlists"
+      },
+      "collection_count": {
+        "name": "Collections"
       },
       "next_up": {
-        "name": "A seguir"
+        "name": "Next Up"
       },
       "continue_watching": {
-        "name": "Continuar a ver"
+        "name": "Continue Watching"
       },
       "recently_added": {
-        "name": "Adicionados recentemente"
+        "name": "Recently Added"
       },
       "suggestions": {
-        "name": "Sugestões"
+        "name": "Suggestions"
       },
       "recording_count": {
-        "name": "Gravações"
+        "name": "Recordings"
       },
       "active_recordings": {
-        "name": "Gravações ativas"
+        "name": "Active Recordings"
       },
       "scheduled_timer_count": {
-        "name": "Gravações agendadas"
+        "name": "Scheduled Recordings"
       },
       "series_timer_count": {
-        "name": "Regras de gravação de séries"
+        "name": "Series Recording Rules"
       },
       "last_activity": {
         "name": "Last Activity"
@@ -175,248 +178,290 @@
         "name": "Watch Statistics"
       },
       "user_watch_statistics": {
-        "name": "Tempo de visualização do utilizador"
+        "name": "User Watch Time"
       },
       "user_favorites_count": {
-        "name": "Favoritos do utilizador"
+        "name": "User Favorites"
       },
       "user_played_count": {
-        "name": "Vistos do utilizador"
+        "name": "User Watched"
       },
       "user_in_progress_count": {
-        "name": "Em progresso do utilizador"
+        "name": "User In Progress"
       },
       "user_playlist_count": {
-        "name": "Playlists do utilizador"
+        "name": "User Playlists"
       }
     },
     "image": {
       "next_up_image": {
-        "name": "A seguir"
+        "name": "Next Up"
       },
       "continue_watching_image": {
-        "name": "Continuar a ver"
+        "name": "Continue Watching"
       },
       "recently_added_image": {
-        "name": "Adicionados recentemente"
+        "name": "Recently Added"
       },
       "suggestions_image": {
-        "name": "Sugestões"
+        "name": "Suggestions"
       }
     }
   },
   "services": {
     "send_message": {
-      "name": "Enviar mensagem",
-      "description": "Envia uma mensagem para um cliente Emby.",
+      "name": "Send Message",
+      "description": "Send a message to an Emby client.",
       "fields": {
         "message": {
-          "name": "Mensagem",
-          "description": "O texto da mensagem a exibir."
+          "name": "Message",
+          "description": "The message text to display."
         },
         "header": {
-          "name": "Cabeçalho",
-          "description": "Cabeçalho/título opcional para a mensagem."
+          "name": "Header",
+          "description": "Optional header/title for the message."
         },
         "timeout_ms": {
-          "name": "Tempo limite",
-          "description": "Por quanto tempo exibir a mensagem (milissegundos)."
+          "name": "Timeout",
+          "description": "How long to display the message (milliseconds)."
         }
       }
     },
     "send_command": {
-      "name": "Enviar comando",
-      "description": "Envia um comando geral para um cliente Emby.",
+      "name": "Send Command",
+      "description": "Send a general command to an Emby client.",
       "fields": {
         "command": {
-          "name": "Comando",
-          "description": "O comando a enviar (ex.: MoveUp, MoveDown, Select, Back)."
+          "name": "Command",
+          "description": "The command to send (e.g., MoveUp, MoveDown, Select, Back)."
         }
       }
     },
     "mark_played": {
-      "name": "Marcar como visto",
-      "description": "Marca um item multimédia como visto.",
+      "name": "Mark Played",
+      "description": "Mark a media item as played.",
       "fields": {
         "item_id": {
-          "name": "ID do item",
-          "description": "O ID do item Emby a marcar como visto."
+          "name": "Item ID",
+          "description": "The Emby item ID to mark as played."
         },
         "user_id": {
-          "name": "ID do utilizador",
-          "description": "ID do utilizador opcional (usa o utilizador da sessão se não especificado)."
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
         }
       }
     },
     "mark_unplayed": {
-      "name": "Marcar como não visto",
-      "description": "Marca um item multimédia como não visto.",
+      "name": "Mark Unplayed",
+      "description": "Mark a media item as unplayed.",
       "fields": {
         "item_id": {
-          "name": "ID do item",
-          "description": "O ID do item Emby a marcar como não visto."
+          "name": "Item ID",
+          "description": "The Emby item ID to mark as unplayed."
         },
         "user_id": {
-          "name": "ID do utilizador",
-          "description": "ID do utilizador opcional (usa o utilizador da sessão se não especificado)."
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
         }
       }
     },
     "add_favorite": {
-      "name": "Adicionar aos favoritos",
-      "description": "Adiciona um item multimédia aos favoritos.",
+      "name": "Add Favorite",
+      "description": "Add a media item to favorites.",
       "fields": {
         "item_id": {
-          "name": "ID do item",
-          "description": "O ID do item Emby a adicionar aos favoritos."
+          "name": "Item ID",
+          "description": "The Emby item ID to add to favorites."
         },
         "user_id": {
-          "name": "ID do utilizador",
-          "description": "ID do utilizador opcional (usa o utilizador da sessão se não especificado)."
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
         }
       }
     },
     "remove_favorite": {
-      "name": "Remover dos favoritos",
-      "description": "Remove um item multimédia dos favoritos.",
+      "name": "Remove Favorite",
+      "description": "Remove a media item from favorites.",
       "fields": {
         "item_id": {
-          "name": "ID do item",
-          "description": "O ID do item Emby a remover dos favoritos."
+          "name": "Item ID",
+          "description": "The Emby item ID to remove from favorites."
         },
         "user_id": {
-          "name": "ID do utilizador",
-          "description": "ID do utilizador opcional (usa o utilizador da sessão se não especificado)."
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
         }
       }
     },
     "refresh_library": {
-      "name": "Atualizar biblioteca",
-      "description": "Inicia uma atualização de biblioteca no servidor Emby.",
+      "name": "Refresh Library",
+      "description": "Trigger a library refresh on the Emby server.",
       "fields": {
         "library_id": {
-          "name": "ID da biblioteca",
-          "description": "ID da biblioteca opcional a atualizar (atualiza todas as bibliotecas se não especificado)."
+          "name": "Library ID",
+          "description": "Optional library ID to refresh (refreshes all libraries if not specified)."
         }
       }
     },
     "play_instant_mix": {
-      "name": "Reproduzir mix instantâneo",
-      "description": "Reproduz um mix instantâneo baseado num item (música, álbum, artista).",
+      "name": "Play Instant Mix",
+      "description": "Play an instant mix based on an item (song, album, artist).",
       "fields": {
         "item_id": {
-          "name": "ID do item",
-          "description": "O ID do item Emby a usar como base para o mix instantâneo."
+          "name": "Item ID",
+          "description": "The Emby item ID to use as the seed for the instant mix."
         },
         "user_id": {
-          "name": "ID do utilizador",
-          "description": "ID do utilizador opcional (usa o utilizador da sessão se não especificado)."
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
         }
       }
     },
     "play_similar": {
-      "name": "Reproduzir semelhantes",
-      "description": "Reproduz itens semelhantes baseados num item multimédia.",
+      "name": "Play Similar Items",
+      "description": "Play similar items based on a media item.",
       "fields": {
         "item_id": {
-          "name": "ID do item",
-          "description": "O ID do item Emby para encontrar itens semelhantes."
+          "name": "Item ID",
+          "description": "The Emby item ID to find similar items for."
         },
         "user_id": {
-          "name": "ID do utilizador",
-          "description": "ID do utilizador opcional (usa o utilizador da sessão se não especificado)."
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
         }
       }
     },
     "schedule_recording": {
-      "name": "Agendar gravação",
-      "description": "Agenda uma gravação única para um programa de TV ao vivo.",
+      "name": "Schedule Recording",
+      "description": "Schedule a one-time recording for a Live TV program.",
       "fields": {
         "program_id": {
-          "name": "ID do programa",
-          "description": "O ID do programa Emby a gravar."
+          "name": "Program ID",
+          "description": "The Emby program ID to record."
         },
         "pre_padding_seconds": {
-          "name": "Antecipação",
-          "description": "Segundos para começar a gravar antes do início do programa (0-3600)."
+          "name": "Pre-padding",
+          "description": "Seconds to start recording before the program begins (0-3600)."
         },
         "post_padding_seconds": {
-          "name": "Prolongamento",
-          "description": "Segundos para continuar a gravar após o fim do programa (0-3600)."
+          "name": "Post-padding",
+          "description": "Seconds to continue recording after the program ends (0-3600)."
         }
       }
     },
     "cancel_recording": {
-      "name": "Cancelar gravação",
-      "description": "Cancela um temporizador de gravação agendada.",
+      "name": "Cancel Recording",
+      "description": "Cancel a scheduled recording timer.",
       "fields": {
         "timer_id": {
-          "name": "ID do temporizador",
-          "description": "O ID do temporizador Emby a cancelar."
+          "name": "Timer ID",
+          "description": "The Emby timer ID to cancel."
         }
       }
     },
     "cancel_series_timer": {
-      "name": "Cancelar temporizador de série",
-      "description": "Cancela um temporizador de gravação de série (para todas as gravações futuras da série).",
+      "name": "Cancel Series Timer",
+      "description": "Cancel a series recording timer (stops all future recordings in the series).",
       "fields": {
         "series_timer_id": {
-          "name": "ID do temporizador de série",
-          "description": "O ID do temporizador de série Emby a cancelar."
+          "name": "Series Timer ID",
+          "description": "The Emby series timer ID to cancel."
         }
       }
     },
     "create_playlist": {
-      "name": "Criar lista de reprodução",
-      "description": "Cria uma nova lista de reprodução no servidor Emby.",
+      "name": "Create Playlist",
+      "description": "Create a new playlist on the Emby server.",
       "fields": {
         "name": {
-          "name": "Nome da lista",
-          "description": "O nome para a nova lista de reprodução."
+          "name": "Playlist Name",
+          "description": "The name for the new playlist."
         },
         "media_type": {
-          "name": "Tipo de média",
-          "description": "O tipo de média para a lista de reprodução (Áudio ou Vídeo)."
+          "name": "Media Type",
+          "description": "The type of media for the playlist (Audio or Video)."
         },
         "user_id": {
-          "name": "ID do utilizador",
-          "description": "O ID do utilizador que será proprietário da lista de reprodução."
+          "name": "User ID",
+          "description": "The user ID who will own the playlist."
         },
         "item_ids": {
-          "name": "IDs dos itens",
-          "description": "Lista opcional de IDs de itens a adicionar à lista de reprodução."
+          "name": "Item IDs",
+          "description": "Optional list of item IDs to add to the playlist."
         }
       }
     },
     "add_to_playlist": {
-      "name": "Adicionar à lista de reprodução",
-      "description": "Adiciona itens a uma lista de reprodução existente.",
+      "name": "Add to Playlist",
+      "description": "Add items to an existing playlist.",
       "fields": {
         "playlist_id": {
-          "name": "ID da lista",
-          "description": "O ID da lista de reprodução a que adicionar itens."
+          "name": "Playlist ID",
+          "description": "The ID of the playlist to add items to."
         },
         "item_ids": {
-          "name": "IDs dos itens",
-          "description": "Lista de IDs de itens a adicionar à lista de reprodução."
+          "name": "Item IDs",
+          "description": "List of item IDs to add to the playlist."
         },
         "user_id": {
-          "name": "ID do utilizador",
-          "description": "O ID do utilizador para validação de permissões."
+          "name": "User ID",
+          "description": "The user ID for permission validation."
         }
       }
     },
     "remove_from_playlist": {
-      "name": "Remover da lista de reprodução",
-      "description": "Remove itens de uma lista de reprodução.",
+      "name": "Remove from Playlist",
+      "description": "Remove items from a playlist.",
       "fields": {
         "playlist_id": {
-          "name": "ID da lista",
-          "description": "O ID da lista de reprodução de onde remover itens."
+          "name": "Playlist ID",
+          "description": "The ID of the playlist to remove items from."
         },
         "playlist_item_ids": {
-          "name": "IDs dos itens da lista",
-          "description": "Lista de valores PlaylistItemId (de itens da lista, NÃO IDs de itens multimédia)."
+          "name": "Playlist Item IDs",
+          "description": "List of PlaylistItemId values (from playlist items, NOT media item IDs)."
+        }
+      }
+    },
+    "create_collection": {
+      "name": "Criar coleção",
+      "description": "Cria uma nova coleção no servidor Emby.",
+      "fields": {
+        "name": {
+          "name": "Nome da coleção",
+          "description": "O nome para a nova coleção."
+        },
+        "item_ids": {
+          "name": "IDs dos itens",
+          "description": "Lista opcional de IDs de itens para adicionar à coleção."
+        }
+      }
+    },
+    "add_to_collection": {
+      "name": "Adicionar à coleção",
+      "description": "Adiciona itens a uma coleção existente.",
+      "fields": {
+        "collection_id": {
+          "name": "ID da coleção",
+          "description": "O ID da coleção à qual adicionar itens."
+        },
+        "item_ids": {
+          "name": "IDs dos itens",
+          "description": "Lista de IDs de itens para adicionar à coleção."
+        }
+      }
+    },
+    "remove_from_collection": {
+      "name": "Remover da coleção",
+      "description": "Remove itens de uma coleção.",
+      "fields": {
+        "collection_id": {
+          "name": "ID da coleção",
+          "description": "O ID da coleção da qual remover itens."
+        },
+        "item_ids": {
+          "name": "IDs dos itens",
+          "description": "Lista de IDs de itens para remover da coleção."
         }
       }
     }
@@ -424,41 +469,41 @@
   "options": {
     "step": {
       "init": {
-        "title": "Opções do Emby",
-        "description": "Configure as definições opcionais para a integração Emby.",
+        "title": "Opções Emby",
+        "description": "Configurar definições opcionais para a integração Emby.",
         "data": {
-          "scan_interval": "Intervalo de verificação (segundos)",
-          "enable_websocket": "Ativar WebSocket",
-          "ignored_devices": "Dispositivos ignorados",
-          "ignore_web_players": "Ignorar leitores de navegador web",
-          "direct_play": "Ativar reprodução direta",
-          "video_container": "Contentor de vídeo",
-          "transcoding_profile": "Perfil de transcodificação",
-          "max_video_bitrate": "Taxa de bits de vídeo máxima (kbps)",
-          "max_audio_bitrate": "Taxa de bits de áudio máxima (kbps)",
-          "prefix_media_player": "Prefixar nomes de leitores com 'Emby'",
-          "prefix_notify": "Prefixar nomes de notificações com 'Emby'",
-          "prefix_remote": "Prefixar nomes de controlos remotos com 'Emby'",
-          "prefix_button": "Prefixar nomes de botões com 'Emby'",
-          "enable_discovery_sensors": "Ativar sensores de descoberta",
-          "discovery_scan_interval": "Intervalo de verificação de descoberta (segundos)"
+          "scan_interval": "Scan interval (seconds)",
+          "enable_websocket": "Enable WebSocket",
+          "ignored_devices": "Ignored devices",
+          "ignore_web_players": "Ignore web browser players",
+          "direct_play": "Enable direct play",
+          "video_container": "Video container",
+          "transcoding_profile": "Transcoding profile",
+          "max_video_bitrate": "Max video bitrate (kbps)",
+          "max_audio_bitrate": "Max audio bitrate (kbps)",
+          "prefix_media_player": "Prefix media player names with 'Emby'",
+          "prefix_notify": "Prefix notify names with 'Emby'",
+          "prefix_remote": "Prefix remote names with 'Emby'",
+          "prefix_button": "Prefix button names with 'Emby'",
+          "enable_discovery_sensors": "Enable discovery sensors",
+          "discovery_scan_interval": "Discovery scan interval (seconds)"
         },
         "data_description": {
-          "scan_interval": "Com que frequência consultar o servidor Emby para atualizações (5-300 segundos)",
-          "enable_websocket": "Usar WebSocket para atualizações em tempo real (reduz consultas)",
-          "ignored_devices": "Lista separada por vírgulas de nomes de dispositivos a ignorar (ex.: 'Servidor, Dispositivo de backup')",
-          "ignore_web_players": "Ocultar leitores de sessões de navegador web (Emby Web, Chrome, Firefox, etc.)",
-          "direct_play": "Tentar reprodução direta antes da transcodificação",
-          "video_container": "Formato de contentor de vídeo preferido para transcodificação",
-          "transcoding_profile": "Perfil de dispositivo para negociação de formato (universal, chromecast, roku, appletv, audio_only)",
-          "max_video_bitrate": "Taxa de bits de vídeo máxima para transcodificação (deixar vazio para ilimitado)",
-          "max_audio_bitrate": "Taxa de bits de áudio máxima para transcodificação (deixar vazio para ilimitado)",
-          "prefix_media_player": "Quando ativado, os nomes dos dispositivos começarão com 'Emby' (ex.: 'Emby TV Sala')",
-          "prefix_notify": "Quando ativado, as entidades de notificação terão o prefixo 'Emby' nos seus nomes",
-          "prefix_remote": "Quando ativado, as entidades de controlo remoto terão o prefixo 'Emby' nos seus nomes",
-          "prefix_button": "Quando ativado, as entidades de botão terão o prefixo 'Emby' nos seus nomes",
-          "enable_discovery_sensors": "Criar sensores para A seguir, Continuar a ver, Adicionados recentemente e Sugestões (requer um utilizador selecionado)",
-          "discovery_scan_interval": "Com que frequência atualizar os sensores de descoberta (300-3600 segundos, padrão: 900)"
+          "scan_interval": "How often to poll the Emby server for updates (5-300 seconds)",
+          "enable_websocket": "Use WebSocket for real-time updates (reduces polling)",
+          "ignored_devices": "Comma-separated list of device names to ignore (e.g., 'Server, Backup Device')",
+          "ignore_web_players": "Hide media players from web browser sessions (Emby Web, Chrome, Firefox, etc.)",
+          "direct_play": "Try direct play before transcoding",
+          "video_container": "Preferred video container format for transcoding",
+          "transcoding_profile": "Device profile for format negotiation (universal, chromecast, roku, appletv, audio_only)",
+          "max_video_bitrate": "Maximum video bitrate for transcoding (leave empty for unlimited)",
+          "max_audio_bitrate": "Maximum audio bitrate for transcoding (leave empty for unlimited)",
+          "prefix_media_player": "When enabled, device names will start with 'Emby' (e.g., 'Emby Living Room TV')",
+          "prefix_notify": "When enabled, notification entities will have 'Emby' prefix in their device names",
+          "prefix_remote": "When enabled, remote entities will have 'Emby' prefix in their device names",
+          "prefix_button": "When enabled, button entities will have 'Emby' prefix in their device names",
+          "enable_discovery_sensors": "Create sensors for Next Up, Continue Watching, Recently Added, and Suggestions (requires a user to be selected)",
+          "discovery_scan_interval": "How often to update discovery sensors (300-3600 seconds, default: 900)"
         }
       }
     }

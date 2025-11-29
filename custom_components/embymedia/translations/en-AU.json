@@ -61,7 +61,7 @@
       },
       "entity_options": {
         "title": "Entity Naming Options",
-        "description": "Configure how entity names appear for {server_name}. By default, device names are prefixed with 'Emby' (e.g., 'Emby Lounge Room TV'). You can disable this for cleaner names.",
+        "description": "Configure how entity names appear for {server_name}. By default, device names are prefixed with 'Emby' (e.g., 'Emby Living Room TV'). You can disable this for cleaner names.",
         "data": {
           "prefix_media_player": "Prefix media player names with 'Emby'",
           "prefix_notify": "Prefix notify names with 'Emby'",
@@ -69,7 +69,7 @@
           "prefix_button": "Prefix button names with 'Emby'"
         },
         "data_description": {
-          "prefix_media_player": "When enabled, media player device names will start with 'Emby' (e.g., 'Emby Lounge Room TV')",
+          "prefix_media_player": "When enabled, media player device names will start with 'Emby' (e.g., 'Emby Living Room TV')",
           "prefix_notify": "When enabled, notification devices will have 'Emby' prefix",
           "prefix_remote": "When enabled, remote control devices will have 'Emby' prefix",
           "prefix_button": "When enabled, server action buttons will have 'Emby' prefix"
@@ -141,6 +141,9 @@
       "playlist_count": {
         "name": "Playlists"
       },
+      "collection_count": {
+        "name": "Collections"
+      },
       "next_up": {
         "name": "Next Up"
       },
@@ -178,7 +181,7 @@
         "name": "User Watch Time"
       },
       "user_favorites_count": {
-        "name": "User Favourites"
+        "name": "User Favorites"
       },
       "user_played_count": {
         "name": "User Watched"
@@ -263,12 +266,12 @@
       }
     },
     "add_favorite": {
-      "name": "Add Favourite",
-      "description": "Add a media item to favourites.",
+      "name": "Add Favorite",
+      "description": "Add a media item to favorites.",
       "fields": {
         "item_id": {
           "name": "Item ID",
-          "description": "The Emby item ID to add to favourites."
+          "description": "The Emby item ID to add to favorites."
         },
         "user_id": {
           "name": "User ID",
@@ -277,12 +280,12 @@
       }
     },
     "remove_favorite": {
-      "name": "Remove Favourite",
-      "description": "Remove a media item from favourites.",
+      "name": "Remove Favorite",
+      "description": "Remove a media item from favorites.",
       "fields": {
         "item_id": {
           "name": "Item ID",
-          "description": "The Emby item ID to remove from favourites."
+          "description": "The Emby item ID to remove from favorites."
         },
         "user_id": {
           "name": "User ID",
@@ -330,19 +333,19 @@
     },
     "schedule_recording": {
       "name": "Schedule Recording",
-      "description": "Schedule a one-time recording for a Live TV programme.",
+      "description": "Schedule a one-time recording for a Live TV program.",
       "fields": {
         "program_id": {
-          "name": "Programme ID",
-          "description": "The Emby programme ID to record."
+          "name": "Program ID",
+          "description": "The Emby program ID to record."
         },
         "pre_padding_seconds": {
           "name": "Pre-padding",
-          "description": "Seconds to start recording before the programme begins (0-3600)."
+          "description": "Seconds to start recording before the program begins (0-3600)."
         },
         "post_padding_seconds": {
           "name": "Post-padding",
-          "description": "Seconds to continue recording after the programme ends (0-3600)."
+          "description": "Seconds to continue recording after the program ends (0-3600)."
         }
       }
     },
@@ -419,6 +422,48 @@
           "description": "List of PlaylistItemId values (from playlist items, NOT media item IDs)."
         }
       }
+    },
+    "create_collection": {
+      "name": "Create Collection",
+      "description": "Create a new collection on the Emby server.",
+      "fields": {
+        "name": {
+          "name": "Collection Name",
+          "description": "The name for the new collection."
+        },
+        "item_ids": {
+          "name": "Item IDs",
+          "description": "Optional list of item IDs to add to the collection."
+        }
+      }
+    },
+    "add_to_collection": {
+      "name": "Add to Collection",
+      "description": "Add items to an existing collection.",
+      "fields": {
+        "collection_id": {
+          "name": "Collection ID",
+          "description": "The ID of the collection to add items to."
+        },
+        "item_ids": {
+          "name": "Item IDs",
+          "description": "List of item IDs to add to the collection."
+        }
+      }
+    },
+    "remove_from_collection": {
+      "name": "Remove from Collection",
+      "description": "Remove items from a collection.",
+      "fields": {
+        "collection_id": {
+          "name": "Collection ID",
+          "description": "The ID of the collection to remove items from."
+        },
+        "item_ids": {
+          "name": "Item IDs",
+          "description": "List of item IDs to remove from the collection."
+        }
+      }
     }
   },
   "options": {
@@ -453,7 +498,7 @@
           "transcoding_profile": "Device profile for format negotiation (universal, chromecast, roku, appletv, audio_only)",
           "max_video_bitrate": "Maximum video bitrate for transcoding (leave empty for unlimited)",
           "max_audio_bitrate": "Maximum audio bitrate for transcoding (leave empty for unlimited)",
-          "prefix_media_player": "When enabled, device names will start with 'Emby' (e.g., 'Emby Lounge Room TV')",
+          "prefix_media_player": "When enabled, device names will start with 'Emby' (e.g., 'Emby Living Room TV')",
           "prefix_notify": "When enabled, notification entities will have 'Emby' prefix in their device names",
           "prefix_remote": "When enabled, remote entities will have 'Emby' prefix in their device names",
           "prefix_button": "When enabled, button entities will have 'Emby' prefix in their device names",
