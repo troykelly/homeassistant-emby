@@ -1,169 +1,172 @@
 {
   "exceptions": {
     "connection_failed": {
-      "message": "Не удалось подключиться к серверу Emby по адресу {host}:{port}. Убедитесь, что сервер запущен и адрес/порт указаны верно."
+      "message": "Failed to connect to Emby server at {host}:{port}. Please check that the server is running and the host/port are correct."
     },
     "authentication_failed": {
-      "message": "Ошибка аутентификации. Проверьте API-ключ."
+      "message": "Authentication failed. Please check your API key."
     },
     "server_error": {
-      "message": "Сервер Emby вернул ошибку. Проверьте журналы сервера."
+      "message": "The Emby server returned an error. Please check the server logs."
     },
     "not_found": {
-      "message": "Запрошенный ресурс не найден на сервере."
+      "message": "The requested resource was not found on the server."
     },
     "timeout": {
-      "message": "Превышено время ожидания подключения. Сервер может быть недоступен."
+      "message": "Connection timed out. The server may be unreachable."
     },
     "ssl_error": {
-      "message": "Ошибка проверки SSL-сертификата. Проверьте сертификат или отключите проверку."
+      "message": "SSL certificate verification failed. Check your certificate or disable verification."
     },
     "websocket_error": {
-      "message": "Ошибка подключения WebSocket. Обновления в реальном времени могут быть недоступны."
+      "message": "WebSocket connection error. Real-time updates may not be available."
     },
     "websocket_auth_failed": {
-      "message": "Ошибка аутентификации WebSocket. Проверьте API-ключ."
+      "message": "WebSocket authentication failed. Please check your API key."
     }
   },
   "config": {
     "step": {
       "user": {
-        "title": "Подключение к серверу Emby",
-        "description": "Введите данные для подключения к серверу Emby.",
+        "title": "Connect to Emby Server",
+        "description": "Enter your Emby server connection details.",
         "data": {
-          "host": "Хост",
-          "port": "Порт",
-          "ssl": "Использовать SSL",
-          "api_key": "API-ключ",
-          "verify_ssl": "Проверять SSL-сертификат"
+          "host": "Host",
+          "port": "Port",
+          "ssl": "Use SSL",
+          "api_key": "API Key",
+          "verify_ssl": "Verify SSL Certificate"
         },
         "data_description": {
-          "host": "Имя хоста или IP-адрес сервера Emby (например, 192.168.1.100 или emby.local)",
-          "port": "Номер порта (по умолчанию: 8096, или 8920 для HTTPS)",
-          "ssl": "Включить подключение HTTPS",
-          "api_key": "API-ключ из Панели Emby > Расширенные > API-ключи",
-          "verify_ssl": "Проверять SSL-сертификат (отключайте только для самоподписанных сертификатов)"
+          "host": "Hostname or IP address of your Emby server (e.g., 192.168.1.100 or emby.local)",
+          "port": "Port number (default: 8096, or 8920 for HTTPS)",
+          "ssl": "Enable HTTPS connection",
+          "api_key": "API key from Emby Dashboard > Advanced > API Keys",
+          "verify_ssl": "Verify SSL certificate (disable only for self-signed certificates)"
         }
       },
       "user_select": {
-        "title": "Выбор пользователя",
-        "description": "Выберите контекст пользователя для {server_name}. Выберите 'Использовать контекст администратора', чтобы использовать API-ключ без конкретного пользователя.",
+        "title": "Select User",
+        "description": "Select a user context for {server_name}. Choose 'Use admin context' to use the API key without a specific user.",
         "data": {
-          "user_id": "Пользователь"
+          "user_id": "User"
         },
         "data_description": {
-          "user_id": "Пользователь, чьи библиотеки и разрешения будут использоваться"
+          "user_id": "The user whose libraries and permissions will be used"
         }
       },
       "reauth_confirm": {
-        "title": "Повторная аутентификация сервера Emby",
-        "description": "API-ключ для {server_name} больше недействителен. Введите новый API-ключ."
+        "title": "Re-authenticate Emby Server",
+        "description": "The API key for {server_name} is no longer valid. Please enter a new API key."
       },
       "entity_options": {
-        "title": "Параметры именования объектов",
-        "description": "Настройте отображение имён объектов для {server_name}. По умолчанию имена устройств имеют префикс 'Emby' (например, 'Emby ТВ Гостиная'). Вы можете отключить это для более чистых имён.",
+        "title": "Entity Naming Options",
+        "description": "Configure how entity names appear for {server_name}. By default, device names are prefixed with 'Emby' (e.g., 'Emby Living Room TV'). You can disable this for cleaner names.",
         "data": {
-          "prefix_media_player": "Добавлять префикс 'Emby' к именам плееров",
-          "prefix_notify": "Добавлять префикс 'Emby' к именам уведомлений",
-          "prefix_remote": "Добавлять префикс 'Emby' к именам пультов",
-          "prefix_button": "Добавлять префикс 'Emby' к именам кнопок"
+          "prefix_media_player": "Prefix media player names with 'Emby'",
+          "prefix_notify": "Prefix notify names with 'Emby'",
+          "prefix_remote": "Prefix remote names with 'Emby'",
+          "prefix_button": "Prefix button names with 'Emby'"
         },
         "data_description": {
-          "prefix_media_player": "Если включено, имена плееров будут начинаться с 'Emby' (например, 'Emby ТВ Гостиная')",
-          "prefix_notify": "Если включено, устройства уведомлений будут иметь префикс 'Emby'",
-          "prefix_remote": "Если включено, устройства управления будут иметь префикс 'Emby'",
-          "prefix_button": "Если включено, кнопки действий сервера будут иметь префикс 'Emby'"
+          "prefix_media_player": "When enabled, media player device names will start with 'Emby' (e.g., 'Emby Living Room TV')",
+          "prefix_notify": "When enabled, notification devices will have 'Emby' prefix",
+          "prefix_remote": "When enabled, remote control devices will have 'Emby' prefix",
+          "prefix_button": "When enabled, server action buttons will have 'Emby' prefix"
         }
       }
     },
     "error": {
-      "cannot_connect": "Не удалось подключиться к серверу Emby. Проверьте хост и порт.",
-      "invalid_auth": "Неверный API-ключ. Проверьте API-ключ в Панели Emby > Расширенные > API-ключи.",
-      "invalid_host": "Неверное имя хоста или IP-адрес",
-      "invalid_port": "Порт должен быть от 1 до 65535",
-      "timeout": "Превышено время ожидания подключения. Сервер может быть недоступен или медленно отвечает.",
-      "ssl_error": "Ошибка проверки SSL-сертификата. Включите опцию 'Проверять SSL-сертификат' или проверьте сертификат.",
-      "unsupported_version": "Эта версия сервера Emby не поддерживается. Обновите до версии 4.9.1.90 или новее.",
-      "unknown": "Произошла непредвиденная ошибка. Проверьте журналы для подробностей."
+      "cannot_connect": "Failed to connect to Emby server. Please check the host and port.",
+      "invalid_auth": "Invalid API key. Please check your API key in Emby Dashboard > Advanced > API Keys.",
+      "invalid_host": "Invalid hostname or IP address",
+      "invalid_port": "Port must be between 1 and 65535",
+      "timeout": "Connection timed out. The server may be unreachable or slow to respond.",
+      "ssl_error": "SSL certificate verification failed. Enable 'Verify SSL Certificate' option or check your certificate.",
+      "unsupported_version": "This Emby server version is not supported. Please upgrade to version 4.9.1.90 or later.",
+      "unknown": "An unexpected error occurred. Please check the logs for details."
     },
     "abort": {
-      "already_configured": "Этот сервер Emby уже настроен",
-      "reauth_successful": "Повторная аутентификация успешна",
-      "unsupported_version": "Эта версия сервера Emby не поддерживается"
+      "already_configured": "This Emby server is already configured",
+      "reauth_successful": "Re-authentication successful",
+      "unsupported_version": "This Emby server version is not supported"
     }
   },
   "entity": {
     "binary_sensor": {
       "server_connected": {
-        "name": "Сервер подключён"
+        "name": "Server Connected"
       },
       "pending_restart": {
-        "name": "Ожидает перезагрузки"
+        "name": "Pending Restart"
       },
       "update_available": {
-        "name": "Доступно обновление"
+        "name": "Update Available"
       },
       "library_scan_active": {
-        "name": "Сканирование библиотеки"
+        "name": "Library Scan Active"
       },
       "live_tv_enabled": {
-        "name": "Прямой эфир включён"
+        "name": "Live TV Enabled"
       }
     },
     "sensor": {
       "server_version": {
-        "name": "Версия сервера"
+        "name": "Server Version"
       },
       "running_tasks": {
-        "name": "Выполняемые задачи"
+        "name": "Running Tasks"
       },
       "active_sessions": {
-        "name": "Активные сеансы"
+        "name": "Active Sessions"
       },
       "movie_count": {
-        "name": "Фильмы"
+        "name": "Movies"
       },
       "series_count": {
-        "name": "Сериалы"
+        "name": "TV Shows"
       },
       "episode_count": {
-        "name": "Эпизоды"
+        "name": "Episodes"
       },
       "song_count": {
-        "name": "Песни"
+        "name": "Songs"
       },
       "album_count": {
-        "name": "Альбомы"
+        "name": "Albums"
       },
       "artist_count": {
-        "name": "Исполнители"
+        "name": "Artists"
       },
       "playlist_count": {
-        "name": "Плейлисты"
+        "name": "Playlists"
+      },
+      "collection_count": {
+        "name": "Collections"
       },
       "next_up": {
-        "name": "Следующее"
+        "name": "Next Up"
       },
       "continue_watching": {
-        "name": "Продолжить просмотр"
+        "name": "Continue Watching"
       },
       "recently_added": {
-        "name": "Недавно добавленные"
+        "name": "Recently Added"
       },
       "suggestions": {
-        "name": "Рекомендации"
+        "name": "Suggestions"
       },
       "recording_count": {
-        "name": "Записи"
+        "name": "Recordings"
       },
       "active_recordings": {
-        "name": "Активные записи"
+        "name": "Active Recordings"
       },
       "scheduled_timer_count": {
-        "name": "Запланированные записи"
+        "name": "Scheduled Recordings"
       },
       "series_timer_count": {
-        "name": "Правила записи сериалов"
+        "name": "Series Recording Rules"
       },
       "last_activity": {
         "name": "Last Activity"
@@ -175,248 +178,290 @@
         "name": "Watch Statistics"
       },
       "user_watch_statistics": {
-        "name": "Время просмотра пользователя"
+        "name": "User Watch Time"
       },
       "user_favorites_count": {
-        "name": "Избранное пользователя"
+        "name": "User Favorites"
       },
       "user_played_count": {
-        "name": "Просмотрено пользователем"
+        "name": "User Watched"
       },
       "user_in_progress_count": {
-        "name": "В процессе пользователя"
+        "name": "User In Progress"
       },
       "user_playlist_count": {
-        "name": "Плейлисты пользователя"
+        "name": "User Playlists"
       }
     },
     "image": {
       "next_up_image": {
-        "name": "Следующее"
+        "name": "Next Up"
       },
       "continue_watching_image": {
-        "name": "Продолжить просмотр"
+        "name": "Continue Watching"
       },
       "recently_added_image": {
-        "name": "Недавно добавленные"
+        "name": "Recently Added"
       },
       "suggestions_image": {
-        "name": "Рекомендации"
+        "name": "Suggestions"
       }
     }
   },
   "services": {
     "send_message": {
-      "name": "Отправить сообщение",
-      "description": "Отправляет сообщение клиенту Emby.",
+      "name": "Send Message",
+      "description": "Send a message to an Emby client.",
       "fields": {
         "message": {
-          "name": "Сообщение",
-          "description": "Текст сообщения для отображения."
+          "name": "Message",
+          "description": "The message text to display."
         },
         "header": {
-          "name": "Заголовок",
-          "description": "Необязательный заголовок сообщения."
+          "name": "Header",
+          "description": "Optional header/title for the message."
         },
         "timeout_ms": {
-          "name": "Время показа",
-          "description": "Длительность отображения сообщения (миллисекунды)."
+          "name": "Timeout",
+          "description": "How long to display the message (milliseconds)."
         }
       }
     },
     "send_command": {
-      "name": "Отправить команду",
-      "description": "Отправляет общую команду клиенту Emby.",
+      "name": "Send Command",
+      "description": "Send a general command to an Emby client.",
       "fields": {
         "command": {
-          "name": "Команда",
-          "description": "Команда для отправки (например, MoveUp, MoveDown, Select, Back)."
+          "name": "Command",
+          "description": "The command to send (e.g., MoveUp, MoveDown, Select, Back)."
         }
       }
     },
     "mark_played": {
-      "name": "Отметить просмотренным",
-      "description": "Отмечает медиа-элемент как просмотренный.",
+      "name": "Mark Played",
+      "description": "Mark a media item as played.",
       "fields": {
         "item_id": {
-          "name": "ID элемента",
-          "description": "ID элемента Emby для отметки как просмотренного."
+          "name": "Item ID",
+          "description": "The Emby item ID to mark as played."
         },
         "user_id": {
-          "name": "ID пользователя",
-          "description": "Необязательный ID пользователя (используется пользователь сеанса, если не указан)."
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
         }
       }
     },
     "mark_unplayed": {
-      "name": "Отметить непросмотренным",
-      "description": "Отмечает медиа-элемент как непросмотренный.",
+      "name": "Mark Unplayed",
+      "description": "Mark a media item as unplayed.",
       "fields": {
         "item_id": {
-          "name": "ID элемента",
-          "description": "ID элемента Emby для отметки как непросмотренного."
+          "name": "Item ID",
+          "description": "The Emby item ID to mark as unplayed."
         },
         "user_id": {
-          "name": "ID пользователя",
-          "description": "Необязательный ID пользователя (используется пользователь сеанса, если не указан)."
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
         }
       }
     },
     "add_favorite": {
-      "name": "Добавить в избранное",
-      "description": "Добавляет медиа-элемент в избранное.",
+      "name": "Add Favorite",
+      "description": "Add a media item to favorites.",
       "fields": {
         "item_id": {
-          "name": "ID элемента",
-          "description": "ID элемента Emby для добавления в избранное."
+          "name": "Item ID",
+          "description": "The Emby item ID to add to favorites."
         },
         "user_id": {
-          "name": "ID пользователя",
-          "description": "Необязательный ID пользователя (используется пользователь сеанса, если не указан)."
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
         }
       }
     },
     "remove_favorite": {
-      "name": "Удалить из избранного",
-      "description": "Удаляет медиа-элемент из избранного.",
+      "name": "Remove Favorite",
+      "description": "Remove a media item from favorites.",
       "fields": {
         "item_id": {
-          "name": "ID элемента",
-          "description": "ID элемента Emby для удаления из избранного."
+          "name": "Item ID",
+          "description": "The Emby item ID to remove from favorites."
         },
         "user_id": {
-          "name": "ID пользователя",
-          "description": "Необязательный ID пользователя (используется пользователь сеанса, если не указан)."
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
         }
       }
     },
     "refresh_library": {
-      "name": "Обновить библиотеку",
-      "description": "Запускает обновление библиотеки на сервере Emby.",
+      "name": "Refresh Library",
+      "description": "Trigger a library refresh on the Emby server.",
       "fields": {
         "library_id": {
-          "name": "ID библиотеки",
-          "description": "Необязательный ID библиотеки для обновления (обновляет все библиотеки, если не указан)."
+          "name": "Library ID",
+          "description": "Optional library ID to refresh (refreshes all libraries if not specified)."
         }
       }
     },
     "play_instant_mix": {
-      "name": "Воспроизвести мгновенный микс",
-      "description": "Воспроизводит мгновенный микс на основе элемента (песня, альбом, исполнитель).",
+      "name": "Play Instant Mix",
+      "description": "Play an instant mix based on an item (song, album, artist).",
       "fields": {
         "item_id": {
-          "name": "ID элемента",
-          "description": "ID элемента Emby для использования как основы мгновенного микса."
+          "name": "Item ID",
+          "description": "The Emby item ID to use as the seed for the instant mix."
         },
         "user_id": {
-          "name": "ID пользователя",
-          "description": "Необязательный ID пользователя (используется пользователь сеанса, если не указан)."
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
         }
       }
     },
     "play_similar": {
-      "name": "Воспроизвести похожее",
-      "description": "Воспроизводит похожие элементы на основе медиа-элемента.",
+      "name": "Play Similar Items",
+      "description": "Play similar items based on a media item.",
       "fields": {
         "item_id": {
-          "name": "ID элемента",
-          "description": "ID элемента Emby для поиска похожих элементов."
+          "name": "Item ID",
+          "description": "The Emby item ID to find similar items for."
         },
         "user_id": {
-          "name": "ID пользователя",
-          "description": "Необязательный ID пользователя (используется пользователь сеанса, если не указан)."
+          "name": "User ID",
+          "description": "Optional user ID (uses session user if not specified)."
         }
       }
     },
     "schedule_recording": {
-      "name": "Запланировать запись",
-      "description": "Планирует одноразовую запись программы прямого эфира.",
+      "name": "Schedule Recording",
+      "description": "Schedule a one-time recording for a Live TV program.",
       "fields": {
         "program_id": {
-          "name": "ID программы",
-          "description": "ID программы Emby для записи."
+          "name": "Program ID",
+          "description": "The Emby program ID to record."
         },
         "pre_padding_seconds": {
-          "name": "Запас до начала",
-          "description": "Секунды для начала записи до начала программы (0-3600)."
+          "name": "Pre-padding",
+          "description": "Seconds to start recording before the program begins (0-3600)."
         },
         "post_padding_seconds": {
-          "name": "Запас после окончания",
-          "description": "Секунды для продолжения записи после окончания программы (0-3600)."
+          "name": "Post-padding",
+          "description": "Seconds to continue recording after the program ends (0-3600)."
         }
       }
     },
     "cancel_recording": {
-      "name": "Отменить запись",
-      "description": "Отменяет запланированный таймер записи.",
+      "name": "Cancel Recording",
+      "description": "Cancel a scheduled recording timer.",
       "fields": {
         "timer_id": {
-          "name": "ID таймера",
-          "description": "ID таймера Emby для отмены."
+          "name": "Timer ID",
+          "description": "The Emby timer ID to cancel."
         }
       }
     },
     "cancel_series_timer": {
-      "name": "Отменить таймер сериала",
-      "description": "Отменяет таймер записи сериала (останавливает все будущие записи сериала).",
+      "name": "Cancel Series Timer",
+      "description": "Cancel a series recording timer (stops all future recordings in the series).",
       "fields": {
         "series_timer_id": {
-          "name": "ID таймера сериала",
-          "description": "ID таймера сериала Emby для отмены."
+          "name": "Series Timer ID",
+          "description": "The Emby series timer ID to cancel."
         }
       }
     },
     "create_playlist": {
-      "name": "Создать плейлист",
-      "description": "Создаёт новый плейлист на сервере Emby.",
+      "name": "Create Playlist",
+      "description": "Create a new playlist on the Emby server.",
       "fields": {
         "name": {
-          "name": "Название плейлиста",
-          "description": "Название для нового плейлиста."
+          "name": "Playlist Name",
+          "description": "The name for the new playlist."
         },
         "media_type": {
-          "name": "Тип медиа",
-          "description": "Тип медиа для плейлиста (Аудио или Видео)."
+          "name": "Media Type",
+          "description": "The type of media for the playlist (Audio or Video)."
         },
         "user_id": {
-          "name": "ID пользователя",
-          "description": "ID пользователя, который станет владельцем плейлиста."
+          "name": "User ID",
+          "description": "The user ID who will own the playlist."
         },
         "item_ids": {
-          "name": "ID элементов",
-          "description": "Необязательный список ID элементов для добавления в плейлист."
+          "name": "Item IDs",
+          "description": "Optional list of item IDs to add to the playlist."
         }
       }
     },
     "add_to_playlist": {
-      "name": "Добавить в плейлист",
-      "description": "Добавляет элементы в существующий плейлист.",
+      "name": "Add to Playlist",
+      "description": "Add items to an existing playlist.",
       "fields": {
         "playlist_id": {
-          "name": "ID плейлиста",
-          "description": "ID плейлиста для добавления элементов."
+          "name": "Playlist ID",
+          "description": "The ID of the playlist to add items to."
         },
         "item_ids": {
-          "name": "ID элементов",
-          "description": "Список ID элементов для добавления в плейлист."
+          "name": "Item IDs",
+          "description": "List of item IDs to add to the playlist."
         },
         "user_id": {
-          "name": "ID пользователя",
-          "description": "ID пользователя для проверки прав."
+          "name": "User ID",
+          "description": "The user ID for permission validation."
         }
       }
     },
     "remove_from_playlist": {
-      "name": "Удалить из плейлиста",
-      "description": "Удаляет элементы из плейлиста.",
+      "name": "Remove from Playlist",
+      "description": "Remove items from a playlist.",
       "fields": {
         "playlist_id": {
-          "name": "ID плейлиста",
-          "description": "ID плейлиста для удаления элементов."
+          "name": "Playlist ID",
+          "description": "The ID of the playlist to remove items from."
         },
         "playlist_item_ids": {
-          "name": "ID элементов плейлиста",
-          "description": "Список значений PlaylistItemId (из элементов плейлиста, НЕ ID медиа-элементов)."
+          "name": "Playlist Item IDs",
+          "description": "List of PlaylistItemId values (from playlist items, NOT media item IDs)."
+        }
+      }
+    },
+    "create_collection": {
+      "name": "Создать коллекцию",
+      "description": "Создаёт новую коллекцию на сервере Emby.",
+      "fields": {
+        "name": {
+          "name": "Название коллекции",
+          "description": "Название для новой коллекции."
+        },
+        "item_ids": {
+          "name": "ID элементов",
+          "description": "Необязательный список ID элементов для добавления в коллекцию."
+        }
+      }
+    },
+    "add_to_collection": {
+      "name": "Добавить в коллекцию",
+      "description": "Добавляет элементы в существующую коллекцию.",
+      "fields": {
+        "collection_id": {
+          "name": "ID коллекции",
+          "description": "ID коллекции, в которую нужно добавить элементы."
+        },
+        "item_ids": {
+          "name": "ID элементов",
+          "description": "Список ID элементов для добавления в коллекцию."
+        }
+      }
+    },
+    "remove_from_collection": {
+      "name": "Удалить из коллекции",
+      "description": "Удаляет элементы из коллекции.",
+      "fields": {
+        "collection_id": {
+          "name": "ID коллекции",
+          "description": "ID коллекции, из которой нужно удалить элементы."
+        },
+        "item_ids": {
+          "name": "ID элементов",
+          "description": "Список ID элементов для удаления из коллекции."
         }
       }
     }
@@ -425,40 +470,40 @@
     "step": {
       "init": {
         "title": "Настройки Emby",
-        "description": "Настройте дополнительные параметры интеграции Emby.",
+        "description": "Настройка дополнительных параметров интеграции Emby.",
         "data": {
-          "scan_interval": "Интервал опроса (секунды)",
-          "enable_websocket": "Включить WebSocket",
-          "ignored_devices": "Игнорируемые устройства",
-          "ignore_web_players": "Игнорировать веб-плееры",
-          "direct_play": "Включить прямое воспроизведение",
-          "video_container": "Видеоконтейнер",
-          "transcoding_profile": "Профиль перекодирования",
-          "max_video_bitrate": "Макс. битрейт видео (кбит/с)",
-          "max_audio_bitrate": "Макс. битрейт аудио (кбит/с)",
-          "prefix_media_player": "Добавлять префикс 'Emby' к именам плееров",
-          "prefix_notify": "Добавлять префикс 'Emby' к именам уведомлений",
-          "prefix_remote": "Добавлять префикс 'Emby' к именам пультов",
-          "prefix_button": "Добавлять префикс 'Emby' к именам кнопок",
-          "enable_discovery_sensors": "Включить сенсоры обнаружения",
-          "discovery_scan_interval": "Интервал сканирования обнаружения (секунды)"
+          "scan_interval": "Scan interval (seconds)",
+          "enable_websocket": "Enable WebSocket",
+          "ignored_devices": "Ignored devices",
+          "ignore_web_players": "Ignore web browser players",
+          "direct_play": "Enable direct play",
+          "video_container": "Video container",
+          "transcoding_profile": "Transcoding profile",
+          "max_video_bitrate": "Max video bitrate (kbps)",
+          "max_audio_bitrate": "Max audio bitrate (kbps)",
+          "prefix_media_player": "Prefix media player names with 'Emby'",
+          "prefix_notify": "Prefix notify names with 'Emby'",
+          "prefix_remote": "Prefix remote names with 'Emby'",
+          "prefix_button": "Prefix button names with 'Emby'",
+          "enable_discovery_sensors": "Enable discovery sensors",
+          "discovery_scan_interval": "Discovery scan interval (seconds)"
         },
         "data_description": {
-          "scan_interval": "Как часто опрашивать сервер Emby для обновлений (5-300 секунд)",
-          "enable_websocket": "Использовать WebSocket для обновлений в реальном времени (уменьшает опрос)",
-          "ignored_devices": "Список имён устройств для игнорирования через запятую (например, 'Сервер, Резервное устройство')",
-          "ignore_web_players": "Скрывать плееры из сеансов веб-браузера (Emby Web, Chrome, Firefox и т.д.)",
-          "direct_play": "Пробовать прямое воспроизведение перед перекодированием",
-          "video_container": "Предпочтительный формат видеоконтейнера для перекодирования",
-          "transcoding_profile": "Профиль устройства для согласования формата (universal, chromecast, roku, appletv, audio_only)",
-          "max_video_bitrate": "Максимальный битрейт видео для перекодирования (оставьте пустым для неограниченного)",
-          "max_audio_bitrate": "Максимальный битрейт аудио для перекодирования (оставьте пустым для неограниченного)",
-          "prefix_media_player": "Если включено, имена устройств будут начинаться с 'Emby' (например, 'Emby ТВ Гостиная')",
-          "prefix_notify": "Если включено, объекты уведомлений будут иметь префикс 'Emby' в именах",
-          "prefix_remote": "Если включено, объекты пультов будут иметь префикс 'Emby' в именах",
-          "prefix_button": "Если включено, объекты кнопок будут иметь префикс 'Emby' в именах",
-          "enable_discovery_sensors": "Создать сенсоры для Следующее, Продолжить просмотр, Недавно добавленные и Рекомендации (требуется выбранный пользователь)",
-          "discovery_scan_interval": "Как часто обновлять сенсоры обнаружения (300-3600 секунд, по умолчанию: 900)"
+          "scan_interval": "How often to poll the Emby server for updates (5-300 seconds)",
+          "enable_websocket": "Use WebSocket for real-time updates (reduces polling)",
+          "ignored_devices": "Comma-separated list of device names to ignore (e.g., 'Server, Backup Device')",
+          "ignore_web_players": "Hide media players from web browser sessions (Emby Web, Chrome, Firefox, etc.)",
+          "direct_play": "Try direct play before transcoding",
+          "video_container": "Preferred video container format for transcoding",
+          "transcoding_profile": "Device profile for format negotiation (universal, chromecast, roku, appletv, audio_only)",
+          "max_video_bitrate": "Maximum video bitrate for transcoding (leave empty for unlimited)",
+          "max_audio_bitrate": "Maximum audio bitrate for transcoding (leave empty for unlimited)",
+          "prefix_media_player": "When enabled, device names will start with 'Emby' (e.g., 'Emby Living Room TV')",
+          "prefix_notify": "When enabled, notification entities will have 'Emby' prefix in their device names",
+          "prefix_remote": "When enabled, remote entities will have 'Emby' prefix in their device names",
+          "prefix_button": "When enabled, button entities will have 'Emby' prefix in their device names",
+          "enable_discovery_sensors": "Create sensors for Next Up, Continue Watching, Recently Added, and Suggestions (requires a user to be selected)",
+          "discovery_scan_interval": "How often to update discovery sensors (300-3600 seconds, default: 900)"
         }
       }
     }

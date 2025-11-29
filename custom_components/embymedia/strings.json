@@ -422,6 +422,48 @@
           "description": "List of PlaylistItemId values (from playlist items, NOT media item IDs)."
         }
       }
+    },
+    "create_collection": {
+      "name": "Create Collection",
+      "description": "Create a new collection on the Emby server.",
+      "fields": {
+        "name": {
+          "name": "Collection Name",
+          "description": "The name for the new collection."
+        },
+        "item_ids": {
+          "name": "Item IDs",
+          "description": "Optional list of item IDs to add to the collection."
+        }
+      }
+    },
+    "add_to_collection": {
+      "name": "Add to Collection",
+      "description": "Add items to an existing collection.",
+      "fields": {
+        "collection_id": {
+          "name": "Collection ID",
+          "description": "The ID of the collection to add items to."
+        },
+        "item_ids": {
+          "name": "Item IDs",
+          "description": "List of item IDs to add to the collection."
+        }
+      }
+    },
+    "remove_from_collection": {
+      "name": "Remove from Collection",
+      "description": "Remove items from a collection.",
+      "fields": {
+        "collection_id": {
+          "name": "Collection ID",
+          "description": "The ID of the collection to remove items from."
+        },
+        "item_ids": {
+          "name": "Item IDs",
+          "description": "List of item IDs to remove from the collection."
+        }
+      }
     }
   },
   "options": {
