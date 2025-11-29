@@ -2902,3 +2902,87 @@ class TestTVShowLibraryBrowsing:
         mock_coordinator_for_browse.client.async_get_items.assert_called_once()
         call_kwargs = mock_coordinator_for_browse.client.async_get_items.call_args.kwargs
         assert call_kwargs.get("studio_ids") == "network-hbo"
+
+
+class TestGenreFiltering:
+    """Test genre filtering in music library browsing."""
+
+    @pytest.mark.asyncio
+    async def test_browse_genre_items_uses_genre_id_filter(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test that browsing genre items passes genre_ids to API."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.client.async_get_items = AsyncMock(
+            return_value={
+                "Items": [
+                    {
+                        "Id": "album-1",
+                        "Name": "Best of Rock",
+                        "Type": "MusicAlbum",
+                        "ImageTags": {},
+                    },
+                ],
+                "TotalRecordCount": 1,
+            }
+        )
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.MUSIC,
+            media_content_id="musicgenre:lib-music:genre-rock-123",
+        )
+
+        assert isinstance(result, BrowseMedia)
+        # Verify API was called with genre_ids filter
+        mock_coordinator_for_browse.client.async_get_items.assert_called_once()
+        call_kwargs = mock_coordinator_for_browse.client.async_get_items.call_args.kwargs
+        assert call_kwargs.get("genre_ids") == "genre-rock-123"
+
+    @pytest.mark.asyncio
+    async def test_browse_genre_items_returns_albums(
+        self,
+        hass: HomeAssistant,
+        mock_coordinator_for_browse: MagicMock,
+        mock_session_with_user: MagicMock,
+    ) -> None:
+        """Test that browsing genre items returns albums."""
+        from custom_components.embymedia.media_player import EmbyMediaPlayer
+
+        mock_coordinator_for_browse.client.async_get_items = AsyncMock(
+            return_value={
+                "Items": [
+                    {
+                        "Id": "album-1",
+                        "Name": "Rock Album 1",
+                        "Type": "MusicAlbum",
+                        "ImageTags": {},
+                    },
+                    {
+                        "Id": "album-2",
+                        "Name": "Rock Album 2",
+                        "Type": "MusicAlbum",
+                        "ImageTags": {},
+                    },
+                ],
+                "TotalRecordCount": 2,
+            }
+        )
+        mock_coordinator_for_browse.get_session.return_value = mock_session_with_user
+
+        player = EmbyMediaPlayer(mock_coordinator_for_browse, "device-abc-123")
+        result = await player.async_browse_media(
+            media_content_type=MediaType.MUSIC,
+            media_content_id="musicgenre:lib-music:genre-rock-456",
+        )
+
+        assert isinstance(result, BrowseMedia)
+        assert result.children is not None
+        assert len(result.children) == 2
+        assert result.children[0].title == "Rock Album 1"
+        assert result.children[1].title == "Rock Album 2"

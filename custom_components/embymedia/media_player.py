@@ -1293,15 +1293,14 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
         coordinator: EmbyDataUpdateCoordinator = self.coordinator
         client = coordinator.client
 
-        # Fetch albums in this genre
+        # Fetch albums in this genre using genre_ids filter
         result = await client.async_get_items(
             user_id,
             parent_id=library_id,
             include_item_types="MusicAlbum",
             recursive=True,
+            genre_ids=genre_id,
         )
-        # Note: Emby's genre filtering is complex - for now return all albums
-        # A better approach would be using the GenreIds filter parameter
         items = result.get("Items", [])
 
         children: list[BrowseMedia] = []
