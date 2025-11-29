@@ -146,9 +146,9 @@ class TestParallelServiceExecution:
             end_indices = [i for i, x in enumerate(call_order) if x.startswith("end_")]
 
             # For parallel execution, all starts should come before all ends
-            assert max(start_indices) < min(
-                end_indices
-            ), f"Expected parallel execution, got order: {call_order}"
+            assert max(start_indices) < min(end_indices), (
+                f"Expected parallel execution, got order: {call_order}"
+            )
 
     @pytest.mark.asyncio
     async def test_mark_played_executes_in_parallel(
@@ -228,9 +228,9 @@ class TestParallelServiceExecution:
             # Verify parallel execution
             start_indices = [i for i, x in enumerate(call_order) if x.startswith("start_")]
             end_indices = [i for i, x in enumerate(call_order) if x.startswith("end_")]
-            assert max(start_indices) < min(
-                end_indices
-            ), f"Expected parallel execution, got order: {call_order}"
+            assert max(start_indices) < min(end_indices), (
+                f"Expected parallel execution, got order: {call_order}"
+            )
 
     @pytest.mark.asyncio
     async def test_parallel_execution_propagates_first_error(

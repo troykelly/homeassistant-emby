@@ -529,9 +529,9 @@ class TestCoordinatorParallelExecution:
         # 6 calls at 50ms each:
         # Sequential: 300ms minimum
         # Parallel: ~50ms (plus overhead)
-        assert (
-            elapsed < 0.2
-        ), f"API calls took {elapsed:.3f}s - should be < 0.2s if running in parallel"
+        assert elapsed < 0.2, (
+            f"API calls took {elapsed:.3f}s - should be < 0.2s if running in parallel"
+        )
 
     async def test_library_coordinator_parallel_api_calls(
         self,
@@ -599,6 +599,6 @@ class TestCoordinatorParallelExecution:
         # 7 calls at 50ms each (counts, folders, 3x user_count, playlists, collections):
         # Sequential: 350ms minimum
         # Parallel: ~50ms (plus overhead)
-        assert (
-            elapsed < 0.2
-        ), f"API calls took {elapsed:.3f}s - should be < 0.2s if running in parallel"
+        assert elapsed < 0.2, (
+            f"API calls took {elapsed:.3f}s - should be < 0.2s if running in parallel"
+        )

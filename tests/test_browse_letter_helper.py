@@ -64,9 +64,9 @@ class TestLetterBrowsingHelper:
 
         player = EmbyMediaPlayer(mock_coordinator_for_letter_browse, "device-abc-123")
 
-        assert hasattr(
-            player, "_async_browse_items_by_letter"
-        ), "EmbyMediaPlayer should have _async_browse_items_by_letter method"
+        assert hasattr(player, "_async_browse_items_by_letter"), (
+            "EmbyMediaPlayer should have _async_browse_items_by_letter method"
+        )
 
     @pytest.mark.asyncio
     async def test_helper_filters_letter_items(
