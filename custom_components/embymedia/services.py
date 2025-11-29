@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
+from collections.abc import Awaitable
 from typing import TYPE_CHECKING
 
 import voluptuous as vol
@@ -339,6 +341,40 @@ def _get_any_coordinator(
     )
 
 
+async def _execute_parallel(
+    coroutines: list[Awaitable[None]],
+) -> None:
+    """Execute multiple async operations in parallel.
+
+    Runs all provided coroutines concurrently using asyncio.gather().
+    If any operation fails, the first exception is raised.
+
+    Args:
+        coroutines: List of coroutines to execute in parallel.
+
+    Raises:
+        The first exception encountered from any operation.
+    """
+    if not coroutines:
+        return
+
+    if len(coroutines) == 1:
+        # Optimize single operation case - no need for gather overhead
+        await coroutines[0]
+        return
+
+    # Execute all operations in parallel
+    results = await asyncio.gather(
+        *coroutines,
+        return_exceptions=True,
+    )
+
+    # Check for any exceptions and raise the first one
+    for result in results:
+        if isinstance(result, Exception):
+            raise result
+
+
 async def async_setup_services(hass: HomeAssistant) -> None:
     """Set up Emby services.
 
@@ -356,6 +392,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         header: str = call.data.get(ATTR_HEADER, "")
         timeout_ms: int = call.data.get(ATTR_TIMEOUT_MS, 5000)
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator, str]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
             session_id = _get_session_id_for_entity(hass, entity_id, coordinator)
@@ -364,7 +402,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 raise HomeAssistantError(
                     f"Session not found for {entity_id}. The device may be offline."
                 )
+            entity_data.append((entity_id, coordinator, session_id))
 
+        async def send_to_entity(
+            entity_id: str, coordinator: EmbyDataUpdateCoordinator, session_id: str
+        ) -> None:
             try:
                 await coordinator.client.async_send_message(
                     session_id=session_id,
@@ -379,11 +421,18 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             except EmbyError as err:
                 raise HomeAssistantError(f"Failed to send message to {entity_id}: {err}") from err
 
+        # Execute in parallel
+        await _execute_parallel(
+            [send_to_entity(eid, coord, sid) for eid, coord, sid in entity_data]
+        )
+
     async def async_send_command(call: ServiceCall) -> None:
         """Send a command to Emby clients."""
         entity_ids = _get_entity_ids_from_call(hass, call)
         command: str = call.data[ATTR_COMMAND]
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator, str]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
             session_id = _get_session_id_for_entity(hass, entity_id, coordinator)
@@ -392,7 +441,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 raise HomeAssistantError(
                     f"Session not found for {entity_id}. The device may be offline."
                 )
+            entity_data.append((entity_id, coordinator, session_id))
 
+        async def send_to_entity(
+            entity_id: str, coordinator: EmbyDataUpdateCoordinator, session_id: str
+        ) -> None:
             try:
                 await coordinator.client.async_send_general_command(
                     session_id=session_id,
@@ -405,6 +458,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             except EmbyError as err:
                 raise HomeAssistantError(f"Failed to send command to {entity_id}: {err}") from err
 
+        # Execute in parallel
+        await _execute_parallel(
+            [send_to_entity(eid, coord, sid) for eid, coord, sid in entity_data]
+        )
+
     async def async_mark_played(call: ServiceCall) -> None:
         """Mark item as played."""
         entity_ids = _get_entity_ids_from_call(hass, call)
@@ -416,6 +474,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if user_id:
             _validate_emby_id(user_id, "user_id")
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator, str]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
             effective_user_id = user_id or _get_user_id_for_entity(hass, entity_id, coordinator)
@@ -424,7 +484,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 raise ServiceValidationError(
                     f"No user_id available for {entity_id}. Please provide user_id parameter."
                 )
+            entity_data.append((entity_id, coordinator, effective_user_id))
 
+        async def mark_for_entity(
+            entity_id: str, coordinator: EmbyDataUpdateCoordinator, effective_user_id: str
+        ) -> None:
             try:
                 await coordinator.client.async_mark_played(
                     user_id=effective_user_id,
@@ -439,6 +503,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to mark item played for {entity_id}: {err}"
                 ) from err
 
+        # Execute in parallel
+        await _execute_parallel(
+            [mark_for_entity(eid, coord, uid) for eid, coord, uid in entity_data]
+        )
+
     async def async_mark_unplayed(call: ServiceCall) -> None:
         """Mark item as unplayed."""
         entity_ids = _get_entity_ids_from_call(hass, call)
@@ -450,6 +519,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if user_id:
             _validate_emby_id(user_id, "user_id")
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator, str]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
             effective_user_id = user_id or _get_user_id_for_entity(hass, entity_id, coordinator)
@@ -458,7 +529,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 raise ServiceValidationError(
                     f"No user_id available for {entity_id}. Please provide user_id parameter."
                 )
+            entity_data.append((entity_id, coordinator, effective_user_id))
 
+        async def mark_for_entity(
+            entity_id: str, coordinator: EmbyDataUpdateCoordinator, effective_user_id: str
+        ) -> None:
             try:
                 await coordinator.client.async_mark_unplayed(
                     user_id=effective_user_id,
@@ -473,6 +548,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to mark item unplayed for {entity_id}: {err}"
                 ) from err
 
+        # Execute in parallel
+        await _execute_parallel(
+            [mark_for_entity(eid, coord, uid) for eid, coord, uid in entity_data]
+        )
+
     async def async_add_favorite(call: ServiceCall) -> None:
         """Add item to favorites."""
         entity_ids = _get_entity_ids_from_call(hass, call)
@@ -484,6 +564,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if user_id:
             _validate_emby_id(user_id, "user_id")
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator, str]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
             effective_user_id = user_id or _get_user_id_for_entity(hass, entity_id, coordinator)
@@ -492,7 +574,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 raise ServiceValidationError(
                     f"No user_id available for {entity_id}. Please provide user_id parameter."
                 )
+            entity_data.append((entity_id, coordinator, effective_user_id))
 
+        async def add_for_entity(
+            entity_id: str, coordinator: EmbyDataUpdateCoordinator, effective_user_id: str
+        ) -> None:
             try:
                 await coordinator.client.async_add_favorite(
                     user_id=effective_user_id,
@@ -505,6 +591,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             except EmbyError as err:
                 raise HomeAssistantError(f"Failed to add favorite for {entity_id}: {err}") from err
 
+        # Execute in parallel
+        await _execute_parallel(
+            [add_for_entity(eid, coord, uid) for eid, coord, uid in entity_data]
+        )
+
     async def async_remove_favorite(call: ServiceCall) -> None:
         """Remove item from favorites."""
         entity_ids = _get_entity_ids_from_call(hass, call)
@@ -516,6 +607,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if user_id:
             _validate_emby_id(user_id, "user_id")
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator, str]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
             effective_user_id = user_id or _get_user_id_for_entity(hass, entity_id, coordinator)
@@ -524,7 +617,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 raise ServiceValidationError(
                     f"No user_id available for {entity_id}. Please provide user_id parameter."
                 )
+            entity_data.append((entity_id, coordinator, effective_user_id))
 
+        async def remove_for_entity(
+            entity_id: str, coordinator: EmbyDataUpdateCoordinator, effective_user_id: str
+        ) -> None:
             try:
                 await coordinator.client.async_remove_favorite(
                     user_id=effective_user_id,
@@ -539,6 +636,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to remove favorite for {entity_id}: {err}"
                 ) from err
 
+        # Execute in parallel
+        await _execute_parallel(
+            [remove_for_entity(eid, coord, uid) for eid, coord, uid in entity_data]
+        )
+
     async def async_refresh_library(call: ServiceCall) -> None:
         """Trigger library refresh."""
         entity_ids = _get_entity_ids_from_call(hass, call)
@@ -548,8 +650,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if library_id:
             _validate_emby_id(library_id, "library_id")
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
+            entity_data.append((entity_id, coordinator))
+
+        async def refresh_for_entity(
+            entity_id: str, coordinator: EmbyDataUpdateCoordinator
+        ) -> None:
             try:
                 await coordinator.client.async_refresh_library(library_id=library_id)
             except EmbyConnectionError as err:
@@ -560,6 +669,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 raise HomeAssistantError(
                     f"Failed to refresh library for {entity_id}: {err}"
                 ) from err
+
+        # Execute in parallel
+        await _execute_parallel([refresh_for_entity(eid, coord) for eid, coord in entity_data])
 
     async def async_play_instant_mix(call: ServiceCall) -> None:
         """Play instant mix based on an item."""
@@ -572,6 +684,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if user_id:
             _validate_emby_id(user_id, "user_id")
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator, str, str]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
             effective_user_id = user_id or _get_user_id_for_entity(hass, entity_id, coordinator)
@@ -586,7 +700,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 raise ServiceValidationError(
                     f"No session found for {entity_id}. Is the device active?"
                 )
+            entity_data.append((entity_id, coordinator, effective_user_id, session_id))
 
+        async def play_for_entity(
+            entity_id: str,
+            coordinator: EmbyDataUpdateCoordinator,
+            effective_user_id: str,
+            session_id: str,
+        ) -> None:
             try:
                 # Get instant mix items
                 items = await coordinator.client.async_get_instant_mix(
@@ -614,6 +735,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to play instant mix for {entity_id}: {err}"
                 ) from err
 
+        # Execute in parallel
+        await _execute_parallel(
+            [play_for_entity(eid, coord, uid, sid) for eid, coord, uid, sid in entity_data]
+        )
+
     async def async_play_similar(call: ServiceCall) -> None:
         """Play similar items based on an item."""
         entity_ids = _get_entity_ids_from_call(hass, call)
@@ -625,6 +751,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if user_id:
             _validate_emby_id(user_id, "user_id")
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator, str, str]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
             effective_user_id = user_id or _get_user_id_for_entity(hass, entity_id, coordinator)
@@ -639,7 +767,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 raise ServiceValidationError(
                     f"No session found for {entity_id}. Is the device active?"
                 )
+            entity_data.append((entity_id, coordinator, effective_user_id, session_id))
 
+        async def play_for_entity(
+            entity_id: str,
+            coordinator: EmbyDataUpdateCoordinator,
+            effective_user_id: str,
+            session_id: str,
+        ) -> None:
             try:
                 # Get similar items
                 items = await coordinator.client.async_get_similar_items(
@@ -667,6 +802,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to play similar items for {entity_id}: {err}"
                 ) from err
 
+        # Execute in parallel
+        await _execute_parallel(
+            [play_for_entity(eid, coord, uid, sid) for eid, coord, uid, sid in entity_data]
+        )
+
     # Live TV Services (Phase 16)
     async def async_schedule_recording(call: ServiceCall) -> None:
         """Schedule a one-time recording."""
@@ -678,9 +818,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         # Validate program ID
         _validate_emby_id(program_id, "program_id")
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
+            entity_data.append((entity_id, coordinator))
 
+        async def schedule_for_entity(
+            entity_id: str, coordinator: EmbyDataUpdateCoordinator
+        ) -> None:
             try:
                 # Get default timer settings from server
                 timer_defaults = await coordinator.client.async_get_timer_defaults(
@@ -706,6 +852,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to schedule recording for {entity_id}: {err}"
                 ) from err
 
+        # Execute in parallel
+        await _execute_parallel([schedule_for_entity(eid, coord) for eid, coord in entity_data])
+
     async def async_cancel_recording(call: ServiceCall) -> None:
         """Cancel a scheduled recording."""
         entity_ids = _get_entity_ids_from_call(hass, call)
@@ -714,9 +863,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         # Validate timer ID
         _validate_emby_id(timer_id, "timer_id")
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
+            entity_data.append((entity_id, coordinator))
 
+        async def cancel_for_entity(entity_id: str, coordinator: EmbyDataUpdateCoordinator) -> None:
             try:
                 await coordinator.client.async_cancel_timer(timer_id=timer_id)
             except EmbyConnectionError as err:
@@ -728,6 +881,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to cancel recording for {entity_id}: {err}"
                 ) from err
 
+        # Execute in parallel
+        await _execute_parallel([cancel_for_entity(eid, coord) for eid, coord in entity_data])
+
     async def async_cancel_series_timer(call: ServiceCall) -> None:
         """Cancel a series recording timer."""
         entity_ids = _get_entity_ids_from_call(hass, call)
@@ -736,9 +892,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         # Validate series timer ID
         _validate_emby_id(series_timer_id, "series_timer_id")
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
+            entity_data.append((entity_id, coordinator))
 
+        async def cancel_for_entity(entity_id: str, coordinator: EmbyDataUpdateCoordinator) -> None:
             try:
                 await coordinator.client.async_cancel_series_timer(series_timer_id=series_timer_id)
             except EmbyConnectionError as err:
@@ -749,6 +909,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 raise HomeAssistantError(
                     f"Failed to cancel series timer for {entity_id}: {err}"
                 ) from err
+
+        # Execute in parallel
+        await _execute_parallel([cancel_for_entity(eid, coord) for eid, coord in entity_data])
 
     # Playlist Services (Phase 17)
     async def async_create_playlist(call: ServiceCall) -> None:
@@ -765,9 +928,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             for item_id in item_ids:
                 _validate_emby_id(item_id, "item_id")
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
+            entity_data.append((entity_id, coordinator))
 
+        async def create_for_entity(entity_id: str, coordinator: EmbyDataUpdateCoordinator) -> None:
             try:
                 await coordinator.client.async_create_playlist(
                     name=name,
@@ -784,6 +951,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to create playlist for {entity_id}: {err}"
                 ) from err
 
+        # Execute in parallel
+        await _execute_parallel([create_for_entity(eid, coord) for eid, coord in entity_data])
+
     async def async_add_to_playlist(call: ServiceCall) -> None:
         """Add items to a playlist."""
         entity_ids = _get_entity_ids_from_call(hass, call)
@@ -797,9 +967,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         for item_id in item_ids:
             _validate_emby_id(item_id, "item_id")
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
+            entity_data.append((entity_id, coordinator))
 
+        async def add_for_entity(entity_id: str, coordinator: EmbyDataUpdateCoordinator) -> None:
             try:
                 await coordinator.client.async_add_to_playlist(
                     playlist_id=playlist_id,
@@ -815,6 +989,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to add to playlist for {entity_id}: {err}"
                 ) from err
 
+        # Execute in parallel
+        await _execute_parallel([add_for_entity(eid, coord) for eid, coord in entity_data])
+
     async def async_remove_from_playlist(call: ServiceCall) -> None:
         """Remove items from a playlist."""
         entity_ids = _get_entity_ids_from_call(hass, call)
@@ -824,9 +1001,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         # Validate playlist_id
         _validate_emby_id(playlist_id, "playlist_id")
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
+            entity_data.append((entity_id, coordinator))
 
+        async def remove_for_entity(entity_id: str, coordinator: EmbyDataUpdateCoordinator) -> None:
             try:
                 await coordinator.client.async_remove_from_playlist(
                     playlist_id=playlist_id,
@@ -841,6 +1022,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to remove from playlist for {entity_id}: {err}"
                 ) from err
 
+        # Execute in parallel
+        await _execute_parallel([remove_for_entity(eid, coord) for eid, coord in entity_data])
+
     # Collection services (Phase 19)
     async def async_create_collection(call: ServiceCall) -> None:
         """Create a new collection."""
@@ -853,9 +1037,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             for item_id in item_ids:
                 _validate_emby_id(item_id, "item_id")
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
+            entity_data.append((entity_id, coordinator))
 
+        async def create_for_entity(entity_id: str, coordinator: EmbyDataUpdateCoordinator) -> None:
             try:
                 await coordinator.client.async_create_collection(
                     name=collection_name,
@@ -870,6 +1058,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to create collection for {entity_id}: {err}"
                 ) from err
 
+        # Execute in parallel
+        await _execute_parallel([create_for_entity(eid, coord) for eid, coord in entity_data])
+
     async def async_add_to_collection(call: ServiceCall) -> None:
         """Add items to a collection."""
         entity_ids = _get_entity_ids_from_call(hass, call)
@@ -881,9 +1072,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         for item_id in item_ids:
             _validate_emby_id(item_id, "item_id")
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
+            entity_data.append((entity_id, coordinator))
 
+        async def add_for_entity(entity_id: str, coordinator: EmbyDataUpdateCoordinator) -> None:
             try:
                 await coordinator.client.async_add_to_collection(
                     collection_id=collection_id,
@@ -898,6 +1093,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     f"Failed to add to collection for {entity_id}: {err}"
                 ) from err
 
+        # Execute in parallel
+        await _execute_parallel([add_for_entity(eid, coord) for eid, coord in entity_data])
+
     async def async_remove_from_collection(call: ServiceCall) -> None:
         """Remove items from a collection."""
         entity_ids = _get_entity_ids_from_call(hass, call)
@@ -909,9 +1107,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         for item_id in item_ids:
             _validate_emby_id(item_id, "item_id")
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
+            entity_data.append((entity_id, coordinator))
 
+        async def remove_for_entity(entity_id: str, coordinator: EmbyDataUpdateCoordinator) -> None:
             try:
                 await coordinator.client.async_remove_from_collection(
                     collection_id=collection_id,
@@ -925,6 +1127,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 raise HomeAssistantError(
                     f"Failed to remove from collection for {entity_id}: {err}"
                 ) from err
+
+        # Execute in parallel
+        await _execute_parallel([remove_for_entity(eid, coord) for eid, coord in entity_data])
 
     # Server administration services (Phase 20)
     async def async_run_scheduled_task(call: ServiceCall) -> None:
@@ -974,6 +1179,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """
         entity_ids = _get_entity_ids_from_call(hass, call)
 
+        # Validate all entities first (fail fast)
+        entity_data: list[tuple[str, EmbyDataUpdateCoordinator, str]] = []
         for entity_id in entity_ids:
             coordinator = _get_coordinator_for_entity(hass, entity_id)
             session_id = _get_session_id_for_entity(hass, entity_id, coordinator)
@@ -982,7 +1189,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 raise HomeAssistantError(
                     f"Session not found for {entity_id}. The device may be offline."
                 )
+            entity_data.append((entity_id, coordinator, session_id))
 
+        async def clear_for_entity(
+            entity_id: str, coordinator: EmbyDataUpdateCoordinator, session_id: str
+        ) -> None:
             try:
                 await coordinator.client.async_stop_playback(session_id)
             except EmbyConnectionError as err:
@@ -991,6 +1202,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 ) from err
             except EmbyError as err:
                 raise HomeAssistantError(f"Failed to clear queue for {entity_id}: {err}") from err
+
+        # Execute in parallel
+        await _execute_parallel(
+            [clear_for_entity(eid, coord, sid) for eid, coord, sid in entity_data]
+        )
 
     # Register services
     hass.services.async_register(
