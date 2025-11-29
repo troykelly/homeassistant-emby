@@ -141,6 +141,9 @@
       "playlist_count": {
         "name": "Playlists"
       },
+      "collection_count": {
+        "name": "Collections"
+      },
       "next_up": {
         "name": "Next Up"
       },

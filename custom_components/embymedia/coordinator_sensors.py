@@ -84,6 +84,9 @@ class EmbyLibraryData(TypedDict, total=False):
     # Playlist count (Phase 17 - requires user_id)
     playlist_count: int
 
+    # Collection count (Phase 19 - requires user_id)
+    collection_count: int
+
 
 class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
     """Coordinator for fetching server info and scheduled tasks.
@@ -355,6 +358,10 @@ class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
                 # Fetch playlist count (Phase 17)
                 playlists = await self.client.async_get_playlists(user_id=self._user_id)
                 data["playlist_count"] = len(playlists)
+
+                # Fetch collection count (Phase 19)
+                collections = await self.client.async_get_collections(user_id=self._user_id)
+                data["collection_count"] = len(collections)
 
             return data
 

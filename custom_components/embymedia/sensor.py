@@ -75,6 +75,8 @@ async def async_setup_entry(
         EmbyArtistCountSensor(library_coordinator, server_name),
         # Playlist sensor (Phase 17)
         EmbyPlaylistCountSensor(library_coordinator, server_name),
+        # Collection sensor (Phase 19)
+        EmbyCollectionCountSensor(library_coordinator, server_name),
         # Live TV sensors (Phase 16)
         EmbyRecordingCountSensor(server_coordinator),
         EmbyActiveRecordingsSensor(server_coordinator),
@@ -460,6 +462,29 @@ class EmbyPlaylistCountSensor(EmbyLibrarySensorBase):
         if self.coordinator.data is None:
             return None
         return int(self.coordinator.data.get("playlist_count", 0))
+
+
+class EmbyCollectionCountSensor(EmbyLibrarySensorBase):
+    """Sensor for collection count (Phase 19).
+
+    Shows the total number of collections (BoxSets) available.
+    Note: This sensor only shows data when user_id is configured.
+    """
+
+    _attr_icon = "mdi:folder-multiple"
+    _attr_translation_key = "collection_count"
+
+    def __init__(self, coordinator: EmbyLibraryCoordinator, server_name: str) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, server_name)
+        self._attr_unique_id = f"{coordinator.server_id}_collection_count"
+
+    @property
+    def native_value(self) -> int | None:
+        """Return the collection count."""
+        if self.coordinator.data is None:
+            return None
+        return int(self.coordinator.data.get("collection_count", 0))
 
 
 # =============================================================================
