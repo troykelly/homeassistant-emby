@@ -8,11 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Server Administration** (Phase 20)
+  - New service: `embymedia.run_scheduled_task` - Trigger any scheduled task on demand
+  - New service: `embymedia.restart_server` - Restart the Emby server (requires admin)
+  - New service: `embymedia.shutdown_server` - Shutdown the Emby server (requires admin)
+  - New sensor: `sensor.{server}_plugins` - Plugin count with full plugin list in attributes
+  - New button: `button.{server}_run_library_scan` - Quick trigger library scan
+  - API methods: `async_run_scheduled_task`, `async_restart_server`, `async_shutdown_server`, `async_get_plugins`
+
 - **Collection Management** (Phase 19)
   - New service: `embymedia.create_collection` - Create new collections (BoxSets)
   - New service: `embymedia.add_to_collection` - Add items to existing collections
+  - New service: `embymedia.remove_from_collection` - Remove items from collections
   - New sensor: `sensor.{server}_collections` - Shows collection count (requires user_id configuration)
-  - API methods: `async_create_collection`, `async_add_to_collection`, `async_remove_from_collection`
+  - API methods: `async_create_collection`, `async_add_to_collection`, `async_remove_from_collection`, `async_get_collections`
   - TypedDicts for collection API type safety
 
 - **Person Browsing** (Phase 19)
@@ -31,12 +40,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - "People" category added to movie library browser
   - "Tags" category added to movie library browser
 
+- **User Activity & Statistics** (Phase 18)
+  - New sensor: `sensor.{server}_last_activity` - Most recent server activity with details
+  - New sensor: `sensor.{server}_connected_devices` - Count of registered devices with device list
+  - Activity log API: `async_get_activity_log` - Fetch server activity entries
+  - Device management API: `async_get_devices` - List all registered devices
+  - TypedDicts for activity and device API type safety
+
 - **Playlist Management** (Phase 17)
   - New service: `embymedia.create_playlist` - Create new Audio or Video playlists
   - New service: `embymedia.add_to_playlist` - Add items to existing playlists
   - New service: `embymedia.remove_from_playlist` - Remove items from playlists using PlaylistItemId
   - New sensor: `sensor.{server}_playlists` - Shows playlist count (requires user_id configuration)
   - TypedDicts for playlist API type safety
+
+### Technical
+- 1618 tests with 100% code coverage
 
 ## [0.3.0] - 2025-11-27
 

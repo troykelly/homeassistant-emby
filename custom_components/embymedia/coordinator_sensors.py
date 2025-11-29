@@ -18,6 +18,7 @@ from .const import (
     DOMAIN,
     EmbyActivityLogEntry,
     EmbyDeviceInfo,
+    EmbyPlugin,
     EmbyScheduledTask,
     EmbyVirtualFolder,
 )
@@ -57,6 +58,10 @@ class EmbyServerData(TypedDict, total=False):
     # Device fields (Phase 18)
     devices: list[EmbyDeviceInfo]
     device_count: int
+
+    # Plugin fields (Phase 20)
+    plugins: list[EmbyPlugin]
+    plugin_count: int
 
 
 class EmbyLibraryData(TypedDict, total=False):
@@ -229,6 +234,15 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
             except (EmbyError, TypeError, AttributeError):
                 _LOGGER.debug("Could not fetch devices")
 
+            # Fetch Plugins (Phase 20) - graceful error handling
+            plugins: list[EmbyPlugin] = []
+            plugin_count = 0
+            try:
+                plugins = await self.client.async_get_plugins()
+                plugin_count = len(plugins)
+            except (EmbyError, TypeError, AttributeError):
+                _LOGGER.debug("Could not fetch plugins")
+
             return EmbyServerData(
                 server_version=str(server_info.get("Version", "Unknown")),
                 has_pending_restart=bool(server_info.get("HasPendingRestart", False)),
@@ -247,6 +261,8 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
                 activity_count=activity_count,
                 devices=devices,
                 device_count=device_count,
+                plugins=plugins,
+                plugin_count=plugin_count,
             )
 
         except EmbyConnectionError as err:

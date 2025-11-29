@@ -191,6 +191,9 @@
       },
       "user_playlist_count": {
         "name": "User Playlists"
+      },
+      "plugins": {
+        "name": "Plugins"
       }
     },
     "image": {
@@ -464,6 +467,24 @@
           "description": "List of item IDs to remove from the collection."
         }
       }
+    },
+    "run_scheduled_task": {
+      "name": "Run Scheduled Task",
+      "description": "Trigger a scheduled task to run immediately on the Emby server.",
+      "fields": {
+        "task_id": {
+          "name": "Task ID",
+          "description": "The ID of the scheduled task to run."
+        }
+      }
+    },
+    "restart_server": {
+      "name": "Restart Server",
+      "description": "Restart the Emby server. Requires administrator privileges."
+    },
+    "shutdown_server": {
+      "name": "Shutdown Server",
+      "description": "Shutdown the Emby server. Requires administrator privileges."
     }
   },
   "options": {

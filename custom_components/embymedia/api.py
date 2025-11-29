@@ -44,6 +44,7 @@ if TYPE_CHECKING:
         EmbyLibraryItem,
         EmbyLiveTvInfo,
         EmbyPersonsResponse,
+        EmbyPlugin,
         EmbyProgram,
         EmbyPublicInfo,
         EmbyRecording,
@@ -2811,6 +2812,66 @@ class EmbyClient:
         response = await self._request(HTTP_GET, endpoint)
         items: list[EmbyBrowseItem] = response.get("Items", [])  # type: ignore[assignment]
         return items
+
+    # =========================================================================
+    # Server Administration API Methods (Phase 20)
+    # =========================================================================
+
+    async def async_run_scheduled_task(
+        self,
+        task_id: str,
+    ) -> None:
+        """Trigger a scheduled task to run immediately.
+
+        Args:
+            task_id: The scheduled task ID to trigger.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+            EmbyNotFoundError: Task ID not found.
+        """
+        endpoint = f"/ScheduledTasks/Running/{task_id}"
+        await self._request_post(endpoint)
+
+    async def async_restart_server(self) -> None:
+        """Restart the Emby server.
+
+        This operation is asynchronous. The server will begin restarting
+        but the API call returns immediately.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = "/System/Restart"
+        await self._request_post(endpoint)
+
+    async def async_shutdown_server(self) -> None:
+        """Shutdown the Emby server.
+
+        This operation is asynchronous. The server will begin shutting down
+        but the API call returns immediately.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = "/System/Shutdown"
+        await self._request_post(endpoint)
+
+    async def async_get_plugins(self) -> list[EmbyPlugin]:
+        """Get list of installed plugins.
+
+        Returns:
+            List of plugin objects with version information.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        response = await self._request(HTTP_GET, "/Plugins")
+        return response  # type: ignore[return-value]
 
     async def close(self) -> None:
         """Close the client session.

@@ -25,8 +25,9 @@ A modern Home Assistant integration for [Emby Media Server](https://emby.media/)
 | **⚡ Real-Time Updates** | WebSocket connection for instant state sync |
 | **🎙️ Voice Control** | Search and play media with Google/Alexa |
 | **🏠 Automations** | Device triggers for playback events |
-| **📊 Server Sensors** | Monitor server status, library counts, and activity |
+| **📊 Server Sensors** | Monitor server status, library counts, plugins, and activity |
 | **📡 Live TV & DVR** | Schedule recordings, manage timers, monitor DVR status |
+| **🔧 Server Admin** | Run scheduled tasks, restart/shutdown server, library scan button |
 
 ## 📋 Requirements
 
@@ -287,6 +288,9 @@ The integration provides sensors to monitor your Emby server:
 | `sensor.{server}_server_version` | Current server version |
 | `sensor.{server}_running_tasks` | Number of running scheduled tasks |
 | `sensor.{server}_active_sessions` | Number of connected clients |
+| `sensor.{server}_plugins` | Installed plugin count (with plugin list in attributes) |
+| `sensor.{server}_connected_devices` | Registered device count |
+| `sensor.{server}_last_activity` | Most recent server activity |
 | `sensor.{server}_movies` | Total movies in library |
 | `sensor.{server}_tv_shows` | Total TV series in library |
 | `sensor.{server}_episodes` | Total episodes in library |
@@ -479,7 +483,63 @@ When a user is configured, a collection count sensor is available:
 
 - `sensor.{server}_collections` - Total collections count
 
-## 🔧 Advanced Options
+## 🔧 Server Administration
+
+Control your Emby server directly from Home Assistant.
+
+### Run Scheduled Tasks
+
+Trigger any Emby scheduled task on demand:
+
+```yaml
+service: embymedia.run_scheduled_task
+data:
+  task_id: "6330ee8fb4a957f33981f89aa78b030f"  # Get from server coordinator attributes
+```
+
+### Library Scan Button
+
+A button entity is automatically created for quick library scans:
+
+- `button.{server}_run_library_scan` - Press to trigger a full library scan
+
+### Server Control
+
+⚠️ **Use with caution** - requires administrator privileges:
+
+```yaml
+# Restart Emby server
+service: embymedia.restart_server
+target:
+  entity_id: media_player.emby_living_room_tv
+
+# Shutdown Emby server
+service: embymedia.shutdown_server
+target:
+  entity_id: media_player.emby_living_room_tv
+```
+
+<details>
+<summary><b>🔄 Automation: Restart server weekly</b></summary>
+
+```yaml
+automation:
+  - alias: "Weekly Emby restart"
+    trigger:
+      - platform: time
+        at: "04:00:00"
+    condition:
+      - condition: time
+        weekday:
+          - sun
+    action:
+      - service: embymedia.restart_server
+        target:
+          entity_id: media_player.emby_living_room_tv
+```
+</details>
+
+## ⚙️ Advanced Options
 
 Configure in **Settings** → **Devices & Services** → **Emby Media** → **Configure**:
 

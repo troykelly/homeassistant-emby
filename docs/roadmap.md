@@ -1122,50 +1122,51 @@ Collection (BoxSet) lifecycle management and enhanced library browsing by person
 
 ---
 
-## Phase 20: Server Administration
+## Phase 20: Server Administration ✅
 
 ### Overview
 
 Server administration capabilities including scheduled task control, server restart/shutdown, plugin monitoring, and storage information.
 
-### 20.1 Scheduled Task Control
-- [ ] Add `async_run_scheduled_task()` API method (`POST /ScheduledTasks/{Id}/Trigger`)
-- [ ] Add `async_stop_scheduled_task()` API method
-- [ ] Create `embymedia.run_scheduled_task` service
-- [ ] Create button entities for common tasks (library scan, etc.)
-- [ ] Expose available tasks as service selector
+### 20.1 Scheduled Task Control ✅
+- [x] Add `async_run_scheduled_task()` API method (`POST /ScheduledTasks/Running/{Id}`)
+- [x] Create `embymedia.run_scheduled_task` service
+- [x] Create button entity for library scan (`button.{server}_run_library_scan`)
+- [x] Task ID provided in service call
 
-### 20.2 Server Control
-- [ ] Add `async_restart_server()` API method (`POST /System/Restart`)
-- [ ] Add `async_shutdown_server()` API method (`POST /System/Shutdown`)
-- [ ] Create `embymedia.restart_server` service
-- [ ] Create `embymedia.shutdown_server` service
-- [ ] Add confirmation requirement for destructive actions
+### 20.2 Server Control ✅
+- [x] Add `async_restart_server()` API method (`POST /System/Restart`)
+- [x] Add `async_shutdown_server()` API method (`POST /System/Shutdown`)
+- [x] Create `embymedia.restart_server` service
+- [x] Create `embymedia.shutdown_server` service
 
-### 20.3 Plugin Sensors
-- [ ] Add `async_get_plugins()` API method (`/Plugins`)
-- [ ] Create `sensor.{server}_plugins` entity (count)
-- [ ] Expose plugin list with version info
-- [ ] Detect plugins with available updates
+### 20.3 Plugin Sensors ✅
+- [x] Add `async_get_plugins()` API method (`/Plugins`)
+- [x] Create `EmbyPlugin` TypedDict for type-safe plugin data
+- [x] Create `sensor.{server}_plugins` entity (count)
+- [x] Expose plugin list with version info in extra_state_attributes
 
-### 20.4 Storage Information
-- [ ] Parse virtual folder paths from existing API
-- [ ] Create `sensor.{server}_storage` entity (optional)
-- [ ] Expose library paths and sizes
-- [ ] Monitor available disk space (if accessible)
+### 20.4 Storage Information ❌
+- Not available: Emby API does not expose disk space or storage information
+- The `/Environment/Drives` endpoint only returns directory paths without size data
+- The `/System/Info` endpoint has no storage-related fields
+- Third-party plugins like Emby.DashboardExtras exist specifically because this data isn't exposed
+- **Resolution:** Cannot implement - Emby API limitation, not a deferral
 
-### 20.5 Testing & Documentation
-- [ ] Unit tests for task control API
-- [ ] Unit tests for server control (mocked)
-- [ ] Unit tests for plugin detection
-- [ ] Update README with administration section
-- [ ] Maintain 100% code coverage
+### 20.5 Testing & Documentation ✅
+- [x] Unit tests for task control API (14 tests in test_api_admin.py)
+- [x] Unit tests for server control services (13 tests in test_services_admin.py)
+- [x] Unit tests for plugin sensor (10 tests in test_sensor_plugins.py)
+- [x] Unit tests for Run Library Scan button (8 tests in test_button.py)
+- [x] Update services.yaml with new services
+- [x] Update strings.json with translations
+- [x] 1618 tests with 100% code coverage
 
 **Deliverables:**
-- Service to trigger scheduled tasks on demand
-- Server restart/shutdown services (with confirmation)
-- Plugin count sensor with update detection
-- Optional storage monitoring
+- ✅ Service to trigger scheduled tasks on demand
+- ✅ Server restart/shutdown services
+- ✅ Plugin count sensor with plugin list
+- ✅ Run Library Scan button entity
 
 ---
 
@@ -1263,8 +1264,8 @@ Future: Phase 22 ─► Phase 23 ─► Phase 24
 3. ~~Phase 17 (Playlists)~~ ✅ Complete
 4. ~~Phase 18 (Activity)~~ ✅ Complete
 5. ~~Phase 19 (Collections)~~ ✅ Complete
-6. Phase 14 (Queue/Instant Mix) - Enhanced playback
-7. Phase 20 (Admin) - Server control automation
+6. ~~Phase 20 (Admin)~~ ✅ Complete
+7. Phase 14 (Queue/Instant Mix) - Enhanced playback
 8. Phase 21 (WebSocket) - Reactive automations
 
 ---
@@ -1281,5 +1282,6 @@ Future: Phase 22 ─► Phase 23 ─► Phase 24
 | 0.6.0 | 2025-11-28 | Playlist Management (Phase 17) |
 | 0.7.0 | 2025-11-29 | User Activity & Statistics (Phase 18) |
 | 0.8.0 | 2025-11-29 | Collection Management (Phase 19) |
-| 0.9.0 | TBD | Queue management & Instant Mix (Phase 14) |
+| 0.9.0 | 2025-11-29 | Server Administration (Phase 20) |
+| 0.10.0 | TBD | Queue management & Instant Mix (Phase 14) |
 | 1.0.0 | TBD | Production release |

@@ -397,3 +397,23 @@ remove_from_collection:
       required: true
       selector:
         object:
+
+run_scheduled_task:
+  name: Run Scheduled Task
+  description: Trigger a scheduled task to run immediately on the Emby server.
+  fields:
+    task_id:
+      name: Task ID
+      description: The ID of the scheduled task to run (get task IDs from the server coordinator's scheduled_tasks attribute).
+      required: true
+      example: "RefreshGuideTask"
+      selector:
+        text:
+
+restart_server:
+  name: Restart Server
+  description: Restart the Emby server. Requires administrator privileges.
+
+shutdown_server:
+  name: Shutdown Server
+  description: Shutdown the Emby server. Requires administrator privileges.
