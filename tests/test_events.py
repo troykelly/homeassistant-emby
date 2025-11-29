@@ -235,8 +235,10 @@ class TestLibraryUpdatedEvent:
         """Test LibraryChanged clears browse cache."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
+        mock_library_coordinator = MagicMock()
+        mock_library_coordinator.async_request_refresh = AsyncMock()
         mock_runtime_data = MagicMock()
-        mock_runtime_data.library_coordinator = MagicMock()
+        mock_runtime_data.library_coordinator = mock_library_coordinator
         mock_config_entry.runtime_data = mock_runtime_data
 
         coordinator = EmbyDataUpdateCoordinator(
@@ -264,8 +266,10 @@ class TestLibraryUpdatedEvent:
         """Test LibraryChanged with missing fields defaults to empty lists."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
+        mock_library_coordinator = MagicMock()
+        mock_library_coordinator.async_request_refresh = AsyncMock()
         mock_runtime_data = MagicMock()
-        mock_runtime_data.library_coordinator = MagicMock()
+        mock_runtime_data.library_coordinator = mock_library_coordinator
         mock_config_entry.runtime_data = mock_runtime_data
 
         coordinator = EmbyDataUpdateCoordinator(
@@ -302,8 +306,10 @@ class TestLibraryUpdatedEvent:
         """Test LibraryChanged with invalid data doesn't fire event."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
+        mock_library_coordinator = MagicMock()
+        mock_library_coordinator.async_request_refresh = AsyncMock()
         mock_runtime_data = MagicMock()
-        mock_runtime_data.library_coordinator = MagicMock()
+        mock_runtime_data.library_coordinator = mock_library_coordinator
         mock_config_entry.runtime_data = mock_runtime_data
 
         coordinator = EmbyDataUpdateCoordinator(
