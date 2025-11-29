@@ -20,6 +20,7 @@ from custom_components.embymedia.const import (
 )
 from custom_components.embymedia.exceptions import (
     EmbyConnectionError,
+    EmbyError,
     EmbyNotFoundError,
 )
 
@@ -192,6 +193,101 @@ class TestRunScheduledTaskService:
                         blocking=True,
                     )
 
+    async def test_run_scheduled_task_connection_error(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test run_scheduled_task handles connection error."""
+        mock_config_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(return_value=[])
+            client.async_get_item_counts = AsyncMock(
+                return_value={"MovieCount": 0, "SeriesCount": 0}
+            )
+            client.async_get_scheduled_tasks = AsyncMock(return_value=[])
+            client.async_get_plugins = AsyncMock(return_value=[])
+            client.async_run_scheduled_task = AsyncMock(
+                side_effect=EmbyConnectionError("Connection failed")
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_config_entry.entry_id)
+                await hass.async_block_till_done()
+
+                # Call service - should raise HomeAssistantError
+                with pytest.raises(HomeAssistantError) as exc_info:
+                    await hass.services.async_call(
+                        DOMAIN,
+                        "run_scheduled_task",
+                        {"task_id": "6330ee8fb4a957f33981f89aa78b030f"},
+                        blocking=True,
+                    )
+
+                assert "connection error" in str(exc_info.value).lower()
+
+    async def test_run_scheduled_task_generic_error(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test run_scheduled_task handles generic EmbyError."""
+        mock_config_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(return_value=[])
+            client.async_get_item_counts = AsyncMock(
+                return_value={"MovieCount": 0, "SeriesCount": 0}
+            )
+            client.async_get_scheduled_tasks = AsyncMock(return_value=[])
+            client.async_get_plugins = AsyncMock(return_value=[])
+            client.async_run_scheduled_task = AsyncMock(
+                side_effect=EmbyError("Server error occurred")
+            )
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_config_entry.entry_id)
+                await hass.async_block_till_done()
+
+                # Call service - should raise HomeAssistantError
+                with pytest.raises(HomeAssistantError) as exc_info:
+                    await hass.services.async_call(
+                        DOMAIN,
+                        "run_scheduled_task",
+                        {"task_id": "6330ee8fb4a957f33981f89aa78b030f"},
+                        blocking=True,
+                    )
+
+                assert "failed to run scheduled task" in str(exc_info.value).lower()
+                assert "server error occurred" in str(exc_info.value).lower()
+
 
 class TestRestartServerService:
     """Tests for restart_server service."""
@@ -301,6 +397,52 @@ class TestRestartServerService:
 
                 assert "connection error" in str(exc_info.value).lower()
 
+    async def test_restart_server_generic_error(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test restart_server handles generic EmbyError."""
+        mock_config_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(return_value=[])
+            client.async_get_item_counts = AsyncMock(
+                return_value={"MovieCount": 0, "SeriesCount": 0}
+            )
+            client.async_get_scheduled_tasks = AsyncMock(return_value=[])
+            client.async_get_plugins = AsyncMock(return_value=[])
+            client.async_restart_server = AsyncMock(side_effect=EmbyError("Permission denied"))
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_config_entry.entry_id)
+                await hass.async_block_till_done()
+
+                # Call service - should raise HomeAssistantError
+                with pytest.raises(HomeAssistantError) as exc_info:
+                    await hass.services.async_call(
+                        DOMAIN,
+                        "restart_server",
+                        {},
+                        blocking=True,
+                    )
+
+                assert "failed to restart server" in str(exc_info.value).lower()
+                assert "permission denied" in str(exc_info.value).lower()
+
 
 class TestShutdownServerService:
     """Tests for shutdown_server service."""
@@ -409,6 +551,52 @@ class TestShutdownServerService:
                     )
 
                 assert "connection error" in str(exc_info.value).lower()
+
+    async def test_shutdown_server_generic_error(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test shutdown_server handles generic EmbyError."""
+        mock_config_entry.add_to_hass(hass)
+
+        with patch("custom_components.embymedia.EmbyClient", autospec=True) as mock_client_class:
+            client = mock_client_class.return_value
+            client.async_validate_connection = AsyncMock(return_value=True)
+            client.async_get_server_info = AsyncMock(
+                return_value={
+                    "Id": "test-server-id",
+                    "ServerName": "Test Server",
+                    "Version": "4.9.2.0",
+                }
+            )
+            client.async_get_sessions = AsyncMock(return_value=[])
+            client.async_get_item_counts = AsyncMock(
+                return_value={"MovieCount": 0, "SeriesCount": 0}
+            )
+            client.async_get_scheduled_tasks = AsyncMock(return_value=[])
+            client.async_get_plugins = AsyncMock(return_value=[])
+            client.async_shutdown_server = AsyncMock(side_effect=EmbyError("Permission denied"))
+            client.close = AsyncMock()
+
+            with patch(
+                "custom_components.embymedia.coordinator.EmbyDataUpdateCoordinator.async_setup_websocket",
+                new_callable=AsyncMock,
+            ):
+                await hass.config_entries.async_setup(mock_config_entry.entry_id)
+                await hass.async_block_till_done()
+
+                # Call service - should raise HomeAssistantError
+                with pytest.raises(HomeAssistantError) as exc_info:
+                    await hass.services.async_call(
+                        DOMAIN,
+                        "shutdown_server",
+                        {},
+                        blocking=True,
+                    )
+
+                assert "failed to shutdown server" in str(exc_info.value).lower()
+                assert "permission denied" in str(exc_info.value).lower()
 
 
 class TestNoConfigEntry:
