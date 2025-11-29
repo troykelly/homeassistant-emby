@@ -1221,20 +1221,120 @@ Extended WebSocket event handling to fire Home Assistant events for library chan
 
 ---
 
+## Phase 22: Code Quality & Performance Optimization ✅
+
+### Overview
+
+Comprehensive code quality improvements identified through exhaustive code review. Focus on performance optimization, memory management, code maintainability, and reducing load on both Home Assistant and Emby servers.
+
+### 22.1 Critical: Concurrent API Calls in Coordinators
+- [ ] Refactor `EmbyDiscoveryCoordinator._async_update_data()` to use `asyncio.gather()` for 8 parallel API calls
+- [ ] Refactor `EmbyServerCoordinator._async_update_data()` to use `asyncio.gather()` for parallel fetches
+- [ ] Refactor `EmbyLibraryCoordinator._async_update_data()` to parallelize user-specific count fetches
+- [ ] Measure and document performance improvement
+
+### 22.2 Critical: Fix Genre Browsing Filter
+- [ ] Fix `_async_browse_genre_items()` to actually filter by genre using `GenreIds` parameter
+- [ ] Currently returns ALL albums instead of albums in selected genre
+- [ ] Add unit tests for genre filtering
+
+### 22.3 High Priority: Memory Management
+- [ ] Clean up `_playback_sessions` dictionary when sessions end (handle `PlaybackStopped`, `SessionEnded`)
+- [ ] Add session cleanup in `_handle_websocket_message()` for relevant event types
+- [ ] Add maximum age eviction for stale playback session entries
+- [ ] Add unit tests for session cleanup
+
+### 22.4 High Priority: Image Proxy Streaming
+- [ ] Refactor `EmbyImageProxyView.get()` to stream responses instead of loading full image to memory
+- [ ] Use `web.StreamResponse` with chunked transfer
+- [ ] Add memory-efficient image proxying for large artwork files
+
+### 22.5 High Priority: Service Call Parallelization
+- [ ] Refactor service handlers in `services.py` to use `asyncio.gather()` for multi-entity operations
+- [ ] Apply to: `async_send_message`, `async_send_command`, `async_mark_played`, etc.
+- [ ] Maintain error handling per-entity while running in parallel
+
+### 22.6 High Priority: Replace MD5 with Modern Hash
+- [ ] Replace `hashlib.md5()` in `cache.py` with `hashlib.sha256()` or `hashlib.blake2b()`
+- [ ] MD5 is deprecated and may be removed from Python's hashlib in future versions
+- [ ] Update cache key generation to use secure hash function
+
+### 22.7 Medium Priority: Encapsulation Fixes
+- [ ] Add public `api_key` property to `EmbyClient` (currently accessed via `client._api_key` in image_proxy.py:93-94)
+- [ ] Fix `diagnostics.py:67` to use public `websocket_enabled` property instead of `_websocket_enabled`
+- [ ] Review all private attribute access and add public interfaces where needed
+
+### 22.8 Medium Priority: Image Fetch Timeout
+- [ ] Add explicit timeout to image fetches in `image_discovery.py:150-156`
+- [ ] Use `aiohttp.ClientTimeout(total=10)` for image requests
+- [ ] Prevent indefinite hangs on slow Emby server responses
+
+### 22.9 Medium Priority: Exception Handling Refinement
+- [ ] Replace broad `except Exception:` with specific exceptions in:
+  - `__init__.py:269` - Replace with `EmbyError`
+  - `__init__.py:319` - Replace with `aiohttp.ClientError, OSError`
+  - `remote.py:267` - Replace with `EmbyError, aiohttp.ClientError`
+  - `image_discovery.py:163` - Replace with `aiohttp.ClientError, OSError, TimeoutError`
+- [ ] Add logging for unexpected exceptions before catching broadly
+
+### 22.10 Low Priority: Code Deduplication
+- [ ] Extract common `#` letter handling logic from `_async_browse_*_by_letter` methods into helper
+- [ ] Create `_async_browse_items_by_letter()` generic method
+- [ ] Apply to: artists, albums, movies, TV shows browsing
+
+### 22.11 Low Priority: Multi-User Coordinator Optimization
+- [ ] Consider single discovery coordinator fetching data for all users in admin mode
+- [ ] Current design creates N coordinators for N users, each polling independently
+- [ ] Evaluate trade-offs: simplicity vs. API call reduction
+
+### 22.12 Low Priority: Web Player Detection Optimization
+- [ ] Pre-compute lowercase set for web player client names
+- [ ] Change from O(n) substring search to O(1) set lookup
+- [ ] Minor optimization for session filtering
+
+### 22.13 Low Priority: WebSocket Session Interval Configuration
+- [ ] Make WebSocket session subscription interval configurable via options flow
+- [ ] Current hardcoded 1500ms may be too frequent for stable sessions
+- [ ] Add `CONF_WEBSOCKET_INTERVAL` option with sensible defaults
+
+### 22.14 Low Priority: Cache Statistics Reset
+- [ ] Add `reset_stats()` method to `BrowseCache` for diagnostic purposes
+- [ ] Allow users to reset hit/miss counters via diagnostics or service
+
+### 22.15 Testing & Documentation
+- [ ] Add unit tests for all refactored code
+- [ ] Add performance benchmarks for coordinator updates
+- [ ] Document performance improvements in CHANGELOG
+- [ ] Maintain 100% code coverage
+
+**Deliverables:**
+- Concurrent API calls in all coordinators (significant performance improvement)
+- Fixed genre browsing filter
+- Memory leak prevention for playback sessions
+- Streaming image proxy
+- Parallel service execution
+- Modern hash function for cache
+- Proper encapsulation throughout
+- Refined exception handling
+- Code deduplication
+- Configurable WebSocket intervals
+
+---
+
 ## Future Phases (Backlog)
 
-### Phase 22: Multi-Instance & Advanced Config
+### Phase 23: Multi-Instance & Advanced Config
 - Better handling of multiple Emby servers
 - Per-user config entries for isolated data
 - Device grouping for synchronized playback
 
-### Phase 23: Media Player Enhancements
+### Phase 24: Media Player Enhancements
 - `TURN_ON`/`TURN_OFF` with Wake-on-LAN
 - `SELECT_SOURCE` for audio/subtitle track selection
 - Backdrop image support in addition to poster
 - `media_position_percentage` attribute
 
-### Phase 24: Voice Assistant Deep Integration
+### Phase 25: Voice Assistant Deep Integration
 - Enhanced natural language search
 - Context-aware playback ("play the next episode")
 - Multi-room audio commands
@@ -1245,17 +1345,11 @@ Extended WebSocket event handling to fire Home Assistant events for library chan
 ## Updated Implementation Order
 
 ```
-Completed Phases (1-13) ────────────────────────────────────────────►
+Completed Phases (1-21) ────────────────────────────────────────────►
 
-Phase 14 (Queue/Mix) ─┬─► Phase 17 (Playlists)
-                      │
-Phase 15 (Discovery)  ├─► Phase 18 (Activity)
-                      │
-Phase 16 (Live TV)    └─► Phase 19 (Collections)
+Phase 22 (Code Quality) ─► Phase 14 (Queue/Mix)
 
-Phase 20 (Admin) ─────────► Phase 21 (WebSocket Events)
-
-Future: Phase 22 ─► Phase 23 ─► Phase 24
+Future: Phase 23 ─► Phase 24 ─► Phase 25
 ```
 
 **Recommended Priority:**
@@ -1266,7 +1360,8 @@ Future: Phase 22 ─► Phase 23 ─► Phase 24
 5. ~~Phase 19 (Collections)~~ ✅ Complete
 6. ~~Phase 20 (Admin)~~ ✅ Complete
 7. ~~Phase 21 (WebSocket)~~ ✅ Complete
-8. Phase 14 (Queue/Instant Mix) - Enhanced playback
+8. Phase 22 (Code Quality & Performance) - Current
+9. Phase 14 (Queue/Instant Mix) - Enhanced playback
 
 ---
 
@@ -1284,5 +1379,6 @@ Future: Phase 22 ─► Phase 23 ─► Phase 24
 | 0.8.0 | 2025-11-29 | Collection Management (Phase 19) |
 | 0.9.0 | 2025-11-29 | Server Administration (Phase 20) |
 | 0.10.0 | 2025-11-29 | Enhanced WebSocket Events (Phase 21) |
-| 0.11.0 | TBD | Queue management & Instant Mix (Phase 14) |
+| 0.11.0 | TBD | Code Quality & Performance Optimization (Phase 22) |
+| 0.12.0 | TBD | Queue management & Instant Mix (Phase 14) |
 | 1.0.0 | TBD | Production release |
