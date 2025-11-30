@@ -6,7 +6,7 @@ Phase 18: User Activity & Statistics - Task 18.8
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -20,11 +20,21 @@ if TYPE_CHECKING:
 EMBY_TICKS_PER_SECOND = 10_000_000
 
 
+def _create_task_side_effect(coro: Any, *args: Any, **kwargs: Any) -> MagicMock:
+    """Side effect that closes coroutines passed to async_create_task.
+
+    This prevents 'coroutine was never awaited' warnings in tests.
+    """
+    if hasattr(coro, "close"):
+        coro.close()
+    return MagicMock()
+
+
 @pytest.fixture
 def mock_hass() -> MagicMock:
     """Create a mock HomeAssistant instance."""
     hass = MagicMock(spec=HomeAssistant)
-    hass.async_create_task = MagicMock(return_value=MagicMock())
+    hass.async_create_task = MagicMock(side_effect=_create_task_side_effect)
     return hass
 
 

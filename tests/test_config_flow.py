@@ -23,6 +23,7 @@ from custom_components.embymedia.exceptions import (
     EmbySSLError,
     EmbyTimeoutError,
 )
+from tests.conftest import add_coordinator_mocks
 
 
 class TestConfigFlow:
@@ -1228,6 +1229,8 @@ class TestConfigFlowEdgeCases:
                 )
                 int_client.async_get_sessions = AsyncMock(return_value=[])
                 int_client.close = AsyncMock()
+                # Add coordinator mocks to prevent unawaited coroutine warnings
+                add_coordinator_mocks(int_client)
 
                 result = await hass.config_entries.flow.async_init(
                     DOMAIN,
