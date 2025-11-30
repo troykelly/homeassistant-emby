@@ -1682,6 +1682,35 @@ class EmbyClient:
         total_count = response.get("TotalRecordCount", 0)
         return int(total_count) if isinstance(total_count, int | float | str) else 0
 
+    async def async_get_artist_count(
+        self,
+        user_id: str | None = None,
+    ) -> int:
+        """Get count of music artists in the library.
+
+        This method works around a known Emby API bug where the /Items/Counts
+        endpoint returns 0 for ArtistCount. Instead, it queries the /Artists
+        endpoint with Limit=0 to get the accurate TotalRecordCount.
+
+        See: https://emby.media/community/index.php?/topic/98298-boxset-count-now-broken-in-http-api/
+
+        Args:
+            user_id: Optional user ID to filter by user's visible items.
+
+        Returns:
+            Total count of music artists.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        endpoint = "/Artists?Limit=0"
+        if user_id:
+            endpoint = f"{endpoint}&UserId={user_id}"
+        response = await self._request(HTTP_GET, endpoint)
+        total_count = response.get("TotalRecordCount", 0)
+        return int(total_count) if isinstance(total_count, int | float | str) else 0
+
     async def async_play_items(
         self,
         session_id: str,
