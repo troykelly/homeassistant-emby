@@ -345,16 +345,24 @@ test(media-player): add volume control edge cases (#7)
 - Test invalid volume values
 ```
 
-## Skills to Use
+## Related Skills
 
-| Situation | Skill |
-|-----------|-------|
-| Writing ANY code | `ha-emby-tdd` |
-| Type annotations | `ha-emby-typing` |
-| Failed twice | `ha-emby-research` |
-| HA patterns | `ha-emby-integration` |
-| Media player | `ha-emby-media-player` |
-| GitHub operations | `ha-emby-github` |
+This skill works with other skills. Reference them for specific guidance:
+
+| Situation | Skill | Key Sections |
+|-----------|-------|--------------|
+| Writing ANY code | `ha-emby-tdd` | RED-GREEN-REFACTOR cycle |
+| Type annotations | `ha-emby-typing` | TypedDict patterns, no `Any` |
+| Failed twice | `ha-emby-research` | Research protocol |
+| HA patterns | `ha-emby-integration` | Config flow, coordinator, entities |
+| Media player | `ha-emby-media-player` | Supported features, state mapping |
+| GitHub operations | `ha-emby-github` | Commit format, branch naming, labels |
+
+**Cross-references:**
+- For commit message format → See `ha-emby-github` § "Commit Message Format"
+- For branch naming → See `ha-emby-github` § "Branch Naming Convention"
+- For TDD workflow details → See `ha-emby-tdd` § "The RED-GREEN-REFACTOR Cycle"
+- For type patterns → See `ha-emby-typing` § "TypedDict Patterns"
 
 ## Red Flags - STOP and Reassess
 

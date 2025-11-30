@@ -305,6 +305,19 @@ gh issue list --label "status: in-progress" --assignee @me --state open
 
 Skip selection, validate the issue exists, claim it, and route directly.
 
+## Related Skills
+
+| Routing To | Skill | When |
+|------------|-------|------|
+| Bug investigation | `ha-emby-bug-triage` | Bug without `confirmed` label |
+| Implementation | `ha-emby-issue-executor` | Confirmed bugs, features |
+| GitHub queries | `ha-emby-github` | CLI commands, labels |
+
+**Cross-references:**
+- For priority label meanings → See `ha-emby-github` § "Priority Labels"
+- For component labels → See `ha-emby-github` § "Component Labels"
+- For status labels → See `ha-emby-github` § "Status Labels"
+
 ## The Bottom Line
 
 1. **Check in-progress work first**

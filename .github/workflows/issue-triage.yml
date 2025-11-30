@@ -12,6 +12,7 @@ jobs:
   add-to-project:
     name: Add to Project
     runs-on: ubuntu-latest
+    continue-on-error: true  # Don't block triage if project add fails
     permissions:
       issues: write
       contents: read

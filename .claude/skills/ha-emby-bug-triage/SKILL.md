@@ -410,6 +410,20 @@ Before updating the issue, ensure you have:
 - [ ] Complexity estimate
 - [ ] Test cases outlined
 
+## Related Skills
+
+| When | Skill | Purpose |
+|------|-------|---------|
+| Ready to fix | `ha-emby-issue-executor` | TDD implementation |
+| GitHub updates | `ha-emby-github` | Labels, comments, issue operations |
+| Understanding code | `ha-emby-integration` | HA patterns reference |
+| Media player bugs | `ha-emby-media-player` | MediaPlayerEntity specifics |
+
+**Cross-references:**
+- For label meanings → See `ha-emby-github` § "Label Reference"
+- For HA async patterns → See `ha-emby-integration` § "Async Patterns"
+- For media player states → See `ha-emby-media-player` § "State Mapping"
+
 ## The Bottom Line
 
 1. **Parse issue thoroughly** - Don't miss details
