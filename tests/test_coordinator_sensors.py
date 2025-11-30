@@ -627,15 +627,25 @@ class TestCoordinatorParallelExecution:
             f"API calls took {elapsed:.3f}s - should be < 0.2s if running in parallel"
         )
 
-    async def test_library_coordinator_parallel_api_calls(
+    async def test_library_coordinator_parallel_api_calls_including_workarounds(
         self,
         hass: HomeAssistant,
         mock_config_entry: MockConfigEntry,
     ) -> None:
         """Test that LibraryCoordinator API calls run in parallel.
 
-        The library coordinator makes independent API calls that should run in parallel.
-        With a user_id, it makes 7 calls total. Sequential would take 350ms at 50ms each.
+        The library coordinator makes independent API calls that should run in parallel,
+        including the artist_count and boxset_count workaround methods that bypass the
+        broken /Items/Counts endpoint. With a user_id, it makes 9 calls total:
+        - async_get_item_counts
+        - async_get_virtual_folders
+        - async_get_artist_count (workaround for Emby bug)
+        - async_get_boxset_count (workaround for Emby bug)
+        - async_get_user_item_count x3 (favorites, played, resumable)
+        - async_get_playlists
+        - async_get_collections
+
+        Sequential would take 450ms at 50ms each.
         """
         import asyncio
         import time

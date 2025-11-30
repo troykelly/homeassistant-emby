@@ -1694,6 +1694,10 @@ class EmbyClient:
 
         See: https://emby.media/community/index.php?/topic/98298-boxset-count-now-broken-in-http-api/
 
+        TODO: Remove this workaround when Emby fixes the /Items/Counts endpoint
+        to return accurate ArtistCount values. Monitor the above forum thread
+        for updates.
+
         Args:
             user_id: Optional user ID to filter by user's visible items.
 
@@ -1723,6 +1727,10 @@ class EmbyClient:
         TotalRecordCount.
 
         See: https://emby.media/community/index.php?/topic/98298-boxset-count-now-broken-in-http-api/
+
+        TODO: Remove this workaround when Emby fixes the /Items/Counts endpoint
+        to return accurate BoxSetCount values. Monitor the above forum thread
+        for updates.
 
         Args:
             user_id: Optional user ID to filter by user's visible items.
