@@ -1711,6 +1711,37 @@ class EmbyClient:
         total_count = response.get("TotalRecordCount", 0)
         return int(total_count) if isinstance(total_count, int | float | str) else 0
 
+    async def async_get_boxset_count(
+        self,
+        user_id: str | None = None,
+    ) -> int:
+        """Get count of BoxSets (collections) in the library.
+
+        This method works around a known Emby API bug where the /Items/Counts
+        endpoint returns 0 for BoxSetCount. Instead, it queries the /Items
+        endpoint with IncludeItemTypes=BoxSet and Limit=0 to get the accurate
+        TotalRecordCount.
+
+        See: https://emby.media/community/index.php?/topic/98298-boxset-count-now-broken-in-http-api/
+
+        Args:
+            user_id: Optional user ID to filter by user's visible items.
+
+        Returns:
+            Total count of BoxSets.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+        """
+        if user_id:
+            endpoint = f"/Users/{user_id}/Items?IncludeItemTypes=BoxSet&Limit=0&Recursive=true"
+        else:
+            endpoint = "/Items?IncludeItemTypes=BoxSet&Limit=0&Recursive=true"
+        response = await self._request(HTTP_GET, endpoint)
+        total_count = response.get("TotalRecordCount", 0)
+        return int(total_count) if isinstance(total_count, int | float | str) else 0
+
     async def async_play_items(
         self,
         session_id: str,

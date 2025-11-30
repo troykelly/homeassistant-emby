@@ -86,6 +86,8 @@ def mock_emby_client() -> MagicMock:
     )
     # Artist count (workaround for Emby /Items/Counts bug)
     client.async_get_artist_count = AsyncMock(return_value=25)
+    # BoxSet count (workaround for Emby /Items/Counts bug)
+    client.async_get_boxset_count = AsyncMock(return_value=51)
     # Live TV info (Phase 16)
     client.async_get_live_tv_info = AsyncMock(
         return_value={
@@ -280,6 +282,51 @@ class TestEmbyLibraryCoordinator:
         assert coordinator.data is not None
         assert coordinator.data["artist_count"] == 956  # NOT 0 from /Items/Counts
 
+    async def test_coordinator_uses_boxset_count_api(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test EmbyLibraryCoordinator uses async_get_boxset_count for collection count.
+
+        The /Items/Counts endpoint has a known Emby bug where BoxSetCount always
+        returns 0. The coordinator should use async_get_boxset_count() which
+        queries the /Items endpoint with IncludeItemTypes=BoxSet.
+
+        See: https://emby.media/community/index.php?/topic/98298-boxset-count-now-broken-in-http-api/
+        """
+        from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
+
+        # Set up the mock: /Items/Counts returns 0 for BoxSetCount (bug)
+        # but async_get_boxset_count returns the correct value
+        mock_emby_client.async_get_item_counts.return_value = {
+            "MovieCount": 100,
+            "SeriesCount": 50,
+            "EpisodeCount": 500,
+            "ArtistCount": 0,
+            "AlbumCount": 75,
+            "SongCount": 1000,
+            "BoxSetCount": 0,  # Bug: always 0 from /Items/Counts
+        }
+        mock_emby_client.async_get_boxset_count = AsyncMock(return_value=51)  # Correct value
+
+        coordinator = EmbyLibraryCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="test-server-id",
+            config_entry=mock_config_entry,
+        )
+
+        await coordinator.async_refresh()
+
+        # Verify async_get_boxset_count was called
+        mock_emby_client.async_get_boxset_count.assert_called_once()
+
+        # Verify collection_count uses the correct value from async_get_boxset_count
+        assert coordinator.data is not None
+        assert coordinator.data["collection_count"] == 51  # NOT 0 from /Items/Counts
+
     async def test_coordinator_fetch_virtual_folders(
         self,
         hass: HomeAssistant,
@@ -348,7 +395,8 @@ class TestEmbyLibraryCoordinator:
         assert coordinator.data["user_played_count"] == 500
         assert coordinator.data["user_resumable_count"] == 8
         assert coordinator.data["playlist_count"] == 0
-        assert coordinator.data["collection_count"] == 0
+        # When user has no collections, falls back to server-wide boxset count (51 from fixture)
+        assert coordinator.data["collection_count"] == 51
 
     async def test_coordinator_without_user_id(
         self,
@@ -627,10 +675,15 @@ class TestCoordinatorParallelExecution:
             await asyncio.sleep(delay_seconds)
             return 25
 
+        async def slow_boxset_count(*args: object, **kwargs: object) -> int:
+            await asyncio.sleep(delay_seconds)
+            return 51
+
         mock_client = MagicMock()
         mock_client.async_get_item_counts = AsyncMock(side_effect=slow_counts)
         mock_client.async_get_virtual_folders = AsyncMock(side_effect=slow_folders)
         mock_client.async_get_artist_count = AsyncMock(side_effect=slow_artist_count)
+        mock_client.async_get_boxset_count = AsyncMock(side_effect=slow_boxset_count)
         mock_client.async_get_user_item_count = AsyncMock(side_effect=slow_user_count)
         mock_client.async_get_playlists = AsyncMock(side_effect=slow_playlists)
         mock_client.async_get_collections = AsyncMock(side_effect=slow_collections)
@@ -647,8 +700,8 @@ class TestCoordinatorParallelExecution:
         await coordinator._async_update_data()
         elapsed = time.time() - start
 
-        # 8 calls at 50ms each (counts, folders, artist_count, 3x user_count, playlists, collections):
-        # Sequential: 400ms minimum
+        # 9 calls at 50ms each (counts, folders, artist_count, boxset_count, 3x user_count, playlists, collections):
+        # Sequential: 450ms minimum
         # Parallel: ~50ms (plus overhead)
         assert elapsed < 0.2, (
             f"API calls took {elapsed:.3f}s - should be < 0.2s if running in parallel"

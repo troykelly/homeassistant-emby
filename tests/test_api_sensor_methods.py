@@ -419,3 +419,84 @@ class TestAsyncGetArtistCount:
 
             mock_request.assert_called_once_with("GET", "/Artists?Limit=0&UserId=user-123")
             assert result == 500
+
+
+class TestAsyncGetBoxsetCount:
+    """Tests for async_get_boxset_count API method.
+
+    This method works around the Emby /Items/Counts endpoint bug where
+    BoxSetCount always returns 0. Instead, it queries the /Items endpoint
+    with IncludeItemTypes=BoxSet and Limit=0 to get the accurate TotalRecordCount.
+
+    See: https://emby.media/community/index.php?/topic/98298-boxset-count-now-broken-in-http-api/
+    """
+
+    async def test_get_boxset_count_success(
+        self,
+        emby_client: EmbyClient,
+    ) -> None:
+        """Test successful retrieval of boxset count."""
+        mock_response = {
+            "Items": [],
+            "TotalRecordCount": 51,
+        }
+
+        with patch.object(
+            emby_client,
+            "_request",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ) as mock_request:
+            result = await emby_client.async_get_boxset_count()
+
+            mock_request.assert_called_once_with(
+                "GET", "/Items?IncludeItemTypes=BoxSet&Limit=0&Recursive=true"
+            )
+            assert result == 51
+
+    async def test_get_boxset_count_empty_library(
+        self,
+        emby_client: EmbyClient,
+    ) -> None:
+        """Test boxset count returns 0 for empty library."""
+        mock_response = {
+            "Items": [],
+            "TotalRecordCount": 0,
+        }
+
+        with patch.object(
+            emby_client,
+            "_request",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ) as mock_request:
+            result = await emby_client.async_get_boxset_count()
+
+            mock_request.assert_called_once_with(
+                "GET", "/Items?IncludeItemTypes=BoxSet&Limit=0&Recursive=true"
+            )
+            assert result == 0
+
+    async def test_get_boxset_count_with_user_id(
+        self,
+        emby_client: EmbyClient,
+    ) -> None:
+        """Test boxset count with user ID filter."""
+        mock_response = {
+            "Items": [],
+            "TotalRecordCount": 25,
+        }
+
+        with patch.object(
+            emby_client,
+            "_request",
+            new_callable=AsyncMock,
+            return_value=mock_response,
+        ) as mock_request:
+            result = await emby_client.async_get_boxset_count(user_id="user-123")
+
+            mock_request.assert_called_once_with(
+                "GET",
+                "/Users/user-123/Items?IncludeItemTypes=BoxSet&Limit=0&Recursive=true",
+            )
+            assert result == 25
