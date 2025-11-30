@@ -84,6 +84,8 @@ def mock_emby_client() -> MagicMock:
             }
         ]
     )
+    # Artist count (workaround for Emby /Items/Counts bug)
+    client.async_get_artist_count = AsyncMock(return_value=25)
     # Live TV info (Phase 16)
     client.async_get_live_tv_info = AsyncMock(
         return_value={
@@ -621,9 +623,14 @@ class TestCoordinatorParallelExecution:
             await asyncio.sleep(delay_seconds)
             return []
 
+        async def slow_artist_count(*args: object, **kwargs: object) -> int:
+            await asyncio.sleep(delay_seconds)
+            return 25
+
         mock_client = MagicMock()
         mock_client.async_get_item_counts = AsyncMock(side_effect=slow_counts)
         mock_client.async_get_virtual_folders = AsyncMock(side_effect=slow_folders)
+        mock_client.async_get_artist_count = AsyncMock(side_effect=slow_artist_count)
         mock_client.async_get_user_item_count = AsyncMock(side_effect=slow_user_count)
         mock_client.async_get_playlists = AsyncMock(side_effect=slow_playlists)
         mock_client.async_get_collections = AsyncMock(side_effect=slow_collections)
@@ -640,8 +647,8 @@ class TestCoordinatorParallelExecution:
         await coordinator._async_update_data()
         elapsed = time.time() - start
 
-        # 7 calls at 50ms each (counts, folders, 3x user_count, playlists, collections):
-        # Sequential: 350ms minimum
+        # 8 calls at 50ms each (counts, folders, artist_count, 3x user_count, playlists, collections):
+        # Sequential: 400ms minimum
         # Parallel: ~50ms (plus overhead)
         assert elapsed < 0.2, (
             f"API calls took {elapsed:.3f}s - should be < 0.2s if running in parallel"
