@@ -234,6 +234,50 @@ class TestEmbyLibraryCoordinator:
         assert coordinator.data["episode_count"] == 500
         assert coordinator.data["song_count"] == 1000
 
+    async def test_coordinator_uses_artist_count_api(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+        mock_emby_client: MagicMock,
+    ) -> None:
+        """Test EmbyLibraryCoordinator uses async_get_artist_count for artist count.
+
+        The /Items/Counts endpoint has a known Emby bug where ArtistCount always
+        returns 0. The coordinator should use async_get_artist_count() which
+        queries the /Artists endpoint directly.
+
+        See: https://emby.media/community/index.php?/topic/98298-boxset-count-now-broken-in-http-api/
+        """
+        from custom_components.embymedia.coordinator_sensors import EmbyLibraryCoordinator
+
+        # Set up the mock: /Items/Counts returns 0 for ArtistCount (bug)
+        # but async_get_artist_count returns the correct value
+        mock_emby_client.async_get_item_counts.return_value = {
+            "MovieCount": 100,
+            "SeriesCount": 50,
+            "EpisodeCount": 500,
+            "ArtistCount": 0,  # Bug: always 0 from /Items/Counts
+            "AlbumCount": 75,
+            "SongCount": 1000,
+        }
+        mock_emby_client.async_get_artist_count = AsyncMock(return_value=956)  # Correct value
+
+        coordinator = EmbyLibraryCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="test-server-id",
+            config_entry=mock_config_entry,
+        )
+
+        await coordinator.async_refresh()
+
+        # Verify async_get_artist_count was called
+        mock_emby_client.async_get_artist_count.assert_called_once()
+
+        # Verify artist_count uses the correct value from async_get_artist_count
+        assert coordinator.data is not None
+        assert coordinator.data["artist_count"] == 956  # NOT 0 from /Items/Counts
+
     async def test_coordinator_fetch_virtual_folders(
         self,
         hass: HomeAssistant,
