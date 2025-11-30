@@ -426,10 +426,10 @@ class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
         """
         try:
             if self._user_id:
-                # Fetch all data in parallel (7 calls) when user_id is configured
+                # Fetch all data in parallel (9 calls) when user_id is configured
                 # Split into two gather calls for type safety (mypy limitation with 6+ args)
                 (
-                    (counts, folders),
+                    (counts, folders, artist_count, boxset_count),
                     (
                         favorites_count,
                         played_count,
@@ -442,11 +442,15 @@ class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
                     self._fetch_user_data(self._user_id),
                 )
 
+                # Use boxset_count from API, but if user has collections use that count
+                # (user collections may differ from global count)
+                final_collection_count = len(collections) if collections else boxset_count
+
                 return EmbyLibraryData(
                     movie_count=counts.get("MovieCount", 0),
                     series_count=counts.get("SeriesCount", 0),
                     episode_count=counts.get("EpisodeCount", 0),
-                    artist_count=counts.get("ArtistCount", 0),
+                    artist_count=artist_count,
                     album_count=counts.get("AlbumCount", 0),
                     song_count=counts.get("SongCount", 0),
                     virtual_folders=folders,
@@ -454,20 +458,21 @@ class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
                     user_played_count=played_count,
                     user_resumable_count=resumable_count,
                     playlist_count=len(playlists),
-                    collection_count=len(collections),
+                    collection_count=final_collection_count,
                 )
             else:
-                # Fetch only basic data in parallel (2 calls) when no user_id
-                counts, folders = await self._fetch_base_data()
+                # Fetch only basic data in parallel (4 calls) when no user_id
+                counts, folders, artist_count, boxset_count = await self._fetch_base_data()
 
                 return EmbyLibraryData(
                     movie_count=counts.get("MovieCount", 0),
                     series_count=counts.get("SeriesCount", 0),
                     episode_count=counts.get("EpisodeCount", 0),
-                    artist_count=counts.get("ArtistCount", 0),
+                    artist_count=artist_count,
                     album_count=counts.get("AlbumCount", 0),
                     song_count=counts.get("SongCount", 0),
                     virtual_folders=folders,
+                    collection_count=boxset_count,
                 )
 
         except EmbyConnectionError as err:
@@ -477,15 +482,23 @@ class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
 
     async def _fetch_base_data(
         self,
-    ) -> tuple[EmbyItemCounts, list[EmbyVirtualFolder]]:
+    ) -> tuple[EmbyItemCounts, list[EmbyVirtualFolder], int, int]:
         """Fetch base library data in parallel.
 
+        Note: Artist count and BoxSet count are fetched separately because the
+        /Items/Counts endpoint has known Emby bugs where ArtistCount and
+        BoxSetCount always return 0.
+
+        See: https://emby.media/community/index.php?/topic/98298-boxset-count-now-broken-in-http-api/
+
         Returns:
-            Tuple of item counts and virtual folders.
+            Tuple of (item counts, virtual folders, artist count, boxset count).
         """
         return await asyncio.gather(
             self.client.async_get_item_counts(),
             self.client.async_get_virtual_folders(),
+            self.client.async_get_artist_count(),
+            self.client.async_get_boxset_count(),
         )
 
     async def _fetch_user_data(
