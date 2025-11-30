@@ -4,10 +4,28 @@ on:
   issues:
     types: [opened]
 
+env:
+  PROJECT_NUMBER: 3
+  PROJECT_OWNER: troykelly
+
 jobs:
+  add-to-project:
+    name: Add to Project
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: Add issue to project
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/users/troykelly/projects/3
+          github-token: ${{ secrets.PROJECT_PAT }}
+
   triage:
     name: AI Issue Triage
     runs-on: ubuntu-latest
+    needs: add-to-project
     permissions:
       issues: write
       contents: read
@@ -99,6 +117,10 @@ jobs:
 
             ### 9. Add ai-triaged
             Add the `ai-triaged` label to indicate this issue was automatically processed.
+
+            ### 10. Project Board
+            The issue has already been automatically added to the project board (Home Assistant Emby Component).
+            No action needed for project assignment.
 
             ## Actions
 

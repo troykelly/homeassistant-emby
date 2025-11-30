@@ -6,6 +6,58 @@ A from-scratch Home Assistant integration for Emby Media Server.
 
 This is a custom Home Assistant integration that provides media player entities for Emby Media Server clients. It follows Home Assistant 2025 best practices and strict development standards.
 
+## Project Management
+
+### GitHub Project
+
+**ALL work MUST be tracked via GitHub Issues and the Project Board.**
+
+| Item | Value |
+|------|-------|
+| Project URL | https://github.com/users/troykelly/projects/3 |
+| Project Name | Home Assistant Emby Component |
+| Repository | troykelly/homeassistant-emby |
+
+### The Iron Law
+
+```
+NO CODE CHANGES WITHOUT A LINKED GITHUB ISSUE
+```
+
+This is a **VIOLATION**. Every commit, every PR, every change must reference an issue.
+
+**Before writing ANY code:**
+1. Check if an issue exists for this work
+2. If not, create one
+3. Assign yourself and add `status: in-progress`
+4. Create branch: `issue-{N}-{description}`
+5. Commit with issue reference: `type(scope): message (#N)`
+6. Create PR with `Fixes #N` in body
+
+See skill: `ha-emby-github`
+
+### Issue-Driven Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  1. Select Issue ──► ha-emby-issue-selector                     │
+│         │                                                       │
+│         ├── Bug (unconfirmed) ──► ha-emby-bug-triage            │
+│         │                              │                        │
+│         │                              ▼                        │
+│         │                         Investigate                   │
+│         │                              │                        │
+│         │                              ▼                        │
+│         └── Bug (confirmed) or ──► ha-emby-issue-executor       │
+│             Enhancement                │                        │
+│                                        ▼                        │
+│                                   TDD + PR                      │
+│                                        │                        │
+│                                        ▼                        │
+│                                 Issue auto-closes               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ## Mandatory Development Rules
 
 ### 1. Test-Driven Development (TDD)
@@ -366,39 +418,71 @@ This project uses specialized skills for consistent, high-quality development. S
 
 ### Skill Usage Matrix
 
-| Situation                   | Required Skill           | Invocation                    |
-| --------------------------- | ------------------------ | ----------------------------- |
-| Implementing ANY phase      | `ha-emby-phase-executor` | "Execute phase N"             |
-| Writing ANY code            | `ha-emby-tdd`            | Automatic with phase executor |
-| Type annotations            | `ha-emby-typing`         | Automatic with phase executor |
-| Failed implementation twice | `ha-emby-research`       | Manual trigger                |
-| HA integration patterns     | `ha-emby-integration`    | Reference as needed           |
-| Media player implementation | `ha-emby-media-player`   | Reference for Phase 3+        |
+| Situation | Required Skill | When to Use |
+|-----------|----------------|-------------|
+| Starting work session | `ha-emby-issue-selector` | Select next issue from project board |
+| Bug needs investigation | `ha-emby-bug-triage` | Reproduce, gather evidence, update issue |
+| Implementing fix/feature | `ha-emby-issue-executor` | TDD implementation linked to issue |
+| GitHub operations | `ha-emby-github` | Issue/PR management, commit format |
+| Writing ANY code | `ha-emby-tdd` | Automatic with issue-executor |
+| Type annotations | `ha-emby-typing` | Automatic with issue-executor |
+| Failed twice | `ha-emby-research` | Stop and research before continuing |
+| HA patterns | `ha-emby-integration` | Reference for HA best practices |
+| Media player code | `ha-emby-media-player` | Reference for MediaPlayerEntity |
 
 ### Skill Descriptions
 
-#### `ha-emby-phase-executor` (Primary Workflow)
+#### `ha-emby-github` (Foundation)
 
-**Use for:** Autonomous execution of roadmap phases.
+**Use for:** All GitHub operations - issues, PRs, commits, project board.
 
-**Invocation:** `Execute phase N`
+**Covers:**
+- The VIOLATION rule (no code without issue)
+- Project board queries
+- Label reference
+- Branch naming: `issue-{N}-{description}`
+- Commit format: `type(scope): message (#N)`
+- PR linking with `Fixes #N`
+
+#### `ha-emby-issue-selector` (Work Selection)
+
+**Use for:** Selecting the next issue to work on.
 
 **What it does:**
+- Queries project board for ready issues
+- Applies priority ordering (critical bugs first)
+- Routes to appropriate workflow:
+  - Unconfirmed bugs → `ha-emby-bug-triage`
+  - Confirmed bugs/features → `ha-emby-issue-executor`
 
-- Checks episodic memory for prior work
-- Creates/reviews phase task documentation
-- Manages git branches
-- Orchestrates TDD implementation (RED-GREEN-REFACTOR)
+#### `ha-emby-bug-triage` (Investigation)
+
+**Use for:** Investigating bug reports that need reproduction.
+
+**What it does:**
+- Parses issue for environment/steps
+- Sets up local HA + Emby to match reporter
+- Attempts reproduction
+- Gathers evidence (logs, traces, screenshots)
+- Performs root cause analysis
+- Updates issue with findings and fix recommendation
+
+#### `ha-emby-issue-executor` (Implementation)
+
+**Use for:** Implementing fixes or features from confirmed issues.
+
+**What it does:**
+- Creates branch from issue: `issue-{N}-{description}`
+- Updates issue status to in-progress
+- Orchestrates TDD (RED-GREEN-REFACTOR)
+- Commits with issue reference (#N)
 - Performs code review
-- Runs full test suite
-- Creates PR when phase complete
+- Creates PR with `Fixes #N`
 
 **Key behaviors:**
-
-- Works autonomously (no interactive prompts unless blocked)
-- Commits at each TDD stage
-- ALL issues must be resolved (no "unrelated" issues)
-- ALL review recommendations implemented
+- Works autonomously until blocked
+- ALL issues must be resolved
+- ALL recommendations implemented
 
 #### `ha-emby-tdd` (Mandatory for All Code)
 
@@ -455,7 +539,7 @@ This project uses specialized skills for consistent, high-quality development. S
 - Service definitions
 - Async patterns
 
-#### `ha-emby-media-player` (Reference for Phase 3+)
+#### `ha-emby-media-player` (Reference)
 
 **Use for:** MediaPlayerEntity implementation specifics.
 
@@ -467,33 +551,59 @@ This project uses specialized skills for consistent, high-quality development. S
 - Media browsing
 - Image handling
 
-### Workflow Example
+### Workflow Examples
 
+**Starting a work session:**
 ```
-User: "Execute phase 1"
+User: "What should I work on?"
 
 Claude:
-1. Uses ha-emby-phase-executor skill
-2. Checks memory for prior work
-3. Reads docs/phase-1-tasks.md
-4. Creates branch: phase-1-implementation
-5. For each task:
-   a. Uses ha-emby-tdd for implementation
-   b. Uses ha-emby-typing for type safety
-   c. Uses ha-emby-research if stuck
-   d. Commits at RED, GREEN, REFACTOR
-   e. Code review
-   f. Full test suite
-6. Creates PR when complete
+1. Uses ha-emby-issue-selector skill
+2. Queries project board for ready issues
+3. Selects highest priority issue
+4. Routes to appropriate workflow
+```
+
+**Investigating a bug:**
+```
+User: "Investigate issue #42"
+
+Claude:
+1. Uses ha-emby-bug-triage skill
+2. Reads issue details
+3. Sets up local HA environment
+4. Attempts reproduction
+5. Gathers evidence
+6. Updates issue with findings
+7. Routes to ha-emby-issue-executor if confirmed
+```
+
+**Implementing a fix:**
+```
+User: "Fix issue #42"
+
+Claude:
+1. Uses ha-emby-issue-executor skill
+2. Creates branch: issue-42-websocket-fix
+3. Updates issue status
+4. TDD implementation:
+   a. RED: Write failing test
+   b. GREEN: Implement fix
+   c. REFACTOR: Clean up
+5. Commit: "fix(websocket): handle reconnect (#42)"
+6. Create PR with "Fixes #42"
 ```
 
 ### Documentation
 
-| Document                | Purpose                                 |
-| ----------------------- | --------------------------------------- |
-| `docs/roadmap.md`       | Overall project phases and milestones   |
-| `docs/phase-N-tasks.md` | Detailed tasks for each phase (1-21)    |
-| `CLAUDE.md`             | This file - project overview and skills |
+| Document | Purpose |
+|----------|---------|
+| `CLAUDE.md` | Project overview, rules, and skills |
+| `docs/INSTALLATION.md` | User installation guide |
+| `docs/CONFIGURATION.md` | Configuration options |
+| `docs/SERVICES.md` | Available services |
+| `docs/TROUBLESHOOTING.md` | Common issues and solutions |
+| `docs/archive/phases/` | Historical phase documentation |
 
 ## Resources
 
