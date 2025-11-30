@@ -10,7 +10,7 @@ body:
         Thank you for taking the time to suggest an improvement! Before submitting:
 
         - Search [existing issues](https://github.com/troykelly/homeassistant-emby/issues?q=label%3Aenhancement) to check if your feature has already been requested
-        - Check the [roadmap](https://github.com/troykelly/homeassistant-emby/blob/main/docs/roadmap.md) to see if it's already planned
+        - Check the [project board](https://github.com/users/troykelly/projects/3) to see if it's already planned
         - Consider if this is an Emby server feature vs. an integration feature
 
         ---

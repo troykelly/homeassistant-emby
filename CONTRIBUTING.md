@@ -123,17 +123,37 @@ If your implementation fails twice:
 3. Examine working implementations in HA core
 4. Understand before trying again
 
+## Issue-Driven Development
+
+**All work must be linked to a GitHub Issue.** This is enforced - PRs without linked issues will be rejected.
+
+### Workflow
+
+1. Check the [project board](https://github.com/users/troykelly/projects/3) for issues
+2. Create an issue if one doesn't exist for your work
+3. Create a branch: `issue-{N}-{short-description}`
+4. Commit with issue reference: `type(scope): message (#N)`
+5. Create PR with `Fixes #N` in the body
+
+### Branch Naming
+
+```
+issue-42-fix-websocket-reconnect
+issue-123-add-playlist-service
+```
+
 ## Pull Request Process
 
-1. **Fork the repository**
-2. **Create a feature branch**: `git checkout -b feature/my-feature`
-3. **Make your changes**
-4. **Run the full test suite**: `pytest tests/ --cov`
-5. **Run type checking**: `mypy custom_components/embymedia/`
-6. **Run linting**: `ruff check . && ruff format --check .`
-7. **Commit with a descriptive message**
-8. **Push to your fork**
-9. **Open a Pull Request**
+1. **Find or create an issue** for your work
+2. **Fork the repository**
+3. **Create a feature branch**: `git checkout -b issue-{N}-description`
+4. **Make your changes**
+5. **Run the full test suite**: `pytest tests/ --cov`
+6. **Run type checking**: `mypy custom_components/embymedia/`
+7. **Run linting**: `ruff check . && ruff format --check .`
+8. **Commit with issue reference**: `fix(scope): message (#N)`
+9. **Push to your fork**
+10. **Open a Pull Request** with `Fixes #N` in the body
 
 ### PR Requirements
 
@@ -147,14 +167,21 @@ If your implementation fails twice:
 ### Commit Message Format
 
 ```
-type: short description
+type(scope): short description (#issue)
 
 Longer description if needed.
-
-Fixes #123
 ```
 
-Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+**Types:** `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`
+
+**Scopes:** `api`, `media-player`, `config-flow`, `websocket`, `sensor`, `services`, `browse`
+
+**Examples:**
+```
+fix(websocket): handle reconnection on server restart (#42)
+feat(services): add playlist creation service (#123)
+test(media-player): add volume control edge cases (#7)
+```
 
 ## Project Structure
 
@@ -192,6 +219,35 @@ tests/
 - Open a [discussion](https://github.com/troykelly/homeassistant-emby/discussions)
 - Ask in your PR if you're stuck
 - Review existing code for patterns
+
+## Maintainer Notes
+
+### Required Repository Secrets
+
+| Secret | Purpose | How to Create |
+|--------|---------|---------------|
+| `PROJECT_PAT` | Add issues to project board | Classic PAT with `repo` + `project` scopes |
+| `CLAUDE_ACCESS_TOKEN` | AI issue triage | Claude OAuth token |
+| `CLAUDE_REFRESH_TOKEN` | AI issue triage | Claude OAuth token |
+| `CLAUDE_EXPIRES_AT` | AI issue triage | Claude OAuth expiry |
+| `SECRETS_ADMIN_PAT` | Update secrets | PAT with `admin:repo` scope |
+
+### Creating PROJECT_PAT
+
+The `PROJECT_PAT` enables CI to automatically add issues to the project board. Fine-grained tokens don't support user projects, so a classic PAT is required.
+
+1. Go to https://github.com/settings/tokens
+2. Click **Generate new token** → **Generate new token (classic)**
+3. Set:
+   - **Note:** `homeassistant-emby-project-access`
+   - **Expiration:** 90 days (set reminder to rotate)
+4. Select scopes:
+   - ☑️ `repo` - Full control of private repositories
+   - ☑️ `project` - Full control of projects
+5. Click **Generate token** and copy immediately
+6. Add to repository: Settings → Secrets → Actions → New repository secret
+   - **Name:** `PROJECT_PAT`
+   - **Value:** The token
 
 ## License
 
