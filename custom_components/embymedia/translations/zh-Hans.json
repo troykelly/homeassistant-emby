@@ -120,6 +120,9 @@
       "active_sessions": {
         "name": "Active Sessions"
       },
+      "playing_sessions": {
+        "name": "播放中的会话"
+      },
       "movie_count": {
         "name": "Movies"
       },

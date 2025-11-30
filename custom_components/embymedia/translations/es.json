@@ -120,6 +120,9 @@
       "active_sessions": {
         "name": "Active Sessions"
       },
+      "playing_sessions": {
+        "name": "Sesiones Reproduciendo"
+      },
       "movie_count": {
         "name": "Movies"
       },

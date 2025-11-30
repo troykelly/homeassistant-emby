@@ -152,6 +152,128 @@ class TestEmbyActiveSessionsSensor:
         assert sensor.native_value == 3
 
 
+class TestEmbyPlayingSessionsSensor:
+    """Tests for playing sessions sensor (issue #276).
+
+    This sensor counts only sessions that are actively playing media,
+    unlike EmbyActiveSessionsSensor which counts all connected sessions.
+    """
+
+    async def test_sensor_no_sessions(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test playing sessions sensor with no sessions."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.sensor import EmbyPlayingSessionsSensor
+
+        mock_coordinator = MagicMock(spec=EmbyDataUpdateCoordinator)
+        mock_coordinator.data = {}  # No sessions
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.server_name = "Test Server"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyPlayingSessionsSensor(coordinator=mock_coordinator)
+
+        assert sensor.unique_id == "test-server-id_playing_sessions"
+        assert sensor.native_value == 0
+        assert sensor.state_class == SensorStateClass.MEASUREMENT
+
+    async def test_sensor_counts_only_playing_sessions(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test playing sessions sensor counts only sessions with is_playing=True."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.sensor import EmbyPlayingSessionsSensor
+
+        # Create mock sessions - 2 playing, 2 idle
+        playing_session_1 = MagicMock()
+        playing_session_1.is_playing = True
+        playing_session_2 = MagicMock()
+        playing_session_2.is_playing = True
+        idle_session_1 = MagicMock()
+        idle_session_1.is_playing = False
+        idle_session_2 = MagicMock()
+        idle_session_2.is_playing = False
+
+        mock_coordinator = MagicMock(spec=EmbyDataUpdateCoordinator)
+        mock_coordinator.data = {
+            "device-1": playing_session_1,
+            "device-2": idle_session_1,
+            "device-3": playing_session_2,
+            "device-4": idle_session_2,
+        }
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.server_name = "Test Server"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyPlayingSessionsSensor(coordinator=mock_coordinator)
+
+        # Should count only the 2 playing sessions, not all 4
+        assert sensor.native_value == 2
+
+    async def test_sensor_all_sessions_idle(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test playing sessions sensor returns 0 when all sessions are idle."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.sensor import EmbyPlayingSessionsSensor
+
+        # Create mock sessions - all idle (like the reporter's issue)
+        idle_session_1 = MagicMock()
+        idle_session_1.is_playing = False
+        idle_session_2 = MagicMock()
+        idle_session_2.is_playing = False
+        idle_session_3 = MagicMock()
+        idle_session_3.is_playing = False
+        idle_session_4 = MagicMock()
+        idle_session_4.is_playing = False
+
+        mock_coordinator = MagicMock(spec=EmbyDataUpdateCoordinator)
+        mock_coordinator.data = {
+            "device-1": idle_session_1,
+            "device-2": idle_session_2,
+            "device-3": idle_session_3,
+            "device-4": idle_session_4,
+        }
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.server_name = "Test Server"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyPlayingSessionsSensor(coordinator=mock_coordinator)
+
+        # Should return 0 even though 4 devices are connected
+        assert sensor.native_value == 0
+
+    async def test_sensor_returns_zero_when_data_none(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test playing sessions sensor returns 0 when coordinator data is None."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+        from custom_components.embymedia.sensor import EmbyPlayingSessionsSensor
+
+        mock_coordinator = MagicMock(spec=EmbyDataUpdateCoordinator)
+        mock_coordinator.data = None
+        mock_coordinator.last_update_success = True
+        mock_coordinator.server_id = "test-server-id"
+        mock_coordinator.server_name = "Test Server"
+        mock_coordinator.config_entry = mock_config_entry
+
+        sensor = EmbyPlayingSessionsSensor(coordinator=mock_coordinator)
+
+        assert sensor.native_value == 0
+
+
 class TestEmbyRunningTasksSensor:
     """Tests for running tasks sensor."""
 
