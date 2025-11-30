@@ -1,0 +1,212 @@
+name: PR Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+jobs:
+  wait-for-ci:
+    name: Wait for CI
+    runs-on: ubuntu-latest
+    outputs:
+      ci_passed: ${{ steps.check.outputs.passed }}
+    steps:
+      - name: Wait for CI checks to complete
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const headSha = context.payload.pull_request.head.sha;
+            const requiredChecks = ['test', 'HACS Action', 'Hassfest'];
+
+            console.log(`PR #${prNumber}, SHA: ${headSha}`);
+            console.log(`Waiting for checks: ${requiredChecks.join(', ')}`);
+
+            // Wait up to 10 minutes for all checks
+            for (let attempt = 0; attempt < 60; attempt++) {
+              const { data: checkRuns } = await github.rest.checks.listForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: headSha,
+              });
+
+              // Find our required checks
+              const found = {};
+              for (const check of checkRuns.check_runs) {
+                // Skip our own check
+                if (check.name === 'Wait for CI' || check.name === 'AI Code Review') continue;
+
+                for (const required of requiredChecks) {
+                  if (check.name.toLowerCase().includes(required.toLowerCase()) ||
+                      required.toLowerCase().includes(check.name.toLowerCase())) {
+                    found[required] = check;
+                  }
+                }
+              }
+
+              const foundCount = Object.keys(found).length;
+              const completedChecks = Object.values(found).filter(c => c.status === 'completed');
+
+              console.log(`Attempt ${attempt + 1}: Found ${foundCount}/${requiredChecks.length} checks, ${completedChecks.length} completed`);
+
+              if (foundCount >= requiredChecks.length) {
+                const allCompleted = completedChecks.length === foundCount;
+
+                if (allCompleted) {
+                  const allPassed = Object.values(found).every(
+                    c => c.conclusion === 'success' || c.conclusion === 'skipped'
+                  );
+
+                  if (allPassed) {
+                    console.log('All CI checks passed!');
+                    for (const [name, check] of Object.entries(found)) {
+                      console.log(`  ✓ ${check.name}: ${check.conclusion}`);
+                    }
+                    core.setOutput('passed', 'true');
+                    return;
+                  } else {
+                    const failed = Object.entries(found)
+                      .filter(([_, c]) => c.conclusion !== 'success' && c.conclusion !== 'skipped');
+                    console.log('Some CI checks failed:');
+                    for (const [name, check] of failed) {
+                      console.log(`  ✗ ${check.name}: ${check.conclusion}`);
+                    }
+                    core.setOutput('passed', 'false');
+                    return;
+                  }
+                }
+              }
+
+              // Wait 10 seconds before next check
+              await new Promise(r => setTimeout(r, 10000));
+            }
+
+            console.log('Timeout waiting for CI checks');
+            core.setOutput('passed', 'false');
+
+  review:
+    name: AI Code Review
+    runs-on: ubuntu-latest
+    needs: wait-for-ci
+    if: needs.wait-for-ci.outputs.ci_passed == 'true'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Review with Claude
+        uses: grll/claude-code-action@beta
+        with:
+          use_oauth: true
+          claude_access_token: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
+          claude_refresh_token: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
+          claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
+          secrets_admin_pat: ${{ secrets.SECRETS_ADMIN_PAT }}
+          timeout_minutes: 10
+          direct_prompt: |
+            You are reviewing a Pull Request for the Home Assistant Emby Media integration.
+
+            ## PR Details
+            - **Repository:** ${{ github.repository }}
+            - **PR Number:** ${{ github.event.pull_request.number }}
+            - **Title:** ${{ github.event.pull_request.title }}
+            - **Author:** ${{ github.event.pull_request.user.login }}
+            - **Base Branch:** ${{ github.event.pull_request.base.ref }}
+            - **Head Branch:** ${{ github.event.pull_request.head.ref }}
+
+            First, get the full PR details and diff:
+            ```
+            gh pr view ${{ github.event.pull_request.number }} --json title,author,body,files
+            gh pr diff ${{ github.event.pull_request.number }}
+            ```
+
+            ## Your Task
+
+            Perform a thorough code review focusing on:
+
+            ### 1. Code Quality
+            - Clean, readable code
+            - Appropriate naming conventions
+            - No unnecessary complexity
+            - DRY principle (Don't Repeat Yourself)
+
+            ### 2. Type Safety (CRITICAL for this project)
+            - **NO `Any` type usage** (except `**kwargs: Any` for HA base class overrides)
+            - All functions must have return type annotations
+            - Use `TypedDict` for API response structures
+            - Use modern syntax: `str | None` not `Optional[str]`
+            - Use `from __future__ import annotations`
+
+            ### 3. Testing
+            - All new code should have corresponding tests
+            - Tests should follow TDD pattern (test written first)
+            - Check for adequate test coverage
+            - Tests should be meaningful, not just for coverage
+
+            ### 4. Home Assistant Patterns
+            - Proper use of `_attr_*` pattern for entity attributes
+            - No I/O in properties
+            - Correct use of `async`/`await`
+            - Proper coordinator usage
+            - Config flow best practices
+
+            ### 5. Security
+            - No hardcoded credentials or secrets
+            - Proper input validation
+            - Safe handling of user data
+            - No command injection vulnerabilities
+
+            ### 6. Documentation
+            - Docstrings for public functions/classes
+            - Comments for complex logic
+            - Updated README/docs if needed
+
+            ### 7. Breaking Changes
+            - Identify any breaking changes
+            - Check for backward compatibility
+            - Note any migration requirements
+
+            ## Review Guidelines
+
+            - Be constructive and helpful
+            - Explain WHY something should be changed, not just WHAT
+            - Provide code examples for suggested improvements
+            - Acknowledge good practices you see
+            - Prioritize issues (blocking vs. suggestions)
+
+            ## Output Format
+
+            Use `gh pr review` to submit your review:
+
+            **If changes are needed:**
+            ```
+            gh pr review ${{ github.event.pull_request.number }} --request-changes --body "review comments"
+            ```
+
+            **If approved:**
+            ```
+            gh pr review ${{ github.event.pull_request.number }} --approve --body "approval message"
+            ```
+
+            **If just commenting:**
+            ```
+            gh pr review ${{ github.event.pull_request.number }} --comment --body "comments"
+            ```
+
+            ## Important Notes
+
+            - First, examine the diff to understand all changes
+            - For this project, type safety and testing are non-negotiable
+            - Be especially careful with changes to config_flow.py, coordinator.py, and API handling
+            - This PR has already passed CI (tests, linting, type checking) so focus on design and logic
+
+          allowed_tools: "Bash(gh pr:*),Bash(gh api:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*)"

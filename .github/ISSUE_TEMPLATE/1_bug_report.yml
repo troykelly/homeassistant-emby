@@ -1,0 +1,193 @@
+name: "Bug Report"
+description: "Report a bug or unexpected behavior with the Emby Media integration"
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Before Submitting
+
+        - Search [existing issues](https://github.com/troykelly/homeassistant-emby/issues) to check if your bug has already been reported
+        - Make sure you're running a supported version of Home Assistant and the integration
+        - Check the [documentation](https://github.com/troykelly/homeassistant-emby#readme) for setup guidance
+
+        ---
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Pre-submission Checklist"
+      description: "Please confirm the following before submitting"
+      options:
+        - label: "I have searched existing issues and this is not a duplicate"
+          required: true
+        - label: "I have read the documentation"
+          required: true
+        - label: "This is a bug, not a feature request or setup question"
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "Describe the Bug"
+      description: "A clear and concise description of what the bug is"
+      placeholder: "When I try to play media, the entity shows as playing but no media actually plays on my device..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Expected Behavior"
+      description: "What did you expect to happen?"
+      placeholder: "The media should play on my Emby client device..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "Steps to Reproduce"
+      description: "Detailed steps to reproduce the issue"
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: integration_version
+    attributes:
+      label: "Integration Version"
+      description: "Which version of the Emby Media integration are you using? (Settings > Devices & Services > Emby Media > 3 dots > Integration info)"
+      options:
+        - "0.4.0"
+        - "0.3.x"
+        - "0.2.x"
+        - "0.1.x"
+        - "Not listed (please specify in additional context)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ha_version
+    attributes:
+      label: "Home Assistant Version"
+      description: "Which version of Home Assistant are you running? (Settings > About)"
+      options:
+        - "2025.11.x"
+        - "2025.10.x"
+        - "2025.9.x"
+        - "2025.8.x"
+        - "2025.7.x"
+        - "2025.6.x"
+        - "2025.5.x"
+        - "2025.4.x"
+        - "2025.3.x"
+        - "2025.2.x"
+        - "2025.1.x"
+        - "2024.12.x"
+        - "2024.11.x"
+        - "2024.10.x"
+        - "2024.9.x"
+        - "2024.8.x or older"
+        - "Not listed (please specify in additional context)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ha_installation
+    attributes:
+      label: "Home Assistant Installation Type"
+      description: "How is Home Assistant installed?"
+      options:
+        - "Home Assistant OS"
+        - "Home Assistant Container (Docker)"
+        - "Home Assistant Supervised"
+        - "Home Assistant Core"
+        - "Other / Unknown"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: emby_version
+    attributes:
+      label: "Emby Server Version"
+      description: "Which version of Emby Server are you running? (Emby Dashboard > About)"
+      options:
+        - "4.9.x (Latest)"
+        - "4.8.x"
+        - "4.7.x"
+        - "4.6.x or older"
+        - "Emby Premiere Beta"
+        - "Not listed (please specify in additional context)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: emby_client
+    attributes:
+      label: "Affected Emby Client(s)"
+      description: "Which Emby client(s) are affected? Select all that apply."
+      multiple: true
+      options:
+        - "All clients"
+        - "Emby Theater (Windows/Mac/Linux)"
+        - "Emby for Android TV"
+        - "Emby for Fire TV"
+        - "Emby for Apple TV"
+        - "Emby for Roku"
+        - "Emby for iOS"
+        - "Emby for Android Mobile"
+        - "Emby Web Client (Browser)"
+        - "Emby for Kodi"
+        - "Emby for Samsung TV"
+        - "Emby for LG TV"
+        - "Emby for Xbox"
+        - "Emby for PlayStation"
+        - "Other (specify in additional context)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Debug Logs"
+      description: |
+        Please provide debug logs from Home Assistant. To enable debug logging:
+
+        1. Go to Settings > Devices & Services > Emby Media
+        2. Click the 3 dots menu > Enable debug logging
+        3. Reproduce the issue
+        4. Go back and click "Disable debug logging" to download the log file
+
+        Alternatively, add this to your `configuration.yaml`:
+        ```yaml
+        logger:
+          logs:
+            custom_components.embymedia: debug
+        ```
+        Then restart Home Assistant and check the logs in Settings > System > Logs
+      placeholder: "Paste your debug logs here..."
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: "Diagnostics (Optional)"
+      description: |
+        If available, please download and attach the diagnostics file:
+        Settings > Devices & Services > Emby Media > 3 dots > Download diagnostics
+
+        **Note:** Sensitive information is automatically redacted.
+      placeholder: "Paste diagnostics JSON or describe that you've attached the file..."
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "Additional Context"
+      description: "Any other context, screenshots, or information that might help"
+      placeholder: "Add any other context about the problem here. If you selected 'Not listed' for any version, please specify here."

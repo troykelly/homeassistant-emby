@@ -1,0 +1,49 @@
+name: Stale Issues
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # Run daily at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  stale:
+    name: Mark Stale Issues
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Mark stale issues
+        uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          days-before-stale: 30
+          days-before-close: 14
+          stale-issue-label: "status: stale"
+          stale-issue-message: |
+            This issue has been automatically marked as stale because it has not had recent activity.
+
+            If this issue is still relevant:
+            - Please add a comment with any additional information
+            - Or simply comment to keep it open
+
+            If no further activity occurs, this issue will be automatically closed in 14 days.
+
+            Thank you for your contribution to the Emby Media integration!
+          close-issue-message: |
+            This issue has been automatically closed due to inactivity.
+
+            If you believe this issue is still valid, please:
+            1. Open a new issue with updated information
+            2. Reference this issue number for context
+
+            Thank you!
+          exempt-issue-labels: |
+            enhancement
+            help wanted
+            good first issue
+            priority: critical
+            priority: high
+            status: in-progress
+            status: blocked
+          exempt-all-milestones: true
+          remove-stale-when-updated: true

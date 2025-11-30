@@ -1,0 +1,122 @@
+name: Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage:
+    name: AI Issue Triage
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Triage with Claude
+        uses: grll/claude-code-action@beta
+        with:
+          # OAuth authentication using Claude Max subscription
+          use_oauth: true
+          claude_access_token: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
+          claude_refresh_token: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
+          claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
+          secrets_admin_pat: ${{ secrets.SECRETS_ADMIN_PAT }}
+          timeout_minutes: 5
+          direct_prompt: |
+            You are triaging a GitHub issue for the Home Assistant Emby Media integration.
+
+            ## Issue Details
+            - **Repository:** ${{ github.repository }}
+            - **Issue Number:** ${{ github.event.issue.number }}
+            - **Title:** ${{ github.event.issue.title }}
+            - **Author:** ${{ github.event.issue.user.login }}
+            - **Labels Already Applied:** ${{ join(github.event.issue.labels.*.name, ', ') }}
+
+            ## Issue Body
+            ${{ github.event.issue.body }}
+
+            ## Your Task
+
+            Analyze this issue and perform the following actions:
+
+            ### 1. Validate Issue Quality
+            Check if the issue has:
+            - Sufficient information to understand the problem
+            - Required version information (if applicable)
+            - Debug logs (for bugs/connection issues)
+            - Clear reproduction steps (for bugs)
+
+            If information is missing, add the `needs-info` label.
+
+            ### 2. Classify Priority
+            Based on impact and severity:
+            - `priority: critical` - Integration completely unusable, affects all users
+            - `priority: high` - Major functionality broken, no workaround
+            - `priority: medium` - Functionality impaired but workaround exists
+            - `priority: low` - Minor issue, cosmetic, or nice-to-have
+
+            ### 3. Identify Components
+            Add relevant component labels:
+            - `component: media-player` - Playback, volume, media info
+            - `component: remote` - Navigation commands
+            - `component: sensor` - Library stats, server info
+            - `component: button` - Action buttons
+            - `component: config-flow` - Setup, authentication
+            - `component: websocket` - Real-time updates, connection stability
+            - `component: api` - Emby server communication
+            - `component: media-browse` - Media library browsing
+
+            ### 4. Check for Upstream Issues
+            If the issue is actually:
+            - An Emby server problem → add `upstream` label
+            - A Home Assistant core issue → add `ha-core` label
+            - A user configuration issue → consider adding `needs-info`
+
+            ### 5. Version Analysis
+            - If using outdated versions, add `version: outdated`
+            - If using latest version, add `version: latest`
+            - Check if the reported versions are in the supported range
+
+            ### 6. Identify Affected Clients
+            If the issue specifies Emby clients:
+            - `client: all` - Affects all clients
+            - `client: android-tv` - Android TV specific
+            - `client: web` - Web client specific
+            - `client: mobile` - Mobile apps
+            - `client: theater` - Emby Theater
+
+            ### 7. Check for Duplicates
+            Search for similar existing issues. If you find a likely duplicate:
+            - Add a comment referencing the original issue
+            - Add `status: duplicate` label
+
+            ### 8. Remove needs-triage
+            After completing triage, remove the `needs-triage` label.
+
+            ### 9. Add ai-triaged
+            Add the `ai-triaged` label to indicate this issue was automatically processed.
+
+            ## Actions
+
+            Use the GitHub CLI to:
+            1. Add appropriate labels: `gh issue edit ${{ github.event.issue.number }} --add-label "label1,label2"`
+            2. Remove needs-triage: `gh issue edit ${{ github.event.issue.number }} --remove-label "needs-triage"`
+            3. If needed, add a helpful comment: `gh issue comment ${{ github.event.issue.number }} --body "message"`
+
+            ## Comment Guidelines
+
+            Only add a comment if:
+            - Important information is missing (be specific about what's needed)
+            - The issue appears to be a duplicate (link to the original)
+            - The issue seems to be upstream (explain why and where to report)
+            - You need clarification on something specific
+
+            Keep comments friendly, helpful, and professional. Thank users for reporting.
+
+            Do NOT add a comment just to say "thank you" or acknowledge the issue.
+
+          allowed_tools: "Bash(gh issue:*),Bash(gh search:*)"
