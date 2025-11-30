@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2025-11-30
+
+### Added
+- **Playing Sessions Sensor** (#276)
+  - New sensor: `sensor.{server}_playing_sessions` - Count of currently playing sessions
+  - Proper translations for sensor name and state attributes
+
+### Fixed
+- **Artist Count Accuracy** (#277)
+  - Artist count sensor now uses dedicated `async_get_artist_count` API for accurate counts
+  - Added workaround for BoxSet (collections) count always returning zero from Emby API
+
+### Changed
+- Migrated to GitHub Issues/Projects workflow for project management (#278)
+- Added GitHub issue templates with AI-powered triage support (#275)
+
 ## [0.4.0] - 2025-11-29
 
 ### Added
@@ -215,7 +231,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Browse cache with LRU + TTL for performance
 - Graceful degradation on partial failures
 
-[Unreleased]: https://github.com/troykelly/homeassistant-emby/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/troykelly/homeassistant-emby/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/troykelly/homeassistant-emby/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/troykelly/homeassistant-emby/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/troykelly/homeassistant-emby/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/troykelly/homeassistant-emby/compare/v0.2.1...v0.2.2
