@@ -1,129 +1,109 @@
 name: PR Code Review
 
 on:
-  # Trigger after CI workflows complete
-  workflow_run:
-    workflows: ["CI"]
-    types:
-      - completed
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
 
 jobs:
-  review:
-    name: AI Code Review
+  wait-for-ci:
+    name: Wait for CI
     runs-on: ubuntu-latest
-    # Only run if triggered by a PR and CI passed
-    if: >
-      github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.conclusion == 'success'
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: write
-      actions: read
-      id-token: write
+    outputs:
+      ci_passed: ${{ steps.check.outputs.passed }}
     steps:
-      - name: Get PR info
-        id: pr
+      - name: Wait for CI checks to complete
+        id: check
         uses: actions/github-script@v7
         with:
           script: |
-            // Get the PR from the workflow run
-            const runId = context.payload.workflow_run.id;
-            const headSha = context.payload.workflow_run.head_sha;
-            const headBranch = context.payload.workflow_run.head_branch;
+            const prNumber = context.payload.pull_request.number;
+            const headSha = context.payload.pull_request.head.sha;
+            const requiredChecks = ['test', 'HACS Action', 'Hassfest'];
 
-            console.log(`Workflow run ID: ${runId}`);
-            console.log(`Head SHA: ${headSha}`);
-            console.log(`Head branch: ${headBranch}`);
+            console.log(`PR #${prNumber}, SHA: ${headSha}`);
+            console.log(`Waiting for checks: ${requiredChecks.join(', ')}`);
 
-            // Find the PR for this branch
-            const { data: prs } = await github.rest.pulls.list({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              head: `${context.repo.owner}:${headBranch}`,
-              state: 'open'
-            });
-
-            if (prs.length === 0) {
-              console.log('No open PR found for this branch');
-              core.setOutput('found', 'false');
-              return;
-            }
-
-            const pr = prs[0];
-            console.log(`Found PR #${pr.number}: ${pr.title}`);
-            core.setOutput('number', pr.number);
-            core.setOutput('found', 'true');
-
-      - name: Wait for all CI checks
-        if: steps.pr.outputs.found == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const headSha = context.payload.workflow_run.head_sha;
-            const requiredChecks = ['CI', 'HACS Action', 'Hassfest'];
-
-            console.log(`Checking status for SHA: ${headSha}`);
-
-            // Wait up to 5 minutes for all checks
-            for (let attempt = 0; attempt < 30; attempt++) {
+            // Wait up to 10 minutes for all checks
+            for (let attempt = 0; attempt < 60; attempt++) {
               const { data: checkRuns } = await github.rest.checks.listForRef({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 ref: headSha,
               });
 
-              console.log(`Found ${checkRuns.check_runs.length} check runs`);
-
-              // Find our required checks (match by name containing)
+              // Find our required checks
               const found = {};
               for (const check of checkRuns.check_runs) {
+                // Skip our own check
+                if (check.name === 'Wait for CI' || check.name === 'AI Code Review') continue;
+
                 for (const required of requiredChecks) {
-                  if (check.name.includes(required) || required.includes(check.name)) {
+                  if (check.name.toLowerCase().includes(required.toLowerCase()) ||
+                      required.toLowerCase().includes(check.name.toLowerCase())) {
                     found[required] = check;
                   }
                 }
               }
 
               const foundCount = Object.keys(found).length;
-              const allCompleted = foundCount >= requiredChecks.length &&
-                Object.values(found).every(c => c.status === 'completed');
+              const completedChecks = Object.values(found).filter(c => c.status === 'completed');
 
-              if (allCompleted) {
-                const allPassed = Object.values(found).every(
-                  c => c.conclusion === 'success' || c.conclusion === 'skipped'
-                );
+              console.log(`Attempt ${attempt + 1}: Found ${foundCount}/${requiredChecks.length} checks, ${completedChecks.length} completed`);
 
-                if (allPassed) {
-                  console.log('All CI checks passed!');
-                  for (const [name, check] of Object.entries(found)) {
-                    console.log(`  ${name}: ${check.conclusion}`);
+              if (foundCount >= requiredChecks.length) {
+                const allCompleted = completedChecks.length === foundCount;
+
+                if (allCompleted) {
+                  const allPassed = Object.values(found).every(
+                    c => c.conclusion === 'success' || c.conclusion === 'skipped'
+                  );
+
+                  if (allPassed) {
+                    console.log('All CI checks passed!');
+                    for (const [name, check] of Object.entries(found)) {
+                      console.log(`  ✓ ${check.name}: ${check.conclusion}`);
+                    }
+                    core.setOutput('passed', 'true');
+                    return;
+                  } else {
+                    const failed = Object.entries(found)
+                      .filter(([_, c]) => c.conclusion !== 'success' && c.conclusion !== 'skipped');
+                    console.log('Some CI checks failed:');
+                    for (const [name, check] of failed) {
+                      console.log(`  ✗ ${check.name}: ${check.conclusion}`);
+                    }
+                    core.setOutput('passed', 'false');
+                    return;
                   }
-                  return;
-                } else {
-                  const failed = Object.entries(found)
-                    .filter(([_, c]) => c.conclusion !== 'success' && c.conclusion !== 'skipped')
-                    .map(([name, c]) => `${name}: ${c.conclusion}`);
-                  core.setFailed(`CI checks failed: ${failed.join(', ')}`);
-                  return;
                 }
               }
 
-              console.log(`Waiting... (${foundCount}/${requiredChecks.length} checks found, ${Object.values(found).filter(c => c.status === 'completed').length} completed)`);
+              // Wait 10 seconds before next check
               await new Promise(r => setTimeout(r, 10000));
             }
 
-            core.setFailed('Timeout waiting for CI checks');
+            console.log('Timeout waiting for CI checks');
+            core.setOutput('passed', 'false');
 
+  review:
+    name: AI Code Review
+    runs-on: ubuntu-latest
+    needs: wait-for-ci
+    if: needs.wait-for-ci.outputs.ci_passed == 'true'
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
       - name: Checkout
-        if: steps.pr.outputs.found == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Review with Claude
-        if: steps.pr.outputs.found == 'true'
         uses: grll/claude-code-action@beta
         with:
           use_oauth: true
@@ -137,13 +117,16 @@ jobs:
 
             ## PR Details
             - **Repository:** ${{ github.repository }}
-            - **PR Number:** ${{ steps.pr.outputs.number }}
-            - **Head Branch:** ${{ github.event.workflow_run.head_branch }}
-            - **Head SHA:** ${{ github.event.workflow_run.head_sha }}
+            - **PR Number:** ${{ github.event.pull_request.number }}
+            - **Title:** ${{ github.event.pull_request.title }}
+            - **Author:** ${{ github.event.pull_request.user.login }}
+            - **Base Branch:** ${{ github.event.pull_request.base.ref }}
+            - **Head Branch:** ${{ github.event.pull_request.head.ref }}
 
-            First, get the full PR details:
+            First, get the full PR details and diff:
             ```
-            gh pr view ${{ steps.pr.outputs.number }} --json title,author,body,files
+            gh pr view ${{ github.event.pull_request.number }} --json title,author,body,files
+            gh pr diff ${{ github.event.pull_request.number }}
             ```
 
             ## Your Task
@@ -206,30 +189,24 @@ jobs:
 
             **If changes are needed:**
             ```
-            gh pr review ${{ steps.pr.outputs.number }} --request-changes --body "review comments"
+            gh pr review ${{ github.event.pull_request.number }} --request-changes --body "review comments"
             ```
 
             **If approved:**
             ```
-            gh pr review ${{ steps.pr.outputs.number }} --approve --body "approval message"
+            gh pr review ${{ github.event.pull_request.number }} --approve --body "approval message"
             ```
 
             **If just commenting:**
             ```
-            gh pr review ${{ steps.pr.outputs.number }} --comment --body "comments"
-            ```
-
-            For specific line comments, use:
-            ```
-            gh api repos/${{ github.repository }}/pulls/${{ steps.pr.outputs.number }}/comments \
-              -f body="comment" -f commit_id="${{ github.event.workflow_run.head_sha }}" -f path="file.py" -F line=123
+            gh pr review ${{ github.event.pull_request.number }} --comment --body "comments"
             ```
 
             ## Important Notes
 
-            - First, examine the diff to understand all changes: `gh pr diff ${{ steps.pr.outputs.number }}`
-            - Check which files were modified: `gh pr view ${{ steps.pr.outputs.number }} --json files`
+            - First, examine the diff to understand all changes
             - For this project, type safety and testing are non-negotiable
             - Be especially careful with changes to config_flow.py, coordinator.py, and API handling
+            - This PR has already passed CI (tests, linting, type checking) so focus on design and logic
 
           allowed_tools: "Bash(gh pr:*),Bash(gh api:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
