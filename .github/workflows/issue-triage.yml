@@ -11,6 +11,7 @@ jobs:
     permissions:
       issues: write
       contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,7 +26,7 @@ jobs:
           claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
           secrets_admin_pat: ${{ secrets.SECRETS_ADMIN_PAT }}
           timeout_minutes: 5
-          prompt: |
+          direct_prompt: |
             You are triaging a GitHub issue for the Home Assistant Emby Media integration.
 
             ## Issue Details

@@ -1,8 +1,11 @@
 name: PR Code Review
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  # Trigger when CI checks complete
+  workflow_run:
+    workflows: ["CI", "HACS Validation", "Validate with hassfest"]
+    types:
+      - completed
     branches:
       - main
 
@@ -10,17 +13,85 @@ jobs:
   review:
     name: AI Code Review
     runs-on: ubuntu-latest
+    # Only run if triggered by a PR and all checks passed
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
     permissions:
       contents: read
       pull-requests: write
       issues: write
+      actions: read
+      id-token: write
     steps:
+      - name: Get PR number
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const response = await github.rest.search.issuesAndPullRequests({
+              q: `repo:${context.repo.owner}/${context.repo.repo} is:pr is:open head:${context.payload.workflow_run.head_branch}`,
+            });
+            const pr = response.data.items[0];
+            if (pr) {
+              core.setOutput('number', pr.number);
+              core.setOutput('found', 'true');
+            } else {
+              core.setOutput('found', 'false');
+            }
+
+      - name: Wait for all checks to pass
+        if: steps.pr.outputs.found == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const checkNames = ['CI', 'HACS Validation', 'Validate with hassfest'];
+            const headSha = context.payload.workflow_run.head_sha;
+
+            // Wait up to 5 minutes for all checks
+            for (let i = 0; i < 30; i++) {
+              const { data: checkRuns } = await github.rest.checks.listForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: headSha,
+              });
+
+              const relevantChecks = checkRuns.check_runs.filter(
+                cr => checkNames.some(name => cr.name.includes(name) || name.includes(cr.name))
+              );
+
+              const allCompleted = relevantChecks.length >= 3 &&
+                relevantChecks.every(cr => cr.status === 'completed');
+              const allSuccess = relevantChecks.every(
+                cr => cr.conclusion === 'success' || cr.conclusion === 'skipped'
+              );
+
+              if (allCompleted && allSuccess) {
+                console.log('All CI checks passed!');
+                return;
+              }
+
+              if (allCompleted && !allSuccess) {
+                const failed = relevantChecks.filter(cr => cr.conclusion !== 'success' && cr.conclusion !== 'skipped');
+                core.setFailed(`CI checks failed: ${failed.map(cr => cr.name).join(', ')}`);
+                return;
+              }
+
+              console.log(`Waiting for checks... (${relevantChecks.filter(cr => cr.status === 'completed').length}/${checkNames.length} completed)`);
+              await new Promise(r => setTimeout(r, 10000));
+            }
+
+            core.setFailed('Timeout waiting for CI checks');
+
       - name: Checkout
+        if: steps.pr.outputs.found == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Review with Claude
+        if: steps.pr.outputs.found == 'true'
         uses: grll/claude-code-action@beta
         with:
           use_oauth: true
@@ -29,20 +100,19 @@ jobs:
           claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
           secrets_admin_pat: ${{ secrets.SECRETS_ADMIN_PAT }}
           timeout_minutes: 10
-          prompt: |
+          direct_prompt: |
             You are reviewing a Pull Request for the Home Assistant Emby Media integration.
 
             ## PR Details
             - **Repository:** ${{ github.repository }}
-            - **PR Number:** ${{ github.event.pull_request.number }}
-            - **Title:** ${{ github.event.pull_request.title }}
-            - **Author:** ${{ github.event.pull_request.user.login }}
-            - **Base Branch:** ${{ github.event.pull_request.base.ref }}
-            - **Head Branch:** ${{ github.event.pull_request.head.ref }}
-            - **Changed Files:** ${{ github.event.pull_request.changed_files }}
+            - **PR Number:** ${{ steps.pr.outputs.number }}
+            - **Head Branch:** ${{ github.event.workflow_run.head_branch }}
+            - **Head SHA:** ${{ github.event.workflow_run.head_sha }}
 
-            ## PR Description
-            ${{ github.event.pull_request.body }}
+            First, get the full PR details:
+            ```
+            gh pr view ${{ steps.pr.outputs.number }} --json title,author,body,files
+            ```
 
             ## Your Task
 
@@ -104,29 +174,29 @@ jobs:
 
             **If changes are needed:**
             ```
-            gh pr review ${{ github.event.pull_request.number }} --request-changes --body "review comments"
+            gh pr review ${{ steps.pr.outputs.number }} --request-changes --body "review comments"
             ```
 
             **If approved:**
             ```
-            gh pr review ${{ github.event.pull_request.number }} --approve --body "approval message"
+            gh pr review ${{ steps.pr.outputs.number }} --approve --body "approval message"
             ```
 
             **If just commenting:**
             ```
-            gh pr review ${{ github.event.pull_request.number }} --comment --body "comments"
+            gh pr review ${{ steps.pr.outputs.number }} --comment --body "comments"
             ```
 
             For specific line comments, use:
             ```
-            gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments \
-              -f body="comment" -f commit_id="SHA" -f path="file.py" -F line=123
+            gh api repos/${{ github.repository }}/pulls/${{ steps.pr.outputs.number }}/comments \
+              -f body="comment" -f commit_id="${{ github.event.workflow_run.head_sha }}" -f path="file.py" -F line=123
             ```
 
             ## Important Notes
 
-            - First, examine the diff to understand all changes: `gh pr diff ${{ github.event.pull_request.number }}`
-            - Check which files were modified: `gh pr view ${{ github.event.pull_request.number }} --json files`
+            - First, examine the diff to understand all changes: `gh pr diff ${{ steps.pr.outputs.number }}`
+            - Check which files were modified: `gh pr view ${{ steps.pr.outputs.number }} --json files`
             - For this project, type safety and testing are non-negotiable
             - Be especially careful with changes to config_flow.py, coordinator.py, and API handling
 
