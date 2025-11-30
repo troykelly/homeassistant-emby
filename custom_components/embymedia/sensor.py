@@ -66,6 +66,7 @@ async def async_setup_entry(
         EmbyRunningTasksSensor(server_coordinator),
         # Session sensors
         EmbyActiveSessionsSensor(session_coordinator),
+        EmbyPlayingSessionsSensor(session_coordinator),
         # Library count sensors
         EmbyMovieCountSensor(library_coordinator, server_name),
         EmbySeriesCountSensor(library_coordinator, server_name),
@@ -245,9 +246,14 @@ class EmbySessionSensorBase(
 
 
 class EmbyActiveSessionsSensor(EmbySessionSensorBase):
-    """Sensor for active sessions count.
+    """Sensor for connected sessions count.
 
-    Shows the number of currently connected clients.
+    Shows the number of currently connected clients (regardless of playback state).
+    This counts all devices that have an active session with the Emby server,
+    including idle devices that are not currently playing media.
+
+    For counting only sessions that are actively playing media,
+    see EmbyPlayingSessionsSensor.
     """
 
     _attr_icon = "mdi:account-multiple"
@@ -261,10 +267,38 @@ class EmbyActiveSessionsSensor(EmbySessionSensorBase):
 
     @property
     def native_value(self) -> int:
-        """Return the number of active sessions."""
+        """Return the number of connected sessions."""
         if self.coordinator.data is None:
             return 0
         return len(self.coordinator.data)
+
+
+class EmbyPlayingSessionsSensor(EmbySessionSensorBase):
+    """Sensor for playing sessions count.
+
+    Shows the number of sessions that are actively playing media.
+    This counts only devices where playback is in progress (is_playing=True),
+    not idle connected devices.
+
+    For counting all connected sessions regardless of playback state,
+    see EmbyActiveSessionsSensor.
+    """
+
+    _attr_icon = "mdi:play-circle"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_translation_key = "playing_sessions"
+
+    def __init__(self, coordinator: EmbyDataUpdateCoordinator) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.server_id}_playing_sessions"
+
+    @property
+    def native_value(self) -> int:
+        """Return the number of sessions actively playing media."""
+        if self.coordinator.data is None:
+            return 0
+        return sum(1 for session in self.coordinator.data.values() if session.is_playing)
 
 
 # =============================================================================
@@ -866,6 +900,7 @@ __all__ = [
     "EmbyEpisodeCountSensor",
     "EmbyLastActivitySensor",
     "EmbyMovieCountSensor",
+    "EmbyPlayingSessionsSensor",
     "EmbyPlaylistCountSensor",
     "EmbyPluginCountSensor",
     "EmbyRecordingCountSensor",
