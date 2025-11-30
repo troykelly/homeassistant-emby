@@ -1,0 +1,175 @@
+# Issue Type Labels
+- name: bug
+  color: "d73a4a"
+  description: "Something isn't working as expected"
+
+- name: enhancement
+  color: "a2eeef"
+  description: "New feature or request"
+
+- name: question
+  color: "d876e3"
+  description: "Further information is requested"
+
+- name: connection
+  color: "f9d0c4"
+  description: "Connection or setup related issues"
+
+- name: compatibility
+  color: "bfd4f2"
+  description: "Compatibility with HA, HACS, or other integrations"
+
+# Triage Labels
+- name: needs-triage
+  color: "fbca04"
+  description: "Issue needs initial review and categorization"
+
+- name: needs-info
+  color: "e99695"
+  description: "Waiting for more information from the reporter"
+
+- name: needs-reproduction
+  color: "fef2c0"
+  description: "Issue needs steps to reproduce"
+
+- name: confirmed
+  color: "0e8a16"
+  description: "Issue has been confirmed and reproduced"
+
+# Priority Labels
+- name: "priority: critical"
+  color: "b60205"
+  description: "Critical issue - integration unusable"
+
+- name: "priority: high"
+  color: "d93f0b"
+  description: "High priority - major functionality affected"
+
+- name: "priority: medium"
+  color: "fbca04"
+  description: "Medium priority - important but workaround exists"
+
+- name: "priority: low"
+  color: "0e8a16"
+  description: "Low priority - minor issue or enhancement"
+
+# Component Labels
+- name: "component: media-player"
+  color: "c5def5"
+  description: "Related to media player entities"
+
+- name: "component: remote"
+  color: "c5def5"
+  description: "Related to remote entities"
+
+- name: "component: sensor"
+  color: "c5def5"
+  description: "Related to sensor entities"
+
+- name: "component: button"
+  color: "c5def5"
+  description: "Related to button entities"
+
+- name: "component: config-flow"
+  color: "c5def5"
+  description: "Related to setup/configuration"
+
+- name: "component: websocket"
+  color: "c5def5"
+  description: "Related to WebSocket connection"
+
+- name: "component: api"
+  color: "c5def5"
+  description: "Related to Emby API communication"
+
+- name: "component: media-browse"
+  color: "c5def5"
+  description: "Related to media browsing"
+
+# Status Labels
+- name: "status: investigating"
+  color: "5319e7"
+  description: "Currently being investigated"
+
+- name: "status: in-progress"
+  color: "006b75"
+  description: "Work is in progress"
+
+- name: "status: blocked"
+  color: "b60205"
+  description: "Blocked by external factor"
+
+- name: "status: wontfix"
+  color: "ffffff"
+  description: "This will not be worked on"
+
+- name: "status: duplicate"
+  color: "cfd3d7"
+  description: "This issue or PR already exists"
+
+- name: "status: invalid"
+  color: "e4e669"
+  description: "This doesn't seem right"
+
+- name: "status: stale"
+  color: "c2e0c6"
+  description: "No activity for extended period"
+
+# Version Labels
+- name: "version: latest"
+  color: "0052cc"
+  description: "Affects the latest version"
+
+- name: "version: outdated"
+  color: "5319e7"
+  description: "Using an outdated version"
+
+# Emby Client Labels
+- name: "client: all"
+  color: "e0e0e0"
+  description: "Affects all Emby clients"
+
+- name: "client: android-tv"
+  color: "e0e0e0"
+  description: "Affects Android TV client"
+
+- name: "client: web"
+  color: "e0e0e0"
+  description: "Affects web client"
+
+- name: "client: mobile"
+  color: "e0e0e0"
+  description: "Affects mobile clients"
+
+- name: "client: theater"
+  color: "e0e0e0"
+  description: "Affects Emby Theater"
+
+# Special Labels
+- name: good first issue
+  color: "7057ff"
+  description: "Good for newcomers"
+
+- name: help wanted
+  color: "008672"
+  description: "Extra attention is needed"
+
+- name: documentation
+  color: "0075ca"
+  description: "Improvements or additions to documentation"
+
+- name: breaking-change
+  color: "b60205"
+  description: "Introduces a breaking change"
+
+- name: upstream
+  color: "fef2c0"
+  description: "Issue with Emby server, not the integration"
+
+- name: ha-core
+  color: "fef2c0"
+  description: "Issue with Home Assistant core, not the integration"
+
+- name: ai-triaged
+  color: "ededed"
+  description: "Issue was automatically triaged by AI"

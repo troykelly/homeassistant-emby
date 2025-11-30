@@ -1,0 +1,133 @@
+name: PR Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+jobs:
+  review:
+    name: AI Code Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Review with Claude
+        uses: grll/claude-code-action@beta
+        with:
+          use_oauth: true
+          claude_access_token: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
+          claude_refresh_token: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
+          claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
+          secrets_admin_pat: ${{ secrets.SECRETS_ADMIN_PAT }}
+          timeout_minutes: 10
+          prompt: |
+            You are reviewing a Pull Request for the Home Assistant Emby Media integration.
+
+            ## PR Details
+            - **Repository:** ${{ github.repository }}
+            - **PR Number:** ${{ github.event.pull_request.number }}
+            - **Title:** ${{ github.event.pull_request.title }}
+            - **Author:** ${{ github.event.pull_request.user.login }}
+            - **Base Branch:** ${{ github.event.pull_request.base.ref }}
+            - **Head Branch:** ${{ github.event.pull_request.head.ref }}
+            - **Changed Files:** ${{ github.event.pull_request.changed_files }}
+
+            ## PR Description
+            ${{ github.event.pull_request.body }}
+
+            ## Your Task
+
+            Perform a thorough code review focusing on:
+
+            ### 1. Code Quality
+            - Clean, readable code
+            - Appropriate naming conventions
+            - No unnecessary complexity
+            - DRY principle (Don't Repeat Yourself)
+
+            ### 2. Type Safety (CRITICAL for this project)
+            - **NO `Any` type usage** (except `**kwargs: Any` for HA base class overrides)
+            - All functions must have return type annotations
+            - Use `TypedDict` for API response structures
+            - Use modern syntax: `str | None` not `Optional[str]`
+            - Use `from __future__ import annotations`
+
+            ### 3. Testing
+            - All new code should have corresponding tests
+            - Tests should follow TDD pattern (test written first)
+            - Check for adequate test coverage
+            - Tests should be meaningful, not just for coverage
+
+            ### 4. Home Assistant Patterns
+            - Proper use of `_attr_*` pattern for entity attributes
+            - No I/O in properties
+            - Correct use of `async`/`await`
+            - Proper coordinator usage
+            - Config flow best practices
+
+            ### 5. Security
+            - No hardcoded credentials or secrets
+            - Proper input validation
+            - Safe handling of user data
+            - No command injection vulnerabilities
+
+            ### 6. Documentation
+            - Docstrings for public functions/classes
+            - Comments for complex logic
+            - Updated README/docs if needed
+
+            ### 7. Breaking Changes
+            - Identify any breaking changes
+            - Check for backward compatibility
+            - Note any migration requirements
+
+            ## Review Guidelines
+
+            - Be constructive and helpful
+            - Explain WHY something should be changed, not just WHAT
+            - Provide code examples for suggested improvements
+            - Acknowledge good practices you see
+            - Prioritize issues (blocking vs. suggestions)
+
+            ## Output Format
+
+            Use `gh pr review` to submit your review:
+
+            **If changes are needed:**
+            ```
+            gh pr review ${{ github.event.pull_request.number }} --request-changes --body "review comments"
+            ```
+
+            **If approved:**
+            ```
+            gh pr review ${{ github.event.pull_request.number }} --approve --body "approval message"
+            ```
+
+            **If just commenting:**
+            ```
+            gh pr review ${{ github.event.pull_request.number }} --comment --body "comments"
+            ```
+
+            For specific line comments, use:
+            ```
+            gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/comments \
+              -f body="comment" -f commit_id="SHA" -f path="file.py" -F line=123
+            ```
+
+            ## Important Notes
+
+            - First, examine the diff to understand all changes: `gh pr diff ${{ github.event.pull_request.number }}`
+            - Check which files were modified: `gh pr view ${{ github.event.pull_request.number }} --json files`
+            - For this project, type safety and testing are non-negotiable
+            - Be especially careful with changes to config_flow.py, coordinator.py, and API handling
+
+          allowed_tools: "Bash(gh pr:*),Bash(gh api:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*)"

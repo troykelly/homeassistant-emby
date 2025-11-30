@@ -421,17 +421,54 @@ Restart Home Assistant and reproduce the issue.
 
 ## Reporting Issues
 
-When opening a GitHub issue, please include:
+### Before Opening an Issue
 
-1. **Home Assistant version**
-2. **Emby Server version**
-3. **Integration version**
-4. **Diagnostics file** (download as described above)
-5. **Relevant log entries** (with debug logging if possible)
-6. **Steps to reproduce** the issue
-7. **Expected vs actual behavior**
+1. **Search existing issues**: [GitHub Issues](https://github.com/troykelly/homeassistant-emby/issues)
+2. **Check discussions**: [GitHub Discussions](https://github.com/troykelly/homeassistant-emby/discussions)
+3. **Review this troubleshooting guide**
 
-Open issues at: https://github.com/troykelly/homeassistant-emby/issues
+### Choose the Right Template
+
+When opening an issue, use the appropriate template:
+
+| Issue Type | Template | Use When |
+|------------|----------|----------|
+| **[Bug Report](https://github.com/troykelly/homeassistant-emby/issues/new?template=1_bug_report.yml)** | Something isn't working | Features broke or behave unexpectedly |
+| **[Feature Request](https://github.com/troykelly/homeassistant-emby/issues/new?template=2_feature_request.yml)** | New functionality | Suggesting improvements or new features |
+| **[Connection Issue](https://github.com/troykelly/homeassistant-emby/issues/new?template=3_connection_issue.yml)** | Can't connect | Setup problems, authentication, network issues |
+| **[Help/Question](https://github.com/troykelly/homeassistant-emby/issues/new?template=4_help_question.yml)** | Need assistance | How-to questions, clarifications |
+| **[Compatibility](https://github.com/troykelly/homeassistant-emby/issues/new?template=5_compatibility_issue.yml)** | Broke after update | HA updates, HACS issues, conflicts |
+
+### Required Information
+
+For **bug reports** and **connection issues**, you'll need:
+
+- [ ] **Integration version** (Settings → Devices & Services → Emby Media → ⋮ → Integration info)
+- [ ] **Home Assistant version** (Settings → About)
+- [ ] **Emby Server version** (Emby Dashboard → About)
+- [ ] **Debug logs** (see [Enable Debug Logging](#enable-debug-logging) above)
+- [ ] **Diagnostics file** (see [Download Diagnostics](#download-diagnostics) above)
+- [ ] **Steps to reproduce** the issue
+
+### Getting Debug Logs
+
+**Method 1: Via UI (Easiest)**
+
+1. Settings → Devices & Services → Emby Media
+2. Click ⋮ → **Enable debug logging**
+3. Reproduce your issue
+4. Click ⋮ → **Disable debug logging** (downloads log file)
+
+**Method 2: Via configuration.yaml**
+
+```yaml
+logger:
+  default: info
+  logs:
+    custom_components.embymedia: debug
+```
+
+Open issues at: https://github.com/troykelly/homeassistant-emby/issues/new/choose
 
 ---
 

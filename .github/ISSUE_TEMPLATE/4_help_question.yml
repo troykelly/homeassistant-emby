@@ -1,0 +1,98 @@
+name: "Help / Question"
+description: "Ask for help or clarification about using the integration"
+labels: ["question", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Need Help?
+
+        Before opening an issue, consider these alternatives:
+
+        - **[Documentation](https://github.com/troykelly/homeassistant-emby#readme)** - Check if your question is answered in the docs
+        - **[GitHub Discussions](https://github.com/troykelly/homeassistant-emby/discussions)** - Best for general questions and community help
+        - **[Home Assistant Community](https://community.home-assistant.io/)** - Great for general HA questions
+
+        Use this form if you need specific help with the Emby Media integration that isn't covered elsewhere.
+
+        ---
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Pre-submission Checklist"
+      options:
+        - label: "I have checked the documentation"
+          required: true
+        - label: "I have searched existing issues and discussions"
+          required: true
+        - label: "This is specific to the Emby Media integration"
+          required: true
+
+  - type: dropdown
+    id: question_type
+    attributes:
+      label: "Question Category"
+      description: "What area does your question relate to?"
+      options:
+        - "Setup / Configuration"
+        - "Media playback control"
+        - "Media browsing"
+        - "Automations / Scripts"
+        - "Voice assistants (Alexa/Google)"
+        - "Dashboard / UI"
+        - "Services / Actions"
+        - "Entity attributes"
+        - "Multiple Emby servers"
+        - "Performance"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: "Your Question"
+      description: "What would you like help with?"
+      placeholder: "How do I... / Is it possible to... / What does X mean..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: "What Have You Tried?"
+      description: "Describe what you've already attempted"
+      placeholder: "I tried... / I looked at... / I expected..."
+
+  - type: dropdown
+    id: integration_version
+    attributes:
+      label: "Integration Version (if applicable)"
+      options:
+        - "0.4.0"
+        - "0.3.x"
+        - "0.2.x"
+        - "0.1.x"
+        - "Not installed yet"
+        - "Not sure"
+
+  - type: dropdown
+    id: ha_version
+    attributes:
+      label: "Home Assistant Version (if applicable)"
+      options:
+        - "2025.11.x"
+        - "2025.10.x"
+        - "2025.9.x"
+        - "2025.8.x"
+        - "2025.7.x or older"
+        - "Not installed yet"
+        - "Not sure"
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "Additional Context"
+      description: "Any other information, screenshots, or code snippets that would help"
+      placeholder: "Automation YAML, dashboard config, screenshots..."

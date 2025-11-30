@@ -1,0 +1,143 @@
+name: "Compatibility Issue"
+description: "Report issues with Home Assistant updates, HACS, or other integrations"
+labels: ["compatibility", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Compatibility Issues
+
+        Use this template for:
+        - Problems after updating Home Assistant
+        - Conflicts with other integrations
+        - HACS installation/update issues
+        - Python dependency conflicts
+
+        ---
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Pre-submission Checklist"
+      options:
+        - label: "I have searched existing issues for similar problems"
+          required: true
+        - label: "The integration was working before (this is a regression)"
+          required: true
+
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: "Type of Compatibility Issue"
+      options:
+        - "Broke after Home Assistant update"
+        - "Broke after integration update"
+        - "Conflict with another integration"
+        - "HACS installation/update problem"
+        - "Python/dependency error"
+        - "Breaking change in HA"
+        - "Other compatibility issue"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "Describe the Issue"
+      description: "What compatibility problem are you experiencing?"
+      placeholder: "After updating to HA 2025.x, the integration..."
+    validations:
+      required: true
+
+  - type: input
+    id: working_version
+    attributes:
+      label: "Last Working Version"
+      description: "What was the last version where everything worked?"
+      placeholder: "HA 2025.10.3 with integration 0.3.2"
+    validations:
+      required: true
+
+  - type: input
+    id: broken_version
+    attributes:
+      label: "Broken Version"
+      description: "What version introduced the problem?"
+      placeholder: "HA 2025.11.0 with integration 0.4.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: integration_version
+    attributes:
+      label: "Current Integration Version"
+      options:
+        - "0.4.0"
+        - "0.3.x"
+        - "0.2.x"
+        - "0.1.x"
+        - "Not listed (specify below)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ha_version
+    attributes:
+      label: "Current Home Assistant Version"
+      options:
+        - "2025.11.x"
+        - "2025.10.x"
+        - "2025.9.x"
+        - "2025.8.x"
+        - "2025.7.x"
+        - "2025.6.x or older"
+        - "Not listed (specify below)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ha_installation
+    attributes:
+      label: "Home Assistant Installation Type"
+      options:
+        - "Home Assistant OS"
+        - "Home Assistant Container (Docker)"
+        - "Home Assistant Supervised"
+        - "Home Assistant Core"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation_method
+    attributes:
+      label: "How Did You Install the Integration?"
+      options:
+        - "HACS (default repository)"
+        - "HACS (custom repository)"
+        - "Manual installation"
+    validations:
+      required: true
+
+  - type: textarea
+    id: other_integrations
+    attributes:
+      label: "Other Relevant Integrations"
+      description: "If this might be a conflict, list other integrations you have installed"
+      placeholder: "Plex, Kodi, other media integrations, custom components..."
+
+  - type: textarea
+    id: error_logs
+    attributes:
+      label: "Error Logs"
+      description: "Paste any error messages from the Home Assistant logs"
+      placeholder: "Paste error logs here..."
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "Additional Context"
+      description: "Any other information that might help"
+      placeholder: "What changed, migration notes, etc."

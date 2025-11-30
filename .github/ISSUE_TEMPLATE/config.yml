@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Home Assistant Community
+    url: https://community.home-assistant.io/
+    about: "For general Home Assistant questions and discussions"
+  - name: Emby Community
+    url: https://emby.media/community/
+    about: "For general Emby server questions and support"
+  - name: Documentation
+    url: https://github.com/troykelly/homeassistant-emby#readme
+    about: "Read the documentation before opening an issue"
+  - name: Discussions
+    url: https://github.com/troykelly/homeassistant-emby/discussions
+    about: "Ask questions, share ideas, or discuss the integration"

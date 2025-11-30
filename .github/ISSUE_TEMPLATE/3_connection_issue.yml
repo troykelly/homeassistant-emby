@@ -1,0 +1,238 @@
+name: "Connection / Setup Issue"
+description: "Report problems connecting to your Emby server or setting up the integration"
+labels: ["connection", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Connection & Setup Issues
+
+        Use this template if you're having trouble:
+        - Connecting Home Assistant to your Emby server
+        - Initial setup/configuration of the integration
+        - Authentication or API key problems
+        - Network connectivity issues between HA and Emby
+
+        **Before submitting:**
+        - Verify your Emby server is accessible from your network
+        - Check that your API key is valid (test in a browser: `http://your-emby-server:8096/emby/System/Info?api_key=YOUR_KEY`)
+        - Review the [setup documentation](https://github.com/troykelly/homeassistant-emby#readme)
+
+        ---
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "Pre-submission Checklist"
+      options:
+        - label: "I have verified my Emby server is running and accessible"
+          required: true
+        - label: "I have tested my API key is valid"
+          required: true
+        - label: "I have searched existing issues for similar problems"
+          required: true
+
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: "Type of Connection Issue"
+      description: "What kind of connection problem are you experiencing?"
+      options:
+        - "Cannot add integration (setup fails)"
+        - "Integration added but shows unavailable"
+        - "Intermittent disconnections"
+        - "Authentication/API key rejected"
+        - "SSL/HTTPS certificate issues"
+        - "Timeout errors"
+        - "Entities not appearing"
+        - "WebSocket connection issues"
+        - "Other connection problem"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "Describe the Problem"
+      description: "What happens when you try to connect?"
+      placeholder: "When I try to add the integration, it shows... / The integration was working but now..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: error_message
+    attributes:
+      label: "Error Message"
+      description: "What error message do you see (if any)?"
+      placeholder: "Copy the exact error message shown in Home Assistant..."
+      render: text
+    validations:
+      required: true
+
+  - type: input
+    id: emby_url
+    attributes:
+      label: "Emby Server URL Format"
+      description: "What URL format are you using? (Replace actual host with example)"
+      placeholder: "http://192.168.1.x:8096 or https://emby.example.com"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: network_type
+    attributes:
+      label: "Network Configuration"
+      description: "How are Home Assistant and Emby connected?"
+      options:
+        - "Same machine (localhost)"
+        - "Same local network (LAN)"
+        - "Different networks/VLANs"
+        - "Remote access (over internet)"
+        - "Through reverse proxy"
+        - "VPN connection"
+        - "Docker network"
+        - "Other / Complex setup"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ssl_enabled
+    attributes:
+      label: "SSL/HTTPS"
+      description: "Are you using HTTPS to connect to Emby?"
+      options:
+        - "No - using HTTP"
+        - "Yes - with valid certificate"
+        - "Yes - with self-signed certificate"
+        - "Yes - through reverse proxy (e.g., nginx, Traefik)"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: integration_version
+    attributes:
+      label: "Integration Version"
+      description: "Which version of the Emby Media integration?"
+      options:
+        - "0.4.0"
+        - "0.3.x"
+        - "0.2.x"
+        - "0.1.x"
+        - "Not listed (specify below)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ha_version
+    attributes:
+      label: "Home Assistant Version"
+      options:
+        - "2025.11.x"
+        - "2025.10.x"
+        - "2025.9.x"
+        - "2025.8.x"
+        - "2025.7.x"
+        - "2025.6.x"
+        - "2025.5.x"
+        - "2025.4.x"
+        - "2025.3.x"
+        - "2025.2.x"
+        - "2025.1.x"
+        - "2024.12.x"
+        - "2024.11.x"
+        - "2024.10.x or older"
+        - "Not listed (specify below)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ha_installation
+    attributes:
+      label: "Home Assistant Installation Type"
+      options:
+        - "Home Assistant OS"
+        - "Home Assistant Container (Docker)"
+        - "Home Assistant Supervised"
+        - "Home Assistant Core"
+        - "Other / Unknown"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: emby_version
+    attributes:
+      label: "Emby Server Version"
+      options:
+        - "4.9.x (Latest)"
+        - "4.8.x"
+        - "4.7.x"
+        - "4.6.x or older"
+        - "Emby Premiere Beta"
+        - "Not listed (specify below)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: emby_hosting
+    attributes:
+      label: "Emby Server Hosting"
+      description: "How is your Emby server running?"
+      options:
+        - "Native installation (Windows)"
+        - "Native installation (Linux)"
+        - "Native installation (macOS)"
+        - "Docker container"
+        - "Synology/QNAP NAS"
+        - "Unraid"
+        - "Other NAS"
+        - "Cloud hosted"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: network_test
+    attributes:
+      label: "Network Connectivity Test"
+      description: |
+        Please run these tests from your Home Assistant host and paste the results:
+
+        **For Home Assistant OS/Supervised:**
+        Use the Terminal & SSH add-on or Advanced SSH add-on
+
+        **Test 1 - Can you reach the Emby server?**
+        ```bash
+        curl -I http://YOUR_EMBY_HOST:8096/emby/System/Info
+        ```
+
+        **Test 2 - Can you authenticate?**
+        ```bash
+        curl "http://YOUR_EMBY_HOST:8096/emby/System/Info?api_key=YOUR_API_KEY"
+        ```
+      placeholder: "Paste the output of the network tests here (remove your actual API key)..."
+      render: text
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Debug Logs"
+      description: |
+        Please provide debug logs. Add this to `configuration.yaml` and restart:
+        ```yaml
+        logger:
+          logs:
+            custom_components.embymedia: debug
+        ```
+        Then attempt the connection and check Settings > System > Logs
+      placeholder: "Paste relevant log entries here..."
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "Additional Context"
+      description: "Any other information that might help diagnose the issue"
+      placeholder: "Network diagram, firewall rules, recent changes, etc."

@@ -8,24 +8,24 @@ Please be respectful and constructive in all interactions. We welcome contributo
 
 ## Ways to Contribute
 
-### Reporting Bugs
+### Reporting Issues
 
-1. Check [existing issues](https://github.com/troykelly/homeassistant-emby/issues) first
-2. Include:
-   - Home Assistant version
-   - Emby Server version
-   - Integration version
-   - Steps to reproduce
-   - Expected vs actual behavior
-   - Relevant logs
-   - [Diagnostics file](docs/TROUBLESHOOTING.md#getting-diagnostics)
+We use GitHub issue templates to help you provide the right information. Choose the template that best fits your issue:
 
-### Suggesting Features
+| Template | Use When |
+|----------|----------|
+| [Bug Report](https://github.com/troykelly/homeassistant-emby/issues/new?template=1_bug_report.yml) | Something isn't working as expected |
+| [Feature Request](https://github.com/troykelly/homeassistant-emby/issues/new?template=2_feature_request.yml) | Suggesting new functionality |
+| [Connection Issue](https://github.com/troykelly/homeassistant-emby/issues/new?template=3_connection_issue.yml) | Setup, authentication, or network problems |
+| [Help/Question](https://github.com/troykelly/homeassistant-emby/issues/new?template=4_help_question.yml) | Need assistance or clarification |
+| [Compatibility](https://github.com/troykelly/homeassistant-emby/issues/new?template=5_compatibility_issue.yml) | Issues after HA or integration updates |
 
-Open an issue with:
-- Clear description of the feature
-- Use cases explaining why it's needed
-- Any relevant examples from other integrations
+**Before submitting:**
+1. Check [existing issues](https://github.com/troykelly/homeassistant-emby/issues) for duplicates
+2. Review the [troubleshooting guide](docs/TROUBLESHOOTING.md)
+3. Gather required information (versions, logs, etc.)
+
+See [Reporting Issues](docs/TROUBLESHOOTING.md#reporting-issues) for detailed instructions on gathering logs and diagnostics
 
 ### Improving Documentation
 
