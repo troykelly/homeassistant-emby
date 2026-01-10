@@ -515,6 +515,8 @@
           "prefix_button": "Prefix button names with 'Emby'",
           "enable_discovery_sensors": "Enable discovery sensors",
           "discovery_scan_interval": "Discovery scan interval (seconds)",
+          "library_scan_interval": "Library scan interval (seconds)",
+          "server_scan_interval": "Server scan interval (seconds)",
           "websocket_interval": "WebSocket session interval (ms)"
         },
         "data_description": {
@@ -533,7 +535,9 @@
           "prefix_remote": "When enabled, remote entities will have 'Emby' prefix in their device names",
           "prefix_button": "When enabled, button entities will have 'Emby' prefix in their device names",
           "enable_discovery_sensors": "Create sensors for Next Up, Continue Watching, Recently Added, and Suggestions (requires a user to be selected)",
-          "discovery_scan_interval": "How often to update discovery sensors (300-3600 seconds, default: 900)"
+          "discovery_scan_interval": "How often to update discovery sensors (300-3600 seconds, default: 900)",
+          "library_scan_interval": "How often to poll library statistics like item counts (3600-86400 seconds, default: 3600)",
+          "server_scan_interval": "How often to poll server info like version and tasks (300-3600 seconds, default: 300)"
         }
       }
     }

@@ -89,6 +89,7 @@ CONF_PREFIX_BUTTON: Final = "prefix_button"
 CONF_ENABLE_LIBRARY_SENSORS: Final = "enable_library_sensors"
 CONF_ENABLE_USER_SENSORS: Final = "enable_user_sensors"
 CONF_LIBRARY_SCAN_INTERVAL: Final = "library_scan_interval"
+CONF_SERVER_SCAN_INTERVAL: Final = "server_scan_interval"
 
 # Default values
 DEFAULT_PORT: Final = 8096
@@ -117,9 +118,17 @@ DEFAULT_SERVER_SCAN_INTERVAL: Final = 300  # 5 minutes in seconds
 # Video container options
 VIDEO_CONTAINERS: Final[list[str]] = ["mp4", "mkv", "webm"]
 
-# Scan interval limits
+# Scan interval limits (session polling)
 MIN_SCAN_INTERVAL: Final = 5
 MAX_SCAN_INTERVAL: Final = 300
+
+# Library scan interval limits (1 hour to 24 hours)
+MIN_LIBRARY_SCAN_INTERVAL: Final = 3600  # 1 hour minimum
+MAX_LIBRARY_SCAN_INTERVAL: Final = 86400  # 24 hours maximum
+
+# Server scan interval limits (5 minutes to 1 hour)
+MIN_SERVER_SCAN_INTERVAL: Final = 300  # 5 minutes minimum
+MAX_SERVER_SCAN_INTERVAL: Final = 3600  # 1 hour maximum
 
 # WebSocket polling intervals
 WEBSOCKET_POLL_INTERVAL: Final = 60  # Reduced polling when WebSocket connected

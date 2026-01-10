@@ -25,6 +25,7 @@ from .const import (
     CONF_ENABLE_WEBSOCKET,
     CONF_IGNORE_WEB_PLAYERS,
     CONF_IGNORED_DEVICES,
+    CONF_LIBRARY_SCAN_INTERVAL,
     CONF_MAX_AUDIO_BITRATE,
     CONF_MAX_VIDEO_BITRATE,
     CONF_PREFIX_BUTTON,
@@ -32,6 +33,7 @@ from .const import (
     CONF_PREFIX_NOTIFY,
     CONF_PREFIX_REMOTE,
     CONF_SCAN_INTERVAL,
+    CONF_SERVER_SCAN_INTERVAL,
     CONF_TRANSCODING_PROFILE,
     CONF_USER_ID,
     CONF_VERIFY_SSL,
@@ -42,12 +44,14 @@ from .const import (
     DEFAULT_ENABLE_DISCOVERY_SENSORS,
     DEFAULT_ENABLE_WEBSOCKET,
     DEFAULT_IGNORE_WEB_PLAYERS,
+    DEFAULT_LIBRARY_SCAN_INTERVAL,
     DEFAULT_PORT,
     DEFAULT_PREFIX_BUTTON,
     DEFAULT_PREFIX_MEDIA_PLAYER,
     DEFAULT_PREFIX_NOTIFY,
     DEFAULT_PREFIX_REMOTE,
     DEFAULT_SCAN_INTERVAL,
+    DEFAULT_SERVER_SCAN_INTERVAL,
     DEFAULT_SSL,
     DEFAULT_TRANSCODING_PROFILE,
     DEFAULT_VERIFY_SSL,
@@ -55,9 +59,13 @@ from .const import (
     DEFAULT_WEBSOCKET_INTERVAL,
     DOMAIN,
     EMBY_MIN_VERSION,
+    MAX_LIBRARY_SCAN_INTERVAL,
     MAX_SCAN_INTERVAL,
+    MAX_SERVER_SCAN_INTERVAL,
     MAX_WEBSOCKET_INTERVAL,
+    MIN_LIBRARY_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
+    MIN_SERVER_SCAN_INTERVAL,
     MIN_WEBSOCKET_INTERVAL,
     TRANSCODING_PROFILES,
     VIDEO_CONTAINERS,
@@ -823,6 +831,32 @@ class EmbyOptionsFlowHandler(OptionsFlow):
                     ): vol.All(
                         vol.Coerce(int),
                         vol.Range(min=300, max=3600),
+                    ),
+                    # Efficiency: Library scan interval (1 hour to 24 hours) (#292)
+                    vol.Optional(
+                        CONF_LIBRARY_SCAN_INTERVAL,
+                        default=self.config_entry.options.get(
+                            CONF_LIBRARY_SCAN_INTERVAL, DEFAULT_LIBRARY_SCAN_INTERVAL
+                        ),
+                    ): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(
+                            min=MIN_LIBRARY_SCAN_INTERVAL,
+                            max=MAX_LIBRARY_SCAN_INTERVAL,
+                        ),
+                    ),
+                    # Efficiency: Server scan interval (5 min to 1 hour) (#292)
+                    vol.Optional(
+                        CONF_SERVER_SCAN_INTERVAL,
+                        default=self.config_entry.options.get(
+                            CONF_SERVER_SCAN_INTERVAL, DEFAULT_SERVER_SCAN_INTERVAL
+                        ),
+                    ): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(
+                            min=MIN_SERVER_SCAN_INTERVAL,
+                            max=MAX_SERVER_SCAN_INTERVAL,
+                        ),
                     ),
                 }
             ),

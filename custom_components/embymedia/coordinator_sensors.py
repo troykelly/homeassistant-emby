@@ -14,6 +14,8 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .const import (
+    CONF_LIBRARY_SCAN_INTERVAL,
+    CONF_SERVER_SCAN_INTERVAL,
     DEFAULT_LIBRARY_SCAN_INTERVAL,
     DEFAULT_SERVER_SCAN_INTERVAL,
     DOMAIN,
@@ -124,7 +126,7 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
         server_id: str,
         server_name: str,
         config_entry: EmbyConfigEntry,
-        scan_interval: int = DEFAULT_SERVER_SCAN_INTERVAL,
+        scan_interval: int | None = None,
     ) -> None:
         """Initialize the server coordinator.
 
@@ -134,8 +136,14 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
             server_id: Unique server identifier.
             server_name: Human-readable server name.
             config_entry: Config entry for reading options.
-            scan_interval: Polling interval in seconds (default: 300).
+            scan_interval: Polling interval in seconds. If None, reads from
+                config_entry.options or uses DEFAULT_SERVER_SCAN_INTERVAL.
         """
+        # Read interval from options if not explicitly provided (#292)
+        if scan_interval is None:
+            scan_interval = config_entry.options.get(
+                CONF_SERVER_SCAN_INTERVAL, DEFAULT_SERVER_SCAN_INTERVAL
+            )
         super().__init__(
             hass,
             _LOGGER,
@@ -385,7 +393,7 @@ class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
         client: EmbyClient,
         server_id: str,
         config_entry: EmbyConfigEntry,
-        scan_interval: int = DEFAULT_LIBRARY_SCAN_INTERVAL,
+        scan_interval: int | None = None,
         user_id: str | None = None,
     ) -> None:
         """Initialize the library coordinator.
@@ -395,9 +403,15 @@ class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
             client: Emby API client.
             server_id: Unique server identifier.
             config_entry: Config entry for reading options.
-            scan_interval: Polling interval in seconds (default: 3600).
+            scan_interval: Polling interval in seconds. If None, reads from
+                config_entry.options or uses DEFAULT_LIBRARY_SCAN_INTERVAL.
             user_id: Optional user ID for user-specific counts.
         """
+        # Read interval from options if not explicitly provided (#292)
+        if scan_interval is None:
+            scan_interval = config_entry.options.get(
+                CONF_LIBRARY_SCAN_INTERVAL, DEFAULT_LIBRARY_SCAN_INTERVAL
+            )
         super().__init__(
             hass,
             _LOGGER,
