@@ -59,6 +59,7 @@ class TestEmbyServerCoordinatorAlwaysUpdate:
 
         mock_client = MagicMock()
         mock_entry = MagicMock()
+        mock_entry.options = {}
 
         coordinator = EmbyServerCoordinator(
             hass=hass,
@@ -87,6 +88,7 @@ class TestEmbyLibraryCoordinatorAlwaysUpdate:
 
         mock_client = MagicMock()
         mock_entry = MagicMock()
+        mock_entry.options = {}
 
         coordinator = EmbyLibraryCoordinator(
             hass=hass,

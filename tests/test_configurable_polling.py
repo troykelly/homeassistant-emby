@@ -9,7 +9,7 @@ These tests verify that:
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -77,7 +77,7 @@ class TestOptionsFlowPollingIntervals:
         # Verify form is shown with library interval field
         assert result["type"] == "form"
         schema = result["data_schema"]
-        schema_keys = [str(k) for k in schema.schema.keys()]
+        schema_keys = [str(k) for k in schema.schema]
         assert CONF_LIBRARY_SCAN_INTERVAL in schema_keys
 
     @pytest.mark.asyncio
@@ -105,7 +105,7 @@ class TestOptionsFlowPollingIntervals:
         # Verify form is shown with server interval field
         assert result["type"] == "form"
         schema = result["data_schema"]
-        schema_keys = [str(k) for k in schema.schema.keys()]
+        schema_keys = [str(k) for k in schema.schema]
         assert CONF_SERVER_SCAN_INTERVAL in schema_keys
 
     @pytest.mark.asyncio
