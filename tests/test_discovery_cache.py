@@ -34,6 +34,15 @@ def mock_client() -> MagicMock:
     client.async_get_suggestions = AsyncMock(return_value=[])
     client.async_get_user_item_count = AsyncMock(return_value=0)
     client.async_get_playlists = AsyncMock(return_value=[])
+    # Batch user counts method added in Issue #291
+    client.async_get_all_user_counts = AsyncMock(
+        return_value={
+            "favorites_count": 0,
+            "played_count": 0,
+            "resumable_count": 0,
+            "playlist_count": 0,
+        }
+    )
     return client
 
 
