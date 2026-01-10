@@ -71,7 +71,7 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 # Version for User-Agent header
-__version__ = "0.1.0"
+__version__ = "0.5.1"
 
 
 class EmbyClient:
