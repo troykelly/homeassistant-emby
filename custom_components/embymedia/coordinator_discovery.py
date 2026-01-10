@@ -1,4 +1,7 @@
-"""Data update coordinator for discovery sensors (Phase 15)."""
+"""Data update coordinator for discovery sensors (Phase 15).
+
+Includes caching to reduce redundant API calls (Issue #288).
+"""
 
 from __future__ import annotations
 
@@ -13,8 +16,10 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 
+from .cache import BrowseCache
 from .const import (
     DEFAULT_DISCOVERY_SCAN_INTERVAL,
+    DISCOVERY_CACHE_TTL,
     DOMAIN,
     EmbyBrowseItem,
     LatestMediaItem,
@@ -74,6 +79,11 @@ class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
     - Recently Added content
     - Personalized suggestions
 
+    Implements caching to reduce redundant API calls. Cache is invalidated on:
+    - UserDataChanged WebSocket event (user watched/favorited something)
+    - PlaybackStopped WebSocket event (user finished watching)
+    - LibraryChanged WebSocket event (new content added)
+
     This coordinator requires a user_id to fetch user-specific content.
 
     Attributes:
@@ -89,6 +99,8 @@ class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
     config_entry: EmbyConfigEntry
     _user_id: str
     _user_name: str
+    _discovery_cache: BrowseCache
+    _bypass_cache: bool
 
     def __init__(
         self,
@@ -123,6 +135,9 @@ class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
         self.config_entry = config_entry
         self._user_id = user_id
         self._user_name = user_name or user_id
+        # Initialize discovery cache with configurable TTL (default 30 minutes)
+        self._discovery_cache = BrowseCache(ttl_seconds=float(DISCOVERY_CACHE_TTL))
+        self._bypass_cache = False
 
     @property
     def user_id(self) -> str:
@@ -134,8 +149,73 @@ class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
         """Return the user name for display purposes."""
         return self._user_name
 
+    def get_cache_stats(self) -> dict[str, int]:
+        """Get cache statistics for diagnostics.
+
+        Returns:
+            Dictionary with hits, misses, and current entry count.
+        """
+        return self._discovery_cache.get_stats()
+
+    def invalidate_cache_for_user(self, user_id: str) -> None:
+        """Invalidate cache for a specific user.
+
+        Called when UserDataChanged WebSocket event is received for this user.
+
+        Args:
+            user_id: The user ID whose cache should be invalidated.
+        """
+        if user_id == self._user_id:
+            _LOGGER.debug(
+                "Invalidating discovery cache for user %s (UserDataChanged)",
+                user_id,
+            )
+            self._discovery_cache.clear()
+
+    def on_playback_stopped(self, user_id: str) -> None:
+        """Handle PlaybackStopped event for cache invalidation.
+
+        Called when user stops playback - their discovery data may have changed.
+
+        Args:
+            user_id: The user ID who stopped playback.
+        """
+        if user_id == self._user_id:
+            _LOGGER.debug(
+                "Invalidating discovery cache for user %s (PlaybackStopped)",
+                user_id,
+            )
+            self._discovery_cache.clear()
+
+    def on_library_changed(self) -> None:
+        """Handle LibraryChanged event for cache invalidation.
+
+        Called when library content changes - discovery data may be stale.
+        """
+        _LOGGER.debug(
+            "Invalidating discovery cache for user %s (LibraryChanged)",
+            self._user_id,
+        )
+        self._discovery_cache.clear()
+
+    async def async_force_refresh(self) -> EmbyDiscoveryData:
+        """Force a refresh of discovery data, bypassing cache.
+
+        Returns:
+            Fresh discovery data from the API.
+        """
+        _LOGGER.debug("Force refreshing discovery data for user %s", self._user_id)
+        self._bypass_cache = True
+        try:
+            return await self._async_update_data()
+        finally:
+            self._bypass_cache = False
+
     async def _async_update_data(self) -> EmbyDiscoveryData:
         """Fetch discovery data from Emby server.
+
+        Uses caching to avoid redundant API calls. Cache is checked first,
+        and only fetches from API on cache miss or when bypassing cache.
 
         Uses asyncio.gather() to fetch all data in parallel for improved performance.
 
@@ -146,6 +226,23 @@ class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
         Raises:
             UpdateFailed: If fetching data fails.
         """
+        cache_key = f"discovery_{self._user_id}"
+
+        # Check cache first (unless bypassing)
+        if not self._bypass_cache:
+            cached_data = self._discovery_cache.get(cache_key)
+            if cached_data is not None:
+                _LOGGER.debug(
+                    "Discovery cache hit for user %s",
+                    self._user_id,
+                )
+                return cached_data  # type: ignore[return-value]
+
+        _LOGGER.debug(
+            "Discovery cache miss for user %s - fetching from API",
+            self._user_id,
+        )
+
         try:
             # Fetch all discovery data in parallel using asyncio.gather()
             # Type annotation specifies expected return types for each coroutine
@@ -196,13 +293,18 @@ class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
                 playlist_count=playlist_count,
             )
 
-            return EmbyDiscoveryData(
+            data = EmbyDiscoveryData(
                 next_up=next_up,
                 continue_watching=continue_watching,
                 recently_added=recently_added,
                 suggestions=suggestions,
                 user_counts=user_counts,
             )
+
+            # Store in cache
+            self._discovery_cache.set(cache_key, data)
+
+            return data
 
         except EmbyConnectionError as err:
             raise UpdateFailed(f"Failed to connect to Emby server: {err}") from err

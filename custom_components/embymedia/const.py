@@ -1152,6 +1152,7 @@ CONF_DISCOVERY_SCAN_INTERVAL: Final = "discovery_scan_interval"
 # Default discovery values
 DEFAULT_ENABLE_DISCOVERY_SENSORS: Final = True
 DEFAULT_DISCOVERY_SCAN_INTERVAL: Final = 900  # 15 minutes in seconds
+DISCOVERY_CACHE_TTL: Final = 1800  # 30 minutes in seconds - cache for discovery data
 
 
 # =============================================================================
