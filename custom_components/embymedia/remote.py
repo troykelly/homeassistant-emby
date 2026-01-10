@@ -71,6 +71,11 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Limit concurrent remote commands to prevent overwhelming the Emby server
+# Value of 1 means only one send_command action at a time per entity
+# This is required for Home Assistant Integration Quality Scale Silver tier
+PARALLEL_UPDATES = 1
+
 
 async def async_setup_entry(
     hass: HomeAssistant,

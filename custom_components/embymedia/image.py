@@ -26,6 +26,11 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Image entities are read-only and use coordinators for updates
+# Value of 0 means no limit - coordinator handles update synchronization
+# This is required for Home Assistant Integration Quality Scale Silver tier
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
