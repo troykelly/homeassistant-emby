@@ -141,6 +141,7 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
             _LOGGER,
             name=f"{DOMAIN}_{server_id}_server",
             update_interval=timedelta(seconds=scan_interval),
+            always_update=False,
         )
         self.client = client
         self.server_id = server_id
@@ -402,6 +403,7 @@ class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
             _LOGGER,
             name=f"{DOMAIN}_{server_id}_library",
             update_interval=timedelta(seconds=scan_interval),
+            always_update=False,
         )
         self.client = client
         self.server_id = server_id
