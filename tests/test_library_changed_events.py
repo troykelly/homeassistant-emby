@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from homeassistant.core import HomeAssistant
@@ -23,13 +23,15 @@ if TYPE_CHECKING:
 def mock_emby_client() -> MagicMock:
     """Create mock Emby client."""
     client = MagicMock()
-    client.async_get_item_counts = AsyncMock(return_value={
-        "MovieCount": 100,
-        "SeriesCount": 20,
-        "EpisodeCount": 500,
-        "AlbumCount": 50,
-        "SongCount": 1000,
-    })
+    client.async_get_item_counts = AsyncMock(
+        return_value={
+            "MovieCount": 100,
+            "SeriesCount": 20,
+            "EpisodeCount": 500,
+            "AlbumCount": 50,
+            "SongCount": 1000,
+        }
+    )
     client.async_get_virtual_folders = AsyncMock(return_value=[])
     client.async_get_artist_count = AsyncMock(return_value=30)
     client.async_get_boxset_count = AsyncMock(return_value=10)
@@ -130,9 +132,7 @@ class TestLibraryCoordinatorWebSocketIntegration:
 class TestLibraryChangedEventHandling:
     """Test LibraryChanged event triggers refresh."""
 
-    def test_library_changed_triggers_refresh(
-        self, hass: HomeAssistant
-    ) -> None:
+    def test_library_changed_triggers_refresh(self, hass: HomeAssistant) -> None:
         """Test that LibraryChanged event triggers library coordinator refresh.
 
         Note: This is already implemented but we verify it works correctly.
@@ -226,9 +226,7 @@ class TestWebSocketActiveProperty:
 class TestMainCoordinatorNotifiesLibraryCoordinator:
     """Test that main coordinator notifies library coordinator of WebSocket status."""
 
-    def test_websocket_connection_notifies_library_coordinator(
-        self, hass: HomeAssistant
-    ) -> None:
+    def test_websocket_connection_notifies_library_coordinator(self, hass: HomeAssistant) -> None:
         """Test that WebSocket connection updates library coordinator status."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
@@ -306,9 +304,7 @@ class TestMainCoordinatorNotifiesLibraryCoordinator:
         # Library coordinator should be notified of disconnection
         mock_library_coordinator.set_websocket_active.assert_called_once_with(active=False)
 
-    def test_no_error_when_library_coordinator_not_available(
-        self, hass: HomeAssistant
-    ) -> None:
+    def test_no_error_when_library_coordinator_not_available(self, hass: HomeAssistant) -> None:
         """Test that no error occurs if library coordinator is not available."""
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
