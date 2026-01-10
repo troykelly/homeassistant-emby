@@ -1954,3 +1954,162 @@ class TestCoordinatorIgnoreWebPlayers:
 
             # All web browser clients should be filtered
             assert len(data) == 0, f"Client '{client_name}' should be filtered"
+
+
+class TestDiscoveryCacheInvalidation:
+    """Tests for discovery cache invalidation via coordinator."""
+
+    @pytest.mark.asyncio
+    async def test_invalidate_discovery_cache_for_user_no_runtime_data(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test invalidation handles missing runtime_data gracefully."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        # Mock config_entry without runtime_data
+        mock_config_entry.runtime_data = None
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Should not raise - handles missing runtime_data
+        coordinator._invalidate_discovery_cache_for_user("user-123")
+
+    @pytest.mark.asyncio
+    async def test_invalidate_discovery_cache_for_user_no_discovery_coordinators(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test invalidation handles missing discovery_coordinators gracefully."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        # Mock runtime_data without discovery_coordinators
+        mock_config_entry.runtime_data = MagicMock()
+        mock_config_entry.runtime_data.discovery_coordinators = None
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Should not raise - handles missing discovery_coordinators
+        coordinator._invalidate_discovery_cache_for_user("user-123")
+
+    @pytest.mark.asyncio
+    async def test_invalidate_all_discovery_caches_no_runtime_data(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test all-user invalidation handles missing runtime_data gracefully."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_config_entry.runtime_data = None
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Should not raise
+        coordinator._invalidate_all_discovery_caches()
+
+    @pytest.mark.asyncio
+    async def test_invalidate_all_discovery_caches_no_discovery_coordinators(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test all-user invalidation handles missing coordinators gracefully."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_config_entry.runtime_data = MagicMock()
+        mock_config_entry.runtime_data.discovery_coordinators = None
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Should not raise
+        coordinator._invalidate_all_discovery_caches()
+
+    @pytest.mark.asyncio
+    async def test_invalidate_discovery_cache_calls_coordinator(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test that invalidation calls the discovery coordinator method."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_discovery_coordinator = MagicMock()
+        mock_config_entry.runtime_data = MagicMock()
+        mock_config_entry.runtime_data.discovery_coordinators = {
+            "user-123": mock_discovery_coordinator
+        }
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        coordinator._invalidate_discovery_cache_for_user("user-123")
+
+        mock_discovery_coordinator.invalidate_cache_for_user.assert_called_once_with("user-123")
+
+    @pytest.mark.asyncio
+    async def test_invalidate_all_discovery_caches_calls_all_coordinators(
+        self,
+        hass: HomeAssistant,
+        mock_emby_client: MagicMock,
+        mock_config_entry: MagicMock,
+    ) -> None:
+        """Test that all-user invalidation calls all discovery coordinators."""
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_coordinator_1 = MagicMock()
+        mock_coordinator_2 = MagicMock()
+        mock_config_entry.runtime_data = MagicMock()
+        mock_config_entry.runtime_data.discovery_coordinators = {
+            "user-1": mock_coordinator_1,
+            "user-2": mock_coordinator_2,
+        }
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_emby_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        coordinator._invalidate_all_discovery_caches()
+
+        mock_coordinator_1.on_library_changed.assert_called_once()
+        mock_coordinator_2.on_library_changed.assert_called_once()

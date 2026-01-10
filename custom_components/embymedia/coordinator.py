@@ -429,6 +429,10 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
         if removed:
             _LOGGER.debug("Cleaned up playback session: %s", tracking_key)
 
+        # Invalidate discovery cache for this user (playback affected their discovery data)
+        if user_id:
+            self._invalidate_discovery_cache_for_user(user_id)
+
     def _cleanup_session_tracking(self, data: Mapping[str, Any]) -> None:
         """Remove all tracking for a session that ended.
 
@@ -476,6 +480,53 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
         for key in keys_to_remove:
             self._playback_sessions.pop(key, None)
             _LOGGER.debug("Cleaned up stale playback session: %s", key)
+
+    def _invalidate_discovery_cache_for_user(self, user_id: str) -> None:
+        """Invalidate discovery cache for a specific user.
+
+        Called when user-specific events occur (PlaybackStopped, UserDataChanged).
+
+        Args:
+            user_id: The user ID whose cache should be invalidated.
+        """
+        runtime_data = getattr(self.config_entry, "runtime_data", None)
+        if runtime_data is None:
+            return
+
+        discovery_coordinators = getattr(runtime_data, "discovery_coordinators", None)
+        if not discovery_coordinators:
+            return
+
+        coordinator = discovery_coordinators.get(user_id)
+        if coordinator is not None:
+            coordinator.invalidate_cache_for_user(user_id)
+            _LOGGER.debug(
+                "Invalidated discovery cache for user %s on %s",
+                user_id,
+                self.server_name,
+            )
+
+    def _invalidate_all_discovery_caches(self) -> None:
+        """Invalidate discovery cache for all users.
+
+        Called when global events occur (LibraryChanged) that affect all users.
+        """
+        runtime_data = getattr(self.config_entry, "runtime_data", None)
+        if runtime_data is None:
+            return
+
+        discovery_coordinators = getattr(runtime_data, "discovery_coordinators", None)
+        if not discovery_coordinators:
+            return
+
+        for coordinator in discovery_coordinators.values():
+            coordinator.on_library_changed()
+
+        _LOGGER.debug(
+            "Invalidated discovery cache for all users (%d) on %s",
+            len(discovery_coordinators),
+            self.server_name,
+        )
 
     async def _async_update_data(self) -> dict[str, EmbySession]:
         """Fetch session data from Emby server with graceful degradation.
@@ -971,6 +1022,9 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
 
             self.hass.async_create_task(_delayed_refresh())
 
+        # Invalidate discovery cache for all users (library content affects discovery)
+        self._invalidate_all_discovery_caches()
+
     def _handle_user_data_changed(self, data: object) -> None:
         """Handle UserDataChanged WebSocket message.
 
@@ -1014,6 +1068,12 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
             self.server_name,
             len(user_data_list),
         )
+
+        # Invalidate discovery cache for affected users
+        affected_users = {item_data.get("UserId") for item_data in user_data_list}
+        for user_id in affected_users:
+            if user_id:
+                self._invalidate_discovery_cache_for_user(str(user_id))
 
     def _handle_notification_added(self, data: object) -> None:
         """Handle NotificationAdded WebSocket message.
