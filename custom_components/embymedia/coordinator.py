@@ -512,6 +512,8 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
             # Reduce polling interval since we have real-time updates
             self.update_interval = timedelta(seconds=WEBSOCKET_POLL_INTERVAL)  # type: ignore[misc]
             _LOGGER.info("WebSocket connected to Emby server %s", self.server_name)
+            # Notify library coordinator to extend its polling interval (#289)
+            self._update_library_coordinator_websocket_status(True)
             # Start receive loop in background and store task for cleanup
             self._websocket_receive_task = self.hass.async_create_task(
                 self._async_websocket_receive_loop()
@@ -628,6 +630,27 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
         else:
             _LOGGER.warning("WebSocket disconnected from Emby server. Using polling fallback")
             self.update_interval = timedelta(seconds=self._configured_scan_interval)  # type: ignore[misc]
+
+        # Notify library coordinator of WebSocket status change (#289)
+        # When WebSocket is active, LibraryChanged events trigger immediate refreshes,
+        # so library polling can be extended from 1 hour to 6 hours
+        self._update_library_coordinator_websocket_status(connected)
+
+    def _update_library_coordinator_websocket_status(self, connected: bool) -> None:
+        """Update library coordinator's WebSocket status.
+
+        When WebSocket is active, the library coordinator can extend its
+        polling interval since LibraryChanged events will trigger immediate
+        refreshes. When disconnected, it falls back to normal polling.
+
+        Args:
+            connected: True if WebSocket is connected.
+        """
+        runtime_data = getattr(self.config_entry, "runtime_data", None)
+        if runtime_data is not None and hasattr(runtime_data, "library_coordinator"):
+            library_coordinator = runtime_data.library_coordinator
+            if hasattr(library_coordinator, "set_websocket_active"):
+                library_coordinator.set_websocket_active(active=connected)
 
     def _process_sessions_data(
         self,
