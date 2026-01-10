@@ -413,6 +413,58 @@ class TestGetPublicInfo:
             await client.close()
 
 
+class TestPing:
+    """Test ping (health check) functionality."""
+
+    @pytest.mark.asyncio
+    async def test_ping_success(self, mock_public_info: dict[str, Any]) -> None:
+        """Test successful ping returns True."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_response = MagicMock()
+            mock_response.status = 200
+            mock_response.reason = "OK"
+            mock_response.json = AsyncMock(return_value=mock_public_info)
+            mock_response.raise_for_status = MagicMock()
+            mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+            mock_response.__aexit__ = AsyncMock(return_value=None)
+
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(return_value=mock_response)
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            result = await client.async_ping()
+            assert result is True
+            await client.close()
+
+    @pytest.mark.asyncio
+    async def test_ping_connection_error(self) -> None:
+        """Test ping raises EmbyConnectionError on failure."""
+        with patch("aiohttp.ClientSession") as mock_session_class:
+            mock_session = MagicMock()
+            mock_session.request = MagicMock(
+                side_effect=aiohttp.ClientConnectorError(MagicMock(), OSError("Connection refused"))
+            )
+            mock_session.closed = False
+            mock_session.close = AsyncMock()
+            mock_session_class.return_value = mock_session
+
+            client = EmbyClient(
+                host="emby.local",
+                port=8096,
+                api_key="test-key",
+            )
+            with pytest.raises(EmbyConnectionError):
+                await client.async_ping()
+            await client.close()
+
+
 class TestGetUsers:
     """Test user list retrieval."""
 
