@@ -69,7 +69,8 @@ class TestAsyncGetItemCounts:
         ) as mock_request:
             result = await emby_client.async_get_item_counts()
 
-            mock_request.assert_called_once_with("GET", "/Items/Counts")
+            # Note: _coalesced_request passes include_auth=True explicitly
+            mock_request.assert_called_once_with("GET", "/Items/Counts", True)
             assert result["MovieCount"] == 1209
             assert result["SeriesCount"] == 374
             assert result["EpisodeCount"] == 4620
@@ -104,7 +105,8 @@ class TestAsyncGetItemCounts:
         ) as mock_request:
             result = await emby_client.async_get_item_counts(user_id="user-123")
 
-            mock_request.assert_called_once_with("GET", "/Items/Counts?UserId=user-123")
+            # Note: _coalesced_request passes include_auth=True explicitly
+            mock_request.assert_called_once_with("GET", "/Items/Counts?UserId=user-123", True)
             assert result["MovieCount"] == 500
 
 
