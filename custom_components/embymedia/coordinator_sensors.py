@@ -145,17 +145,17 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
                 config_entry.options or uses DEFAULT_SERVER_SCAN_INTERVAL.
         """
         # Read interval from options if not explicitly provided (#292)
-        if scan_interval is None:
-            scan_interval = config_entry.options.get(
-                CONF_SERVER_SCAN_INTERVAL, DEFAULT_SERVER_SCAN_INTERVAL
-            )
-            if scan_interval is None:
-                scan_interval = DEFAULT_SERVER_SCAN_INTERVAL
+        # Use int() to ensure type is int, not int | None from options.get()
+        effective_interval: int = (
+            scan_interval
+            if scan_interval is not None
+            else config_entry.options.get(CONF_SERVER_SCAN_INTERVAL) or DEFAULT_SERVER_SCAN_INTERVAL
+        )
         super().__init__(
             hass,
             _LOGGER,
             name=f"{DOMAIN}_{server_id}_server",
-            update_interval=timedelta(seconds=scan_interval),
+            update_interval=timedelta(seconds=effective_interval),
             always_update=False,
         )
         self.client = client
@@ -416,24 +416,25 @@ class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
             user_id: Optional user ID for user-specific counts.
         """
         # Read interval from options if not explicitly provided (#292)
-        if scan_interval is None:
-            scan_interval = config_entry.options.get(
-                CONF_LIBRARY_SCAN_INTERVAL, DEFAULT_LIBRARY_SCAN_INTERVAL
-            )
-            if scan_interval is None:
-                scan_interval = DEFAULT_LIBRARY_SCAN_INTERVAL
+        # Use explicit type to ensure int, not int | None from options.get()
+        effective_interval: int = (
+            scan_interval
+            if scan_interval is not None
+            else config_entry.options.get(CONF_LIBRARY_SCAN_INTERVAL)
+            or DEFAULT_LIBRARY_SCAN_INTERVAL
+        )
         super().__init__(
             hass,
             _LOGGER,
             name=f"{DOMAIN}_{server_id}_library",
-            update_interval=timedelta(seconds=scan_interval),
+            update_interval=timedelta(seconds=effective_interval),
             always_update=False,
         )
         self.client = client
         self.server_id = server_id
         self.config_entry = config_entry
         self._user_id = user_id
-        self._default_scan_interval = scan_interval
+        self._default_scan_interval = effective_interval
         self._websocket_active = False
 
     @property
