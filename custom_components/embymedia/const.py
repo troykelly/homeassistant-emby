@@ -446,6 +446,18 @@ class EmbyItemCounts(TypedDict):
     ItemCount: int
 
 
+class UserCountsResult(TypedDict):
+    """Result from async_get_all_user_counts batch method.
+
+    Contains all user-specific item counts fetched in parallel.
+    """
+
+    favorites_count: int
+    played_count: int
+    resumable_count: int
+    playlist_count: int
+
+
 class EmbyScheduledTaskResult(TypedDict):
     """Last execution result for a scheduled task."""
 

@@ -21,11 +21,11 @@ from .const import (
     DEFAULT_DISCOVERY_SCAN_INTERVAL,
     DISCOVERY_CACHE_TTL,
     DOMAIN,
-    EmbyBrowseItem,
     LatestMediaItem,
     NextUpItem,
     ResumableItem,
     SuggestionItem,
+    UserCountsResult,
 )
 from .exceptions import EmbyConnectionError, EmbyError
 
@@ -245,52 +245,33 @@ class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
 
         try:
             # Fetch all discovery data in parallel using asyncio.gather()
-            # Type annotation specifies expected return types for each coroutine
+            # Uses async_get_all_user_counts batch method to consolidate
+            # 4 user count API calls into a single parallel operation (#291)
             results: tuple[
                 list[NextUpItem],
                 list[ResumableItem],
                 list[LatestMediaItem],
                 list[SuggestionItem],
-                int,
-                int,
-                int,
-                list[EmbyBrowseItem],
+                UserCountsResult,
             ] = await asyncio.gather(
                 self.client.async_get_next_up(user_id=self._user_id),
                 self.client.async_get_resumable_items(user_id=self._user_id),
                 self.client.async_get_latest_media(user_id=self._user_id),
                 self.client.async_get_suggestions(user_id=self._user_id),
-                self.client.async_get_user_item_count(
-                    user_id=self._user_id,
-                    filters="IsFavorite",
-                ),
-                self.client.async_get_user_item_count(
-                    user_id=self._user_id,
-                    filters="IsPlayed",
-                ),
-                self.client.async_get_user_item_count(
-                    user_id=self._user_id,
-                    filters="IsResumable",
-                ),
-                self.client.async_get_playlists(user_id=self._user_id),
-            )  # type: ignore[assignment]
+                self.client.async_get_all_user_counts(user_id=self._user_id),
+            )
 
             next_up = results[0]
             continue_watching = results[1]
             recently_added = results[2]
             suggestions = results[3]
-            favorites_count = results[4]
-            played_count = results[5]
-            resumable_count = results[6]
-            playlists = results[7]
-
-            playlist_count = len(playlists)
+            user_counts_result = results[4]
 
             user_counts = EmbyUserCounts(
-                favorites_count=favorites_count,
-                played_count=played_count,
-                resumable_count=resumable_count,
-                playlist_count=playlist_count,
+                favorites_count=user_counts_result["favorites_count"],
+                played_count=user_counts_result["played_count"],
+                resumable_count=user_counts_result["resumable_count"],
+                playlist_count=user_counts_result["playlist_count"],
             )
 
             data = EmbyDiscoveryData(

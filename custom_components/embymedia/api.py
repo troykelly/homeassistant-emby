@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from typing import TYPE_CHECKING, Self, cast
@@ -63,6 +64,7 @@ if TYPE_CHECKING:
         NextUpItem,
         ResumableItem,
         SuggestionItem,
+        UserCountsResult,
     )
 
 _LOGGER = logging.getLogger(__name__)
@@ -1768,6 +1770,52 @@ class EmbyClient:
         response = await self._request(HTTP_GET, endpoint)
         total_count = response.get("TotalRecordCount", 0)
         return int(total_count) if isinstance(total_count, int | float | str) else 0
+
+    async def async_get_all_user_counts(
+        self,
+        user_id: str,
+    ) -> UserCountsResult:
+        """Get all user-specific counts in a single batch operation.
+
+        This method consolidates multiple count API calls into a single
+        parallel fetch, improving efficiency when all counts are needed
+        at once (e.g., for discovery coordinator updates).
+
+        Fetches in parallel:
+        - Favorites count (IsFavorite filter)
+        - Played count (IsPlayed filter)
+        - Resumable count (IsResumable filter)
+        - Playlist count (number of playlists)
+
+        Args:
+            user_id: The user ID to get counts for.
+
+        Returns:
+            UserCountsResult with all count values.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+            EmbyAuthenticationError: API key is invalid.
+
+        Example:
+            >>> counts = await client.async_get_all_user_counts("user123")
+            >>> print(f"Favorites: {counts['favorites_count']}")
+            >>> print(f"Played: {counts['played_count']}")
+        """
+        # Fetch all counts in parallel for efficiency
+        favorites, played, resumable, playlists = await asyncio.gather(
+            self.async_get_user_item_count(user_id=user_id, filters="IsFavorite"),
+            self.async_get_user_item_count(user_id=user_id, filters="IsPlayed"),
+            self.async_get_user_item_count(user_id=user_id, filters="IsResumable"),
+            self.async_get_playlists(user_id=user_id),
+        )
+
+        return {
+            "favorites_count": favorites,
+            "played_count": played,
+            "resumable_count": resumable,
+            "playlist_count": len(playlists),
+        }
 
     async def async_get_artist_count(
         self,
