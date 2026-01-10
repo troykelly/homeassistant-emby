@@ -12,6 +12,9 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.embymedia.const import DOMAIN
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -58,21 +61,23 @@ class TestOptionsFlowPollingIntervals:
         hass: HomeAssistant,
     ) -> None:
         """Test that options flow includes library scan interval field."""
-        from homeassistant.config_entries import ConfigEntry
-
-        from custom_components.embymedia.config_flow import EmbyOptionsFlowHandler
         from custom_components.embymedia.const import (
             CONF_LIBRARY_SCAN_INTERVAL,
         )
 
-        mock_entry = MagicMock(spec=ConfigEntry)
-        mock_entry.options = {}
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                "host": "emby.local",
+                "port": 8096,
+                "api_key": "test-key",
+            },
+            options={},
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
 
-        handler = EmbyOptionsFlowHandler()
-        handler._config_entry = mock_entry
-        handler.hass = hass
-
-        result = await handler.async_step_init()
+        result = await hass.config_entries.options.async_init(mock_entry.entry_id)
 
         # Verify form is shown with library interval field
         assert result["type"] == "form"
@@ -86,21 +91,23 @@ class TestOptionsFlowPollingIntervals:
         hass: HomeAssistant,
     ) -> None:
         """Test that options flow includes server scan interval field."""
-        from homeassistant.config_entries import ConfigEntry
-
-        from custom_components.embymedia.config_flow import EmbyOptionsFlowHandler
         from custom_components.embymedia.const import (
             CONF_SERVER_SCAN_INTERVAL,
         )
 
-        mock_entry = MagicMock(spec=ConfigEntry)
-        mock_entry.options = {}
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                "host": "emby.local",
+                "port": 8096,
+                "api_key": "test-key",
+            },
+            options={},
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
 
-        handler = EmbyOptionsFlowHandler()
-        handler._config_entry = mock_entry
-        handler.hass = hass
-
-        result = await handler.async_step_init()
+        result = await hass.config_entries.options.async_init(mock_entry.entry_id)
 
         # Verify form is shown with server interval field
         assert result["type"] == "form"
@@ -114,20 +121,24 @@ class TestOptionsFlowPollingIntervals:
         hass: HomeAssistant,
     ) -> None:
         """Test that options flow saves polling interval configuration."""
-        from homeassistant.config_entries import ConfigEntry
-
-        from custom_components.embymedia.config_flow import EmbyOptionsFlowHandler
         from custom_components.embymedia.const import (
             CONF_LIBRARY_SCAN_INTERVAL,
             CONF_SERVER_SCAN_INTERVAL,
         )
 
-        mock_entry = MagicMock(spec=ConfigEntry)
-        mock_entry.options = {}
+        mock_entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                "host": "emby.local",
+                "port": 8096,
+                "api_key": "test-key",
+            },
+            options={},
+            unique_id="test-server-id",
+        )
+        mock_entry.add_to_hass(hass)
 
-        handler = EmbyOptionsFlowHandler()
-        handler._config_entry = mock_entry
-        handler.hass = hass
+        result = await hass.config_entries.options.async_init(mock_entry.entry_id)
 
         # Simulate user input with custom intervals
         user_input = {
@@ -136,7 +147,10 @@ class TestOptionsFlowPollingIntervals:
             CONF_SERVER_SCAN_INTERVAL: 600,  # 10 minutes
         }
 
-        result = await handler.async_step_init(user_input=user_input)
+        result = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input=user_input,
+        )
 
         assert result["type"] == "create_entry"
         assert result["data"][CONF_LIBRARY_SCAN_INTERVAL] == 7200

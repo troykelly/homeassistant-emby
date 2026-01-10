@@ -374,3 +374,40 @@ class TestEmbyClientIntegration:
         stats = client.get_coalescer_stats()
         assert stats["total_requests"] == 0
         assert stats["coalesced_requests"] == 0
+
+
+class TestCoalescedRequestNonGetBypass:
+    """Test that non-GET requests bypass coalescing."""
+
+    @pytest.mark.asyncio
+    async def test_non_get_request_bypasses_coalescer(self) -> None:
+        """Test that non-GET requests go directly to _request without coalescing.
+
+        The _coalesced_request method has a guard that bypasses coalescing for
+        non-GET requests since they have side effects and must execute individually.
+        """
+        from unittest.mock import patch
+
+        from custom_components.embymedia.api import EmbyClient
+
+        client = EmbyClient(
+            host="emby.local",
+            port=8096,
+            api_key="test-key",
+        )
+
+        # Mock _request to track calls
+        with patch.object(client, "_request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = {"success": True}
+
+            # Call _coalesced_request with POST method (non-GET)
+            result = await client._coalesced_request("POST", "/test/endpoint")
+
+            # Should have called _request directly
+            mock_request.assert_called_once_with("POST", "/test/endpoint", True)
+            assert result == {"success": True}
+
+            # Coalescer stats should not have changed (bypassed)
+            stats = client.get_coalescer_stats()
+            assert stats["total_requests"] == 0
+            assert stats["coalesced_requests"] == 0
