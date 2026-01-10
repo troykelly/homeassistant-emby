@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-01-10
+
+### Fixed
+- **Device Triggers Not Firing** (#285)
+  - Fixed device triggers (playback_started, playback_stopped, etc.) not firing when session updates came through the polling path
+  - Events now fire reliably from both polling and WebSocket paths
+  - Added edge case handling: fire playback_started for new sessions that are already playing
+
+### Technical
+- 1864 tests with 100% code coverage
+- Fixed HA 2025 test compatibility for options flow
+- Fixed type inference in coordinator_sensors.py
+
+## [0.5.0] - 2026-01-10
+
+### Added
+- **Efficiency Optimizations** (#287-#296)
+  - WebSocket-aware polling: Disable polling when WebSocket is stable, resume on disconnect (#287)
+  - Discovery data caching with 30-minute TTL and WebSocket invalidation (#288)
+  - Extended library polling interval (10x) when WebSocket is active (#289)
+  - Request coalescing for concurrent identical API requests (#290)
+  - Batch user API calls: consolidate per-user counts into single request (#291)
+  - Configurable polling intervals via options flow (#292)
+  - API call metrics in diagnostics (#293)
+  - `always_update=False` on all DataUpdateCoordinators (#295)
+  - `PARALLEL_UPDATES` on all entity platforms (#296)
+
+### Documentation
+- Added ARCHITECTURE.md with system design overview (#294)
+- Added EFFICIENCY.md documenting optimization strategies (#294)
+
+### Technical
+- 1863 tests with 100% code coverage
+
 ## [0.4.1] - 2025-11-30
 
 ### Added
@@ -231,7 +265,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Browse cache with LRU + TTL for performance
 - Graceful degradation on partial failures
 
-[Unreleased]: https://github.com/troykelly/homeassistant-emby/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/troykelly/homeassistant-emby/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/troykelly/homeassistant-emby/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/troykelly/homeassistant-emby/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/troykelly/homeassistant-emby/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/troykelly/homeassistant-emby/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/troykelly/homeassistant-emby/compare/v0.2.2...v0.3.0
