@@ -581,7 +581,7 @@ class TestConditionFromConfig:
 
         condition_fn = await async_condition_from_config(hass, condition_config)
 
-        # Should return False when entity doesn.t exist
+        # Should return False when entity doesn't exist (condition can't be met)
         assert condition_fn(hass) is False
 
     @pytest.mark.asyncio

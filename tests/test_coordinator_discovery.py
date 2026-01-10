@@ -31,9 +31,15 @@ def mock_client() -> MagicMock:
     client.async_get_resumable_items = AsyncMock(return_value=[])
     client.async_get_latest_media = AsyncMock(return_value=[])
     client.async_get_suggestions = AsyncMock(return_value=[])
-    # User count methods
-    client.async_get_user_item_count = AsyncMock(return_value=0)
-    client.async_get_playlists = AsyncMock(return_value=[])
+    # Batch user counts method (#291)
+    client.async_get_all_user_counts = AsyncMock(
+        return_value={
+            "favorites_count": 0,
+            "played_count": 0,
+            "resumable_count": 0,
+            "playlist_count": 0,
+        }
+    )
     return client
 
 
@@ -273,9 +279,16 @@ class TestEmbyDiscoveryCoordinatorParallelExecution:
     ) -> None:
         """Test that API calls run in parallel, not sequentially.
 
-        If 8 calls with 50ms delay each ran sequentially, it would take 400ms.
+        If 5 calls with 50ms delay each ran sequentially, it would take 250ms.
         In parallel, they should complete in ~50ms (plus overhead).
-        We assert completion in under 200ms to prove parallelism.
+        We assert completion in under 150ms to prove parallelism.
+
+        Note: With batch user counts (#291), we now make 5 calls instead of 8:
+        - async_get_next_up
+        - async_get_resumable_items
+        - async_get_latest_media
+        - async_get_suggestions
+        - async_get_all_user_counts (which internally runs 4 calls in parallel)
         """
         import asyncio
         import time
@@ -287,18 +300,22 @@ class TestEmbyDiscoveryCoordinatorParallelExecution:
             await asyncio.sleep(delay_seconds)
             return []
 
-        async def slow_count_call(*args: object, **kwargs: object) -> int:
-            """Simulate a slow count API call."""
+        async def slow_batch_counts(*args: object, **kwargs: object) -> dict[str, int]:
+            """Simulate a slow batch counts API call."""
             await asyncio.sleep(delay_seconds)
-            return 0
+            return {
+                "favorites_count": 0,
+                "played_count": 0,
+                "resumable_count": 0,
+                "playlist_count": 0,
+            }
 
         mock_client = MagicMock()
         mock_client.async_get_next_up = AsyncMock(side_effect=slow_api_call)
         mock_client.async_get_resumable_items = AsyncMock(side_effect=slow_api_call)
         mock_client.async_get_latest_media = AsyncMock(side_effect=slow_api_call)
         mock_client.async_get_suggestions = AsyncMock(side_effect=slow_api_call)
-        mock_client.async_get_user_item_count = AsyncMock(side_effect=slow_count_call)
-        mock_client.async_get_playlists = AsyncMock(side_effect=slow_api_call)
+        mock_client.async_get_all_user_counts = AsyncMock(side_effect=slow_batch_counts)
 
         coordinator = EmbyDiscoveryCoordinator(
             hass=hass,
@@ -313,13 +330,13 @@ class TestEmbyDiscoveryCoordinatorParallelExecution:
         await coordinator._async_update_data()
         elapsed = time.time() - start
 
-        # 8 calls at 50ms each:
-        # Sequential: 400ms minimum (8 * 50ms)
+        # 5 calls at 50ms each:
+        # Sequential: 250ms minimum (5 * 50ms)
         # Parallel: ~50ms (plus overhead)
-        # We allow up to 200ms to account for overhead but prove parallelism
-        assert elapsed < 0.2, (
+        # We allow up to 150ms to account for overhead but prove parallelism
+        assert elapsed < 0.15, (
             f"API calls took {elapsed:.3f}s - "
-            f"should be < 0.2s if running in parallel (8 calls * 50ms sequential = 400ms)"
+            f"should be < 0.15s if running in parallel (5 calls * 50ms sequential = 250ms)"
         )
 
     async def test_all_api_methods_called(
@@ -328,7 +345,15 @@ class TestEmbyDiscoveryCoordinatorParallelExecution:
         mock_client: MagicMock,
         mock_config_entry: MagicMock,
     ) -> None:
-        """Test that all 8 API calls are made during update."""
+        """Test that all 5 API calls are made during update.
+
+        With batch user counts (#291), we now make 5 calls:
+        - async_get_next_up
+        - async_get_resumable_items
+        - async_get_latest_media
+        - async_get_suggestions
+        - async_get_all_user_counts (consolidates 4 previous separate calls)
+        """
         coordinator = EmbyDiscoveryCoordinator(
             hass=hass,
             client=mock_client,
@@ -339,11 +364,10 @@ class TestEmbyDiscoveryCoordinatorParallelExecution:
 
         await coordinator._async_update_data()
 
-        # Verify all 8 API calls were made
+        # Verify all 5 API calls were made
         mock_client.async_get_next_up.assert_called_once_with(user_id="user456")
         mock_client.async_get_resumable_items.assert_called_once_with(user_id="user456")
         mock_client.async_get_latest_media.assert_called_once_with(user_id="user456")
         mock_client.async_get_suggestions.assert_called_once_with(user_id="user456")
-        # User item count called 3 times (favorites, played, resumable)
-        assert mock_client.async_get_user_item_count.call_count == 3
-        mock_client.async_get_playlists.assert_called_once_with(user_id="user456")
+        # Batch user counts replaces 4 individual calls (#291)
+        mock_client.async_get_all_user_counts.assert_called_once_with(user_id="user456")
