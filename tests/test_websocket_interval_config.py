@@ -7,7 +7,7 @@ via the options flow.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL
@@ -145,81 +145,95 @@ class TestCoordinatorWebSocketInterval:
     """Tests for WebSocket interval usage in coordinator."""
 
     @pytest.mark.asyncio
-    async def test_coordinator_uses_configured_interval(
+    async def test_coordinator_passes_interval_to_websocket(
         self,
         hass: HomeAssistant,
     ) -> None:
-        """Test that coordinator uses the configured WebSocket interval."""
+        """Test that coordinator passes configured interval to WebSocket."""
+        import aiohttp
+
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
-        mock_client = MagicMock()
-        mock_client.server_id = "test-server"
-        mock_client.server_name = "Test Server"
-
-        # Create config entry with custom interval
+        # Create a mock config entry with custom interval
         mock_entry = MagicMock()
-        mock_entry.data = {
-            CONF_HOST: "emby.local",
-            CONF_PORT: 8096,
-        }
         mock_entry.options = {
-            CONF_WEBSOCKET_INTERVAL: 3000,  # Custom interval
+            CONF_WEBSOCKET_INTERVAL: 3000,  # Custom 3000ms interval
         }
-        mock_entry.entry_id = "test-entry-id"
+
+        # Create coordinator
+        mock_client = MagicMock()
+        mock_client.async_get_sessions = AsyncMock(return_value=[])
 
         coordinator = EmbyDataUpdateCoordinator(
             hass=hass,
             client=mock_client,
             config_entry=mock_entry,
+            server_id="test-server",
+            server_name="Test Server",
         )
 
-        # Verify the interval is used
-        assert coordinator.websocket_interval == 3000
+        # Mock the websocket
+        mock_ws = MagicMock()
+        mock_ws.async_connect = AsyncMock()
+        mock_ws.async_subscribe_sessions = AsyncMock()
+        mock_ws.set_message_callback = MagicMock()
+        mock_ws.set_connection_callback = MagicMock()
+        mock_ws.connected = True
+
+        # Mock aiohttp session
+        mock_session = MagicMock(spec=aiohttp.ClientSession)
+
+        with patch(
+            "custom_components.embymedia.coordinator.EmbyWebSocket",
+            return_value=mock_ws,
+        ):
+            await coordinator.async_setup_websocket(mock_session)
+
+        # Verify the interval was passed to async_subscribe_sessions
+        mock_ws.async_subscribe_sessions.assert_called_once_with(interval_ms=3000)
 
     @pytest.mark.asyncio
-    async def test_coordinator_uses_default_when_not_configured(
+    async def test_coordinator_uses_default_interval_when_not_configured(
         self,
         hass: HomeAssistant,
     ) -> None:
         """Test that coordinator uses default interval when not configured."""
+        import aiohttp
+
         from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
 
-        mock_client = MagicMock()
-        mock_client.server_id = "test-server"
-        mock_client.server_name = "Test Server"
-
-        # Create config entry without custom interval
+        # Create a mock config entry without custom interval
         mock_entry = MagicMock()
-        mock_entry.data = {
-            CONF_HOST: "emby.local",
-            CONF_PORT: 8096,
-        }
         mock_entry.options = {}  # No custom interval
-        mock_entry.entry_id = "test-entry-id"
+
+        mock_client = MagicMock()
+        mock_client.async_get_sessions = AsyncMock(return_value=[])
 
         coordinator = EmbyDataUpdateCoordinator(
             hass=hass,
             client=mock_client,
             config_entry=mock_entry,
+            server_id="test-server",
+            server_name="Test Server",
         )
 
-        # Should use default interval
-        assert coordinator.websocket_interval == DEFAULT_WEBSOCKET_INTERVAL
+        mock_ws = MagicMock()
+        mock_ws.async_connect = AsyncMock()
+        mock_ws.async_subscribe_sessions = AsyncMock()
+        mock_ws.set_message_callback = MagicMock()
+        mock_ws.set_connection_callback = MagicMock()
+        mock_ws.connected = True
 
+        # Mock aiohttp session
+        mock_session = MagicMock(spec=aiohttp.ClientSession)
 
-class TestWebSocketClientInterval:
-    """Tests for WebSocket client using the configured interval."""
+        with patch(
+            "custom_components.embymedia.coordinator.EmbyWebSocket",
+            return_value=mock_ws,
+        ):
+            await coordinator.async_setup_websocket(mock_session)
 
-    @pytest.mark.asyncio
-    async def test_websocket_client_interval_property(self) -> None:
-        """Test WebSocket client accepts interval parameter."""
-        from custom_components.embymedia.websocket import EmbyWebsocketClient
-
-        mock_client = MagicMock()
-        mock_client.base_url = "http://emby.local:8096"
-        mock_client.api_key = "test-key"
-
-        with patch.object(EmbyWebsocketClient, "__init__", lambda s, **kw: None):
-            ws_client = EmbyWebsocketClient.__new__(EmbyWebsocketClient)
-            ws_client._interval_ms = 2500
-            assert ws_client._interval_ms == 2500
+        # Verify the default interval was passed
+        mock_ws.async_subscribe_sessions.assert_called_once_with(
+            interval_ms=DEFAULT_WEBSOCKET_INTERVAL
+        )
