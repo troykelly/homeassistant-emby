@@ -99,7 +99,7 @@ async def async_condition_from_config(
     def test_condition(
         hass: HomeAssistant,
         variables: Mapping[str, Any] | None = None,
-    ) -> bool | None:
+    ) -> bool:
         """Test the condition.
 
         Args:
@@ -107,12 +107,12 @@ async def async_condition_from_config(
             variables: Optional template variables (unused).
 
         Returns:
-            True if condition is met, False otherwise, None if state unavailable.
+            True if condition is met, False otherwise.
         """
         _ = variables  # Not used for device conditions
         state = hass.states.get(entity_id)
         if state is None:
-            return None
+            return False
 
         current_state = state.state
         if condition_type == "is_playing":
