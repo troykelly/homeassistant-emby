@@ -116,6 +116,7 @@ class EmbyDiscoveryCoordinator(DataUpdateCoordinator[EmbyDiscoveryData]):
             _LOGGER,
             name=f"{DOMAIN}_{server_id}_discovery_{user_id}",
             update_interval=timedelta(seconds=scan_interval),
+            always_update=False,
         )
         self.client = client
         self.server_id = server_id
