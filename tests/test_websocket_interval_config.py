@@ -76,9 +76,7 @@ class TestOptionsFlowWebSocketInterval:
         mock_options_entry.add_to_hass(hass)
 
         # Get the form
-        result = await hass.config_entries.options.async_init(
-            mock_options_entry.entry_id
-        )
+        result = await hass.config_entries.options.async_init(mock_options_entry.entry_id)
 
         assert result["type"] is FlowResultType.FORM
         # Check that the schema includes websocket_interval
@@ -96,9 +94,7 @@ class TestOptionsFlowWebSocketInterval:
         mock_options_entry.add_to_hass(hass)
 
         # Get the form first
-        result = await hass.config_entries.options.async_init(
-            mock_options_entry.entry_id
-        )
+        result = await hass.config_entries.options.async_init(mock_options_entry.entry_id)
 
         assert result["type"] is FlowResultType.FORM
 
@@ -125,9 +121,7 @@ class TestOptionsFlowWebSocketInterval:
         mock_options_entry.add_to_hass(hass)
 
         # Get the form
-        result = await hass.config_entries.options.async_init(
-            mock_options_entry.entry_id
-        )
+        result = await hass.config_entries.options.async_init(mock_options_entry.entry_id)
 
         assert result["type"] is FlowResultType.FORM
 
