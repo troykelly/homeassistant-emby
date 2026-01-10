@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import TYPE_CHECKING, Self, cast
 
 import aiohttp
 
 from .cache import BrowseCache
+from .metrics import MetricsCollector
 from .const import (
     DEFAULT_TIMEOUT,
     DEFAULT_VERIFY_SSL,
@@ -126,6 +128,8 @@ class EmbyClient:
         self._server_id: str | None = None
         # Browse cache for expensive API calls (5 minute TTL)
         self._browse_cache = BrowseCache(ttl_seconds=300.0, max_entries=500)
+        # Metrics collector for API call tracking (#293)
+        self._metrics = MetricsCollector()
 
     async def __aenter__(self) -> Self:
         """Enter async context manager."""
@@ -187,6 +191,15 @@ class EmbyClient:
             The browse cache instance.
         """
         return self._browse_cache
+
+    @property
+    def metrics(self) -> MetricsCollector:
+        """Return the metrics collector.
+
+        Returns:
+            The metrics collector instance.
+        """
+        return self._metrics
 
     def clear_browse_cache(self) -> None:
         """Clear the browse cache.
@@ -274,6 +287,8 @@ class EmbyClient:
         )
 
         session = await self._get_session()
+        start_time = time.perf_counter()
+        is_error = False
 
         try:
             async with session.request(
@@ -291,14 +306,17 @@ class EmbyClient:
                 )
 
                 if response.status in (401, 403):
+                    is_error = True
                     raise EmbyAuthenticationError(
                         f"Authentication failed: {response.status} {response.reason}"
                     )
 
                 if response.status == 404:
+                    is_error = True
                     raise EmbyNotFoundError(f"Resource not found: {endpoint}")
 
                 if response.status >= 500:
+                    is_error = True
                     raise EmbyServerError(f"Server error: {response.status} {response.reason}")
 
                 response.raise_for_status()
@@ -312,9 +330,11 @@ class EmbyClient:
                         endpoint,
                         err,
                     )
+                    is_error = True
                     raise EmbyServerError(f"Server returned invalid JSON: {err}") from err
 
         except aiohttp.ClientSSLError as err:
+            is_error = True
             _LOGGER.error(
                 "Emby API SSL error for %s %s: %s",
                 method,
@@ -324,6 +344,7 @@ class EmbyClient:
             raise EmbySSLError(f"SSL certificate error: {err}") from err
 
         except TimeoutError as err:
+            is_error = True
             _LOGGER.error(
                 "Emby API timeout for %s %s",
                 method,
@@ -332,6 +353,7 @@ class EmbyClient:
             raise EmbyTimeoutError(f"Request timed out after {self._timeout.total}s") from err
 
         except aiohttp.ClientConnectorError as err:
+            is_error = True
             _LOGGER.error(
                 "Emby API connection error for %s %s: %s",
                 method,
@@ -343,6 +365,7 @@ class EmbyClient:
             ) from err
 
         except aiohttp.ClientResponseError as err:
+            is_error = True
             _LOGGER.error(
                 "Emby API error: %s %s for %s %s",
                 err.status,
@@ -359,6 +382,7 @@ class EmbyClient:
             raise EmbyConnectionError(f"HTTP error: {err.status}") from err
 
         except aiohttp.ClientError as err:
+            is_error = True
             _LOGGER.error(
                 "Emby API client error for %s %s: %s",
                 method,
@@ -366,6 +390,11 @@ class EmbyClient:
                 err,
             )
             raise EmbyConnectionError(f"Client error: {err}") from err
+
+        finally:
+            # Record API metrics (#293)
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            self._metrics.record_api_call(endpoint, duration_ms, error=is_error)
 
     async def async_validate_connection(self) -> bool:
         """Validate connection and authentication.
@@ -467,6 +496,8 @@ class EmbyClient:
         )
 
         session = await self._get_session()
+        start_time = time.perf_counter()
+        is_error = False
 
         try:
             async with session.post(
@@ -483,6 +514,7 @@ class EmbyClient:
                 )
 
                 if response.status in (401, 403):
+                    is_error = True
                     raise EmbyAuthenticationError(f"Authentication failed: {response.status}")
 
                 # 204 No Content is success
@@ -492,18 +524,27 @@ class EmbyClient:
                 response.raise_for_status()
 
         except aiohttp.ClientSSLError as err:
+            is_error = True
             raise EmbySSLError(f"SSL certificate error: {err}") from err
 
         except TimeoutError as err:
+            is_error = True
             raise EmbyTimeoutError(f"Request timed out after {self._timeout.total}s") from err
 
         except aiohttp.ClientConnectorError as err:
+            is_error = True
             raise EmbyConnectionError(
                 f"Failed to connect to {self._host}:{self._port}: {err}"
             ) from err
 
         except aiohttp.ClientError as err:
+            is_error = True
             raise EmbyConnectionError(f"Client error: {err}") from err
+
+        finally:
+            # Record API metrics (#293)
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            self._metrics.record_api_call(endpoint, duration_ms, error=is_error)
 
     async def _request_post_json(
         self,
@@ -537,6 +578,8 @@ class EmbyClient:
         )
 
         session = await self._get_session()
+        start_time = time.perf_counter()
+        is_error = False
 
         try:
             async with session.post(
@@ -553,32 +596,44 @@ class EmbyClient:
                 )
 
                 if response.status in (401, 403):
+                    is_error = True
                     raise EmbyAuthenticationError(
                         f"Authentication failed: {response.status} {response.reason}"
                     )
 
                 if response.status == 404:
+                    is_error = True
                     raise EmbyNotFoundError(f"Resource not found: {endpoint}")
 
                 if response.status >= 500:
+                    is_error = True
                     raise EmbyServerError(f"Server error: {response.status} {response.reason}")
 
                 response.raise_for_status()
                 return await response.json()  # type: ignore[no-any-return]
 
         except aiohttp.ClientSSLError as err:
+            is_error = True
             raise EmbySSLError(f"SSL certificate error: {err}") from err
 
         except TimeoutError as err:
+            is_error = True
             raise EmbyTimeoutError(f"Request timed out after {self._timeout.total}s") from err
 
         except aiohttp.ClientConnectorError as err:
+            is_error = True
             raise EmbyConnectionError(
                 f"Failed to connect to {self._host}:{self._port}: {err}"
             ) from err
 
         except aiohttp.ClientError as err:
+            is_error = True
             raise EmbyConnectionError(f"Client error: {err}") from err
+
+        finally:
+            # Record API metrics (#293)
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            self._metrics.record_api_call(endpoint, duration_ms, error=is_error)
 
     async def _request_delete(
         self,
@@ -600,6 +655,8 @@ class EmbyClient:
         _LOGGER.debug("Emby API DELETE request: %s", endpoint)
 
         session = await self._get_session()
+        start_time = time.perf_counter()
+        is_error = False
 
         try:
             async with session.delete(
@@ -615,6 +672,7 @@ class EmbyClient:
                 )
 
                 if response.status in (401, 403):
+                    is_error = True
                     raise EmbyAuthenticationError(f"Authentication failed: {response.status}")
 
                 # 204 No Content is success
@@ -624,18 +682,27 @@ class EmbyClient:
                 response.raise_for_status()
 
         except aiohttp.ClientSSLError as err:
+            is_error = True
             raise EmbySSLError(f"SSL certificate error: {err}") from err
 
         except TimeoutError as err:
+            is_error = True
             raise EmbyTimeoutError(f"Request timed out after {self._timeout.total}s") from err
 
         except aiohttp.ClientConnectorError as err:
+            is_error = True
             raise EmbyConnectionError(
                 f"Failed to connect to {self._host}:{self._port}: {err}"
             ) from err
 
         except aiohttp.ClientError as err:
+            is_error = True
             raise EmbyConnectionError(f"Client error: {err}") from err
+
+        finally:
+            # Record API metrics (#293)
+            duration_ms = (time.perf_counter() - start_time) * 1000
+            self._metrics.record_api_call(endpoint, duration_ms, error=is_error)
 
     async def async_send_playback_command(
         self,
