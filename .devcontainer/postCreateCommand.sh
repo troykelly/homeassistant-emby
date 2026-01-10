@@ -77,6 +77,10 @@ debugpy:
 EOF
 fi
 
+# Install Claude CLI globally
+echo "Installing Claude CLI..."
+curl -fsSL https://raw.githubusercontent.com/troykelly/claude-skills/main/install.sh | bash
+
 # Verify tools are available
 echo ""
 echo "=== Verifying installed tools ==="
