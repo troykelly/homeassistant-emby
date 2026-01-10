@@ -52,6 +52,9 @@ async def async_get_config_entry_diagnostics(
     # Get cache stats
     cache_stats: dict[str, int] = coordinator.client.browse_cache.get_stats()
 
+    # Get efficiency metrics (#293)
+    efficiency_metrics: dict[str, object] = coordinator.client.metrics.to_diagnostics()
+
     return {
         "config_entry": {
             "entry_id": entry.entry_id,
@@ -72,6 +75,7 @@ async def async_get_config_entry_diagnostics(
             "sessions": sessions_list,
         },
         "cache_stats": cache_stats,
+        "efficiency_metrics": efficiency_metrics,
     }
 
 

@@ -569,7 +569,7 @@ class TestConditionFromConfig:
         self,
         hass: HomeAssistant,
     ) -> None:
-        """Test condition returns False for non-existent entity (unknown state)."""
+        """Test condition returns False for non-existent entity."""
         from custom_components.embymedia.device_condition import (
             async_condition_from_config,
         )
@@ -581,7 +581,7 @@ class TestConditionFromConfig:
 
         condition_fn = await async_condition_from_config(hass, condition_config)
 
-        # Should return False when entity does not exist (state is unknown)
+        # Should return False when entity doesn.t exist
         assert condition_fn(hass) is False
 
     @pytest.mark.asyncio
