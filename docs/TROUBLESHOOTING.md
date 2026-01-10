@@ -378,6 +378,40 @@ This guide helps you resolve common issues with the Emby Media integration.
    - Slow network between HA and Emby affects browsing
    - Check network connectivity
 
+### Emby Server Becomes Sluggish
+
+**Symptoms:**
+- Emby server response times increase
+- Server CPU spikes when HA is running
+- API rate limit warnings
+
+**Solutions:**
+
+1. **Check WebSocket status:**
+   - Download diagnostics (see below)
+   - Look for `"websocket_enabled": true`
+   - If WebSocket is disconnected, the integration falls back to polling
+
+2. **Increase polling intervals:**
+   - Go to **Settings** → **Devices & Services** → **Emby Media** → **Configure**
+   - Increase **Library Scan Interval** to 12 or 24 hours
+   - Increase **Server Scan Interval** to 30 minutes or 1 hour
+
+3. **Check for automation loops:**
+   - Automations that trigger on Emby state changes may cause feedback
+   - Add conditions to prevent rapid-fire triggers
+
+4. **Review efficiency metrics:**
+   - Download diagnostics
+   - Check `efficiency_metrics.api_calls` for high-frequency endpoints
+   - Check `efficiency_metrics.websocket.messages_received` is non-zero
+
+5. **Single integration per server:**
+   - Don't add the same Emby server multiple times
+   - Use user selection for multi-user scenarios
+
+> For detailed efficiency information, see **[Efficiency Best Practices](EFFICIENCY.md)**
+
 ---
 
 ## Getting Diagnostics
@@ -397,6 +431,7 @@ This generates a JSON file containing:
 - Connection status
 - Active sessions
 - Cache statistics
+- Efficiency metrics (API call counts, response times, errors)
 
 ### Check Logs
 
