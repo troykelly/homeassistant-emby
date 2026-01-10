@@ -85,20 +85,34 @@ Change these anytime: **Settings** → **Devices & Services** → **Emby Media**
 
 | Option | Default | Range | Description |
 |--------|---------|-------|-------------|
-| **Scan Interval** | 10 | 5-300s | How often to poll for updates |
+| **Scan Interval** | 10 | 5-300s | How often to poll for session updates |
 | **Enable WebSocket** | ✓ | — | Real-time updates (recommended) |
 | **WebSocket Interval** | 1500 | 500-10000ms | Session subscription rate |
+| **Library Scan Interval** | 1 hour | 1-24h | How often to update library counts |
+| **Server Scan Interval** | 5 min | 5m-1h | How often to check server status |
 
 **About Scan Interval:**
 - Lower = more responsive, more server load
 - With WebSocket enabled, polling drops to 60s (WebSocket handles real-time)
 - Without WebSocket, this is your update frequency
 
+**About Library Scan Interval:**
+- Controls how often library statistics (movie count, etc.) are updated
+- Lower values increase server load with minimal benefit
+- Library changes via WebSocket trigger immediate refresh anyway
+
+**About Server Scan Interval:**
+- Controls how often server status (version, tasks) is checked
+- 5 minutes is sufficient for most use cases
+- Increase to 1 hour for low-power servers
+
 **About WebSocket:**
 - Near-instant state updates
 - Auto-reconnects if disconnected
 - Falls back to polling if unavailable
 - **Recommended:** Keep enabled
+
+> For detailed efficiency information, see **[Efficiency Best Practices](EFFICIENCY.md)**
 
 ### Device Filtering
 

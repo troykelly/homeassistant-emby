@@ -23,6 +23,15 @@ Welcome to the Emby Media for Home Assistant documentation.
 
 ---
 
+## 🏗️ Technical Documentation
+
+| Guide | Description |
+|-------|-------------|
+| **[Architecture](ARCHITECTURE.md)** | System design and component overview |
+| **[Efficiency](EFFICIENCY.md)** | Performance best practices and tuning |
+
+---
+
 ## 🔧 Quick Reference
 
 ### Entities Created
@@ -78,6 +87,10 @@ Welcome to the Emby Media for Home Assistant documentation.
 - [SERVICES.md](SERVICES.md) — Services reference
 - [AUTOMATIONS.md](AUTOMATIONS.md) — Automation examples
 - [TROUBLESHOOTING.md](TROUBLESHOOTING.md) — Problem solving
+
+### Technical Documentation
+- [ARCHITECTURE.md](ARCHITECTURE.md) — System design overview
+- [EFFICIENCY.md](EFFICIENCY.md) — Performance best practices
 
 ### Project Files
 - [CHANGELOG.md](../CHANGELOG.md) — Version history
