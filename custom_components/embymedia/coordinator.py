@@ -54,6 +54,12 @@ MAX_PLAYBACK_DELTA_SECONDS = 60
 # Default maximum age in seconds for stale playback session cleanup (1 hour)
 DEFAULT_STALE_SESSION_MAX_AGE = 3600
 
+# WebSocket stability tracking - disable polling after N consecutive successful messages
+WEBSOCKET_STABLE_THRESHOLD = 5
+
+# Health check interval when polling is disabled (5 minutes)
+HEALTH_CHECK_INTERVAL = 300
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -126,6 +132,10 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
         # Per-user watch time: user_id -> seconds watched today
         self._user_watch_times: dict[str, int] = {}
         self._last_reset_date: date = date.today()
+        # WebSocket stability tracking (Issue #287)
+        self._ws_consecutive_success: int = 0
+        self._polling_disabled: bool = False
+        self._health_check_task: asyncio.Task[None] | None = None
 
     @property
     def user_id(self) -> str | None:
@@ -190,6 +200,117 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
             Dictionary mapping session IDs to session tracking data.
         """
         return self._playback_sessions
+
+    # Class constant for WebSocket stability threshold
+    WEBSOCKET_STABLE_THRESHOLD: int = WEBSOCKET_STABLE_THRESHOLD
+
+    @property
+    def polling_disabled(self) -> bool:
+        """Return True if polling is disabled (WebSocket stable).
+
+        Returns:
+            True if WebSocket is stable and polling is disabled.
+        """
+        return self._polling_disabled
+
+    def _on_websocket_message_success(self) -> None:
+        """Handle successful WebSocket message receipt.
+
+        Increments the consecutive success counter and disables
+        polling if the stability threshold is reached.
+        """
+        self._ws_consecutive_success += 1
+        if (
+            self._ws_consecutive_success >= WEBSOCKET_STABLE_THRESHOLD
+            and not self._polling_disabled
+        ):
+            self._disable_polling()
+
+    def _on_websocket_error(self) -> None:
+        """Handle WebSocket error.
+
+        Resets the consecutive success counter and re-enables polling.
+        """
+        self._ws_consecutive_success = 0
+        if self._polling_disabled:
+            self._enable_polling()
+
+    def _disable_polling(self) -> None:
+        """Disable polling when WebSocket is stable.
+
+        Sets update_interval to None to stop polling and schedules
+        periodic health checks instead.
+        """
+        self._polling_disabled = True
+        self.update_interval = None  # type: ignore[misc]
+        _LOGGER.info(
+            "WebSocket stable after %d messages, disabling polling for %s",
+            self._ws_consecutive_success,
+            self.server_name,
+        )
+        # Schedule health checks
+        self._schedule_health_check()
+
+    def _enable_polling(self, use_websocket_interval: bool = False) -> None:
+        """Re-enable polling when WebSocket becomes unstable.
+
+        Restores the update_interval and cancels health check task.
+
+        Args:
+            use_websocket_interval: If True, use the WebSocket poll interval.
+                If False (default), use the configured scan interval.
+        """
+        self._polling_disabled = False
+        if use_websocket_interval:
+            self.update_interval = timedelta(seconds=WEBSOCKET_POLL_INTERVAL)  # type: ignore[misc]
+        else:
+            self.update_interval = timedelta(seconds=self._configured_scan_interval)  # type: ignore[misc]
+        _LOGGER.info(
+            "Re-enabling polling for %s (interval: %s)",
+            self.server_name,
+            self.update_interval,
+        )
+        # Cancel health check task
+        if self._health_check_task is not None:
+            self._health_check_task.cancel()
+            self._health_check_task = None
+
+    def _schedule_health_check(self) -> None:
+        """Schedule periodic health checks while polling is disabled."""
+        if self._health_check_task is not None:
+            self._health_check_task.cancel()
+
+        async def _health_check_loop() -> None:
+            """Run health checks periodically."""
+            while self._polling_disabled:
+                await asyncio.sleep(HEALTH_CHECK_INTERVAL)
+                if self._polling_disabled:
+                    await self.async_health_check()
+
+        self._health_check_task = self.hass.async_create_task(_health_check_loop())
+
+    async def async_health_check(self) -> None:
+        """Perform a lightweight health check.
+
+        Uses ping to verify server connectivity without fetching full session data.
+        If the health check fails, polling is re-enabled.
+        """
+        try:
+            await self.client.async_ping()
+            _LOGGER.debug("Health check passed for %s", self.server_name)
+        except EmbyConnectionError as err:
+            _LOGGER.warning(
+                "Health check failed for %s: %s - re-enabling polling",
+                self.server_name,
+                err,
+            )
+            self._on_websocket_error()
+        except EmbyError as err:
+            _LOGGER.warning(
+                "Health check error for %s: %s",
+                self.server_name,
+                err,
+            )
 
     def _is_web_player(self, session: EmbySession) -> bool:
         """Check if a session is from a web browser.
@@ -569,6 +690,9 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
             message_type: The type of message received.
             data: The message payload.
         """
+        # Track WebSocket stability for polling optimization (Issue #287)
+        self._on_websocket_message_success()
+
         if message_type == "Sessions":
             # Direct session update from WebSocket
             self._process_sessions_data(data)
@@ -628,7 +752,15 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
             self.update_interval = timedelta(seconds=WEBSOCKET_POLL_INTERVAL)  # type: ignore[misc]
         else:
             _LOGGER.warning("WebSocket disconnected from Emby server. Using polling fallback")
+            # Reset WebSocket stability tracking (Issue #287)
+            self._ws_consecutive_success = 0
+            # Always restore configured polling interval on disconnect
+            self._polling_disabled = False
             self.update_interval = timedelta(seconds=self._configured_scan_interval)  # type: ignore[misc]
+            # Cancel health check task if running
+            if self._health_check_task is not None:
+                self._health_check_task.cancel()
+                self._health_check_task = None
 
     def _process_sessions_data(
         self,

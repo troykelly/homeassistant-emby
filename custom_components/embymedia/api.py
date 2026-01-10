@@ -444,6 +444,26 @@ class EmbyClient:
         )
         return response  # type: ignore[return-value]
 
+    async def async_ping(self) -> bool:
+        """Lightweight health check using public endpoint.
+
+        This is more efficient than async_get_server_info for checking
+        if the server is reachable, as it doesn't require authentication
+        and returns minimal data.
+
+        Returns:
+            True if server is reachable.
+
+        Raises:
+            EmbyConnectionError: Connection failed.
+        """
+        await self._request(
+            HTTP_GET,
+            ENDPOINT_SYSTEM_INFO_PUBLIC,
+            include_auth=False,
+        )
+        return True
+
     async def async_get_users(self) -> list[EmbyUser]:
         """Get list of users.
 
