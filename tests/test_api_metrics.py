@@ -10,10 +10,9 @@ These tests verify that:
 
 from __future__ import annotations
 
-import time
 from datetime import datetime
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -333,7 +332,6 @@ class TestDiagnosticsIncludesMetrics:
         hass: HomeAssistant,
     ) -> None:
         """Test that diagnostics output includes efficiency_metrics section."""
-        from unittest.mock import AsyncMock
 
         from custom_components.embymedia.diagnostics import (
             async_get_config_entry_diagnostics,

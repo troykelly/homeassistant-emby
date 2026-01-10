@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Self, cast
 import aiohttp
 
 from .cache import BrowseCache
-from .metrics import MetricsCollector
 from .const import (
     DEFAULT_TIMEOUT,
     DEFAULT_VERIFY_SSL,
@@ -34,6 +33,7 @@ from .exceptions import (
     EmbySSLError,
     EmbyTimeoutError,
 )
+from .metrics import MetricsCollector
 
 if TYPE_CHECKING:
     from .const import (
