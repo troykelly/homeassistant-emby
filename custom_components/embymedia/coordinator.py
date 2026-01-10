@@ -586,23 +586,9 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
                 )
                 continue
 
-        # Log session changes
-        current_devices = set(sessions.keys())
-        added = current_devices - self._previous_sessions
-        removed = self._previous_sessions - current_devices
-
-        for device_id in added:
-            session = sessions[device_id]
-            _LOGGER.debug(
-                "New session detected: %s (%s)",
-                session.device_name,
-                session.client_name,
-            )
-
-        for device_id in removed:
-            _LOGGER.debug("Session removed: %s", device_id)
-
-        self._previous_sessions = current_devices
+        # Fire events for session and playback changes (Issue #285)
+        # This ensures events fire on both polling and WebSocket paths
+        self._fire_session_change_events(sessions)
 
         return sessions
 
@@ -845,7 +831,6 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
         Args:
             sessions_data: List of session data dictionaries from the API.
         """
-        old_sessions = self.data or {}
         sessions: dict[str, EmbySession] = {}
 
         for session_data in sessions_data:
@@ -865,11 +850,37 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
                 )
                 continue
 
-        # Detect changes and fire events
+        # Fire events for session and playback changes using shared logic
+        self._fire_session_change_events(sessions)
+
+        # Update coordinator data and notify listeners
+        self.async_set_updated_data(sessions)
+
+    def _fire_session_change_events(
+        self,
+        sessions: dict[str, EmbySession],
+    ) -> None:
+        """Fire events for session and playback state changes.
+
+        This method detects and fires events for:
+        - Session connected/disconnected
+        - Playback started/stopped
+        - Media changed
+        - Playback paused/resumed
+
+        Called from both polling (_async_update_data) and WebSocket
+        (_process_sessions_data) paths to ensure events fire reliably.
+        Fixes Issue #285.
+
+        Args:
+            sessions: Current sessions dictionary keyed by device_id.
+        """
+        old_sessions = self.data or {}
         current_devices = set(sessions.keys())
         added = current_devices - self._previous_sessions
         removed = self._previous_sessions - current_devices
 
+        # Fire session connected events for new sessions
         for device_id in added:
             session = sessions[device_id]
             _LOGGER.debug(
@@ -879,15 +890,28 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
             )
             self._fire_event(device_id, "session_connected")
 
+        # Fire session disconnected events for removed sessions
         for device_id in removed:
             _LOGGER.debug("Session removed: %s", device_id)
             self._fire_event(device_id, "session_disconnected")
 
-        # Check for playback state changes
+        # Check for playback state changes in existing sessions
         for device_id, session in sessions.items():
             old_session = old_sessions.get(device_id)
             if old_session is None:
-                # New session, already handled
+                # New session - check if it came in already playing
+                if session.now_playing is not None:
+                    self._fire_event(
+                        device_id,
+                        "playback_started",
+                        {
+                            "media_content_id": session.now_playing.item_id,
+                            "media_content_type": session.now_playing.media_type.value
+                            if session.now_playing.media_type
+                            else None,
+                            "media_title": session.now_playing.name,
+                        },
+                    )
                 continue
 
             # Check playback started/stopped
@@ -934,10 +958,8 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
                     else:
                         self._fire_event(device_id, "playback_resumed")
 
+        # Update previous sessions tracking
         self._previous_sessions = current_devices
-
-        # Update coordinator data and notify listeners
-        self.async_set_updated_data(sessions)
 
     def _fire_event(
         self,

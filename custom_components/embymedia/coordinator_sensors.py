@@ -149,6 +149,8 @@ class EmbyServerCoordinator(DataUpdateCoordinator[EmbyServerData]):
             scan_interval = config_entry.options.get(
                 CONF_SERVER_SCAN_INTERVAL, DEFAULT_SERVER_SCAN_INTERVAL
             )
+            if scan_interval is None:
+                scan_interval = DEFAULT_SERVER_SCAN_INTERVAL
         super().__init__(
             hass,
             _LOGGER,
@@ -391,6 +393,7 @@ class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
     server_id: str
     config_entry: EmbyConfigEntry
     _user_id: str | None
+    _default_scan_interval: int
 
     def __init__(
         self,
@@ -417,6 +420,8 @@ class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
             scan_interval = config_entry.options.get(
                 CONF_LIBRARY_SCAN_INTERVAL, DEFAULT_LIBRARY_SCAN_INTERVAL
             )
+            if scan_interval is None:
+                scan_interval = DEFAULT_LIBRARY_SCAN_INTERVAL
         super().__init__(
             hass,
             _LOGGER,

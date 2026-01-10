@@ -205,6 +205,195 @@ class TestEventFiring:
         assert len(playback_events) >= 1
 
 
+class TestPollingEventFiring:
+    """Test event firing from polling path (Issue #285).
+
+    When sessions are updated via polling (_async_update_data), playback
+    events should be fired just like when using WebSocket path.
+    """
+
+    @pytest.mark.asyncio
+    async def test_polling_fires_playback_stopped_event(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test polling fires playback_stopped when media stops (Issue #285).
+
+        This tests the scenario where:
+        1. A session is playing media
+        2. On the next poll, the session no longer has NowPlayingItem
+        3. A playback_stopped event should be fired
+
+        This is the bug reported in Issue #285 - the polling path
+        (_async_update_data) was not firing events, only the WebSocket
+        path (_process_sessions_data) was.
+        """
+        from unittest.mock import AsyncMock
+
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_config_entry.add_to_hass(hass)
+
+        mock_client = MagicMock()
+        # First poll: session is playing media
+        # Second poll: session is idle (no NowPlayingItem)
+        mock_client.async_get_sessions = AsyncMock(
+            side_effect=[
+                # First call returns session with playing media
+                [
+                    {
+                        "Id": "sess-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Test Client",
+                        "SupportsRemoteControl": True,
+                        "NowPlayingItem": {
+                            "Id": "item-1",
+                            "Name": "Test Movie",
+                            "Type": "Movie",
+                        },
+                    }
+                ],
+                # Second call returns session without playing media
+                [
+                    {
+                        "Id": "sess-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Test Client",
+                        "SupportsRemoteControl": True,
+                        # No NowPlayingItem - playback stopped
+                    }
+                ],
+            ]
+        )
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Create entity registry entry so _fire_event can find the entity
+        entity_reg = er.async_get(hass)
+        entity_reg.async_get_or_create(
+            "media_player",
+            DOMAIN,
+            "server-123_device-1",
+        )
+
+        # Track fired events
+        events: list[dict] = []
+
+        def capture_event(event):
+            events.append(event.data)
+
+        hass.bus.async_listen(f"{DOMAIN}_event", capture_event)
+
+        # First refresh - starts playing
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+
+        # Clear events from first refresh (may have session_connected)
+        events.clear()
+
+        # Second refresh - stops playing
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+
+        # Should have fired playback_stopped event
+        playback_stopped_events = [e for e in events if e.get("type") == "playback_stopped"]
+        assert len(playback_stopped_events) == 1, (
+            f"Expected 1 playback_stopped event, got {len(playback_stopped_events)}. "
+            f"Events fired: {events}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_polling_fires_playback_started_event(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry: MockConfigEntry,
+    ) -> None:
+        """Test polling fires playback_started when media starts (Issue #285)."""
+        from unittest.mock import AsyncMock
+
+        from custom_components.embymedia.coordinator import EmbyDataUpdateCoordinator
+
+        mock_config_entry.add_to_hass(hass)
+
+        mock_client = MagicMock()
+        mock_client.async_get_sessions = AsyncMock(
+            side_effect=[
+                # First call: session idle
+                [
+                    {
+                        "Id": "sess-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Test Client",
+                        "SupportsRemoteControl": True,
+                    }
+                ],
+                # Second call: session playing
+                [
+                    {
+                        "Id": "sess-1",
+                        "DeviceId": "device-1",
+                        "DeviceName": "Test Device",
+                        "Client": "Test Client",
+                        "SupportsRemoteControl": True,
+                        "NowPlayingItem": {
+                            "Id": "item-1",
+                            "Name": "Test Movie",
+                            "Type": "Movie",
+                        },
+                    }
+                ],
+            ]
+        )
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_client,
+            server_id="server-123",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        entity_reg = er.async_get(hass)
+        entity_reg.async_get_or_create(
+            "media_player",
+            DOMAIN,
+            "server-123_device-1",
+        )
+
+        events: list[dict] = []
+
+        def capture_event(event):
+            events.append(event.data)
+
+        hass.bus.async_listen(f"{DOMAIN}_event", capture_event)
+
+        # First refresh - session idle
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+        events.clear()
+
+        # Second refresh - starts playing
+        await coordinator.async_refresh()
+        await hass.async_block_till_done()
+
+        # Should have fired playback_started event
+        playback_started_events = [e for e in events if e.get("type") == "playback_started"]
+        assert len(playback_started_events) == 1, (
+            f"Expected 1 playback_started event, got {len(playback_started_events)}. "
+            f"Events fired: {events}"
+        )
+
+
 class TestDeviceTriggerCapabilities:
     """Test device trigger capabilities."""
 
