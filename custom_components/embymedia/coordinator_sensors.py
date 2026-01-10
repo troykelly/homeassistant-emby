@@ -33,6 +33,11 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Extended polling interval for library when WebSocket is active (#289)
+# When WebSocket handles LibraryChanged events, we can poll less frequently
+# 6 hours = 21600 seconds (WebSocket will trigger immediate refresh on changes)
+WEBSOCKET_LIBRARY_SCAN_INTERVAL = 21600
+
 
 class EmbyServerData(TypedDict, total=False):
     """Type definition for server coordinator data."""
@@ -409,11 +414,51 @@ class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
         self.server_id = server_id
         self.config_entry = config_entry
         self._user_id = user_id
+        self._default_scan_interval = scan_interval
+        self._websocket_active = False
 
     @property
     def user_id(self) -> str | None:
         """Return the configured user ID."""
         return self._user_id
+
+    @property
+    def websocket_active(self) -> bool:
+        """Return whether WebSocket is currently active.
+
+        When WebSocket is active, LibraryChanged events trigger immediate
+        refreshes, so polling interval is extended to reduce API calls.
+        """
+        return self._websocket_active
+
+    def set_websocket_active(self, *, active: bool) -> None:
+        """Set WebSocket active status and adjust polling interval.
+
+        When WebSocket is active, LibraryChanged events will trigger
+        immediate library refreshes, so we can extend the polling interval
+        from 1 hour to 6 hours as a fallback safety net.
+
+        When WebSocket is inactive, we return to the default 1-hour
+        polling interval to ensure library data stays current.
+
+        Args:
+            active: True if WebSocket connection is active.
+        """
+        self._websocket_active = active
+        if active:
+            # Extend polling interval when WebSocket handles real-time updates
+            self.update_interval = timedelta(seconds=WEBSOCKET_LIBRARY_SCAN_INTERVAL)  # type: ignore[misc]
+            _LOGGER.debug(
+                "WebSocket active: extended library polling to %s seconds",
+                WEBSOCKET_LIBRARY_SCAN_INTERVAL,
+            )
+        else:
+            # Return to default interval when WebSocket is unavailable
+            self.update_interval = timedelta(seconds=self._default_scan_interval)  # type: ignore[misc]
+            _LOGGER.debug(
+                "WebSocket inactive: restored library polling to %s seconds",
+                self._default_scan_interval,
+            )
 
     async def _async_update_data(self) -> EmbyLibraryData:
         """Fetch library data from Emby server.
@@ -534,6 +579,7 @@ class EmbyLibraryCoordinator(DataUpdateCoordinator[EmbyLibraryData]):
 
 
 __all__ = [
+    "WEBSOCKET_LIBRARY_SCAN_INTERVAL",
     "EmbyLibraryCoordinator",
     "EmbyLibraryData",
     "EmbyServerCoordinator",
