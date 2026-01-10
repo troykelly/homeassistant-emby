@@ -449,9 +449,7 @@ class TestPing:
         with patch("aiohttp.ClientSession") as mock_session_class:
             mock_session = MagicMock()
             mock_session.request = MagicMock(
-                side_effect=aiohttp.ClientConnectorError(
-                    MagicMock(), OSError("Connection refused")
-                )
+                side_effect=aiohttp.ClientConnectorError(MagicMock(), OSError("Connection refused"))
             )
             mock_session.closed = False
             mock_session.close = AsyncMock()
