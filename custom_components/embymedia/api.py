@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Self, cast
 import aiohttp
 
 from .cache import BrowseCache
+from .coalescer import RequestCoalescer
 from .const import (
     DEFAULT_TIMEOUT,
     DEFAULT_VERIFY_SSL,
@@ -130,6 +131,8 @@ class EmbyClient:
         self._browse_cache = BrowseCache(ttl_seconds=300.0, max_entries=500)
         # Metrics collector for API call tracking (#293)
         self._metrics = MetricsCollector()
+        # Request coalescer for concurrent identical requests (#290)
+        self._coalescer = RequestCoalescer()
 
     async def __aenter__(self) -> Self:
         """Enter async context manager."""
@@ -207,6 +210,21 @@ class EmbyClient:
         Useful when library contents have changed.
         """
         self._browse_cache.clear()
+
+    def get_coalescer_stats(self) -> dict[str, int]:
+        """Get request coalescer statistics.
+
+        Returns:
+            Dictionary with coalescing statistics including:
+            - total_requests: Total number of coalesce() calls
+            - coalesced_requests: Number of requests that were coalesced
+            - in_flight: Current number of in-flight requests
+        """
+        return self._coalescer.get_stats()
+
+    def reset_coalescer_stats(self) -> None:
+        """Reset request coalescer statistics."""
+        self._coalescer.reset_stats()
 
     def _get_headers(self, include_auth: bool = True) -> dict[str, str]:
         """Build headers for API requests.
@@ -396,6 +414,43 @@ class EmbyClient:
             duration_ms = (time.perf_counter() - start_time) * 1000
             self._metrics.record_api_call(endpoint, duration_ms, error=is_error)
 
+    async def _coalesced_request(
+        self,
+        method: str,
+        endpoint: str,
+        include_auth: bool = True,
+    ) -> dict[str, object]:
+        """Make a coalesced HTTP GET request to the Emby API.
+
+        For GET requests, this wraps the request in the coalescer to prevent
+        duplicate concurrent requests for the same endpoint. Only the first
+        request is executed; subsequent identical concurrent requests wait
+        for and share the same result.
+
+        Args:
+            method: HTTP method (should be GET for coalescing).
+            endpoint: API endpoint path.
+            include_auth: Whether to include authentication.
+
+        Returns:
+            Parsed JSON response as dictionary.
+
+        Note:
+            Only GET requests should be coalesced. POST/DELETE requests have
+            side effects and must always execute individually.
+        """
+        if method != HTTP_GET:
+            # Non-GET requests should not be coalesced
+            return await self._request(method, endpoint, include_auth)
+
+        # Generate unique key for this request
+        coalesce_key = f"{endpoint}:auth={include_auth}"
+
+        return await self._coalescer.coalesce(
+            coalesce_key,
+            lambda: self._request(method, endpoint, include_auth),
+        )
+
     async def async_validate_connection(self) -> bool:
         """Validate connection and authentication.
 
@@ -414,6 +469,8 @@ class EmbyClient:
     async def async_get_server_info(self) -> EmbyServerInfo:
         """Get server information (requires authentication).
 
+        Uses request coalescing to prevent duplicate concurrent requests.
+
         Returns:
             Server information including ID, name, and version.
 
@@ -421,7 +478,7 @@ class EmbyClient:
             EmbyConnectionError: Connection failed.
             EmbyAuthenticationError: API key is invalid.
         """
-        response = await self._request(HTTP_GET, ENDPOINT_SYSTEM_INFO)
+        response = await self._coalesced_request(HTTP_GET, ENDPOINT_SYSTEM_INFO)
         # Cache server ID for later use
         self._server_id = str(response.get("Id", ""))
         return response  # type: ignore[return-value]
@@ -480,6 +537,9 @@ class EmbyClient:
     async def async_get_sessions(self) -> list[EmbySessionResponse]:
         """Get list of active sessions.
 
+        Uses request coalescing to prevent duplicate concurrent requests
+        when multiple entities refresh simultaneously.
+
         Returns:
             List of session objects representing connected clients.
 
@@ -487,7 +547,7 @@ class EmbyClient:
             EmbyConnectionError: Connection failed.
             EmbyAuthenticationError: API key is invalid.
         """
-        response = await self._request(HTTP_GET, ENDPOINT_SESSIONS)
+        response = await self._coalesced_request(HTTP_GET, ENDPOINT_SESSIONS)
         return response  # type: ignore[return-value]
 
     async def _request_post(
@@ -1686,6 +1746,8 @@ class EmbyClient:
     ) -> EmbyItemCounts:
         """Get library item counts.
 
+        Uses request coalescing to prevent duplicate concurrent requests.
+
         Args:
             user_id: Optional user ID to filter by user's visible items.
 
@@ -1699,7 +1761,7 @@ class EmbyClient:
         endpoint = "/Items/Counts"
         if user_id:
             endpoint = f"{endpoint}?UserId={user_id}"
-        response = await self._request(HTTP_GET, endpoint)
+        response = await self._coalesced_request(HTTP_GET, endpoint)
         return response  # type: ignore[return-value]
 
     async def async_get_scheduled_tasks(
