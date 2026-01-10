@@ -45,6 +45,11 @@ from .coordinator import EmbyDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+# Limit concurrent service calls to prevent overwhelming the Emby server
+# Value of 1 means only one service action at a time per entity
+# This is required for Home Assistant Integration Quality Scale Silver tier
+PARALLEL_UPDATES = 1
+
 # Map Emby media types to HA media types
 _MEDIA_TYPE_MAP: dict[EmbyMediaType, MediaType] = {
     EmbyMediaType.MOVIE: MediaType.MOVIE,

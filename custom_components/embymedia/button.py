@@ -49,6 +49,11 @@ if TYPE_CHECKING:
     from .coordinator import EmbyDataUpdateCoordinator
     from .coordinator_sensors import EmbyServerCoordinator
 
+# Limit concurrent button presses to prevent overwhelming the Emby server
+# Value of 1 means only one press action at a time per entity
+# This is required for Home Assistant Integration Quality Scale Silver tier
+PARALLEL_UPDATES = 1
+
 _LOGGER = logging.getLogger(__name__)
 
 
