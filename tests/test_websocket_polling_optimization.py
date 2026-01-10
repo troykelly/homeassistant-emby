@@ -351,6 +351,128 @@ class TestMessageCallbackIntegration:
             assert coordinator._ws_consecutive_success == initial_count + 1
 
 
+class TestAdditionalCoverage:
+    """Additional tests for full coverage."""
+
+    @pytest.mark.asyncio
+    async def test_enable_polling_with_websocket_interval(
+        self, hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MagicMock
+    ) -> None:
+        """Test _enable_polling with use_websocket_interval=True."""
+        from custom_components.embymedia.const import WEBSOCKET_POLL_INTERVAL
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_client,
+            server_id="test-server",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # First disable polling
+        coordinator._polling_disabled = True
+        coordinator.update_interval = None
+
+        # Re-enable with websocket interval
+        coordinator._enable_polling(use_websocket_interval=True)
+
+        assert coordinator._polling_disabled is False
+        assert coordinator.update_interval == timedelta(seconds=WEBSOCKET_POLL_INTERVAL)
+
+    @pytest.mark.asyncio
+    async def test_schedule_health_check_cancels_existing_task(
+        self, hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MagicMock
+    ) -> None:
+        """Test that scheduling health check cancels existing task."""
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_client,
+            server_id="test-server",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Create a mock existing task
+        mock_task = MagicMock()
+        mock_task.cancel = MagicMock()
+        coordinator._health_check_task = mock_task
+
+        # Schedule new health check (should cancel existing)
+        coordinator._polling_disabled = True
+        coordinator._schedule_health_check()
+
+        # Original task should have been cancelled
+        mock_task.cancel.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_health_check_handles_emby_error(
+        self, hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MagicMock
+    ) -> None:
+        """Test that health check handles EmbyError gracefully."""
+        from custom_components.embymedia.exceptions import EmbyError
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_client,
+            server_id="test-server",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Get to stable state
+        for _ in range(coordinator.WEBSOCKET_STABLE_THRESHOLD):
+            coordinator._on_websocket_message_success()
+
+        assert coordinator._polling_disabled is True
+
+        # Make health check raise EmbyError (not EmbyConnectionError)
+        mock_client.async_ping.side_effect = EmbyError("Some error")
+
+        # Should not raise, just log warning
+        await coordinator.async_health_check()
+
+        # EmbyError doesn't trigger re-enabling polling (only connection errors do)
+        assert coordinator._polling_disabled is True
+
+    @pytest.mark.asyncio
+    async def test_health_check_loop_executes(
+        self, hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MagicMock
+    ) -> None:
+        """Test that the health check loop actually runs and calls health check."""
+        import asyncio
+        from unittest.mock import patch
+
+        coordinator = EmbyDataUpdateCoordinator(
+            hass=hass,
+            client=mock_client,
+            server_id="test-server",
+            server_name="Test Server",
+            config_entry=mock_config_entry,
+        )
+
+        # Mock async_health_check to track calls
+        health_check_called = False
+
+        async def mock_health_check() -> None:
+            nonlocal health_check_called
+            health_check_called = True
+            # Disable polling to stop the loop
+            coordinator._polling_disabled = False
+
+        coordinator.async_health_check = mock_health_check  # type: ignore[method-assign]
+
+        # Get to stable state and start the health check loop
+        coordinator._polling_disabled = True
+
+        # Patch asyncio.sleep to return immediately
+        with patch("asyncio.sleep", new_callable=AsyncMock):
+            coordinator._schedule_health_check()
+            # Give the task a chance to run
+            await asyncio.sleep(0.01)
+
+        assert health_check_called is True
+
+
 class TestPollingIntervalProperty:
     """Tests for polling interval property behavior."""
 
