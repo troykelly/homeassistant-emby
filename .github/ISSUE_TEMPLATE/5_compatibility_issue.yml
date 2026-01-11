@@ -72,10 +72,11 @@ body:
     attributes:
       label: "Current Integration Version"
       options:
-        - "0.4.0"
+        - "0.6.0"
+        - "0.5.x"
+        - "0.4.x"
         - "0.3.x"
-        - "0.2.x"
-        - "0.1.x"
+        - "0.2.x or older"
         - "Not listed (specify below)"
     validations:
       required: true
@@ -85,12 +86,13 @@ body:
     attributes:
       label: "Current Home Assistant Version"
       options:
+        - "2026.3.x"
+        - "2026.2.x"
+        - "2026.1.x"
+        - "2025.12.x"
         - "2025.11.x"
         - "2025.10.x"
-        - "2025.9.x"
-        - "2025.8.x"
-        - "2025.7.x"
-        - "2025.6.x or older"
+        - "2025.9.x or older"
         - "Not listed (specify below)"
     validations:
       required: true

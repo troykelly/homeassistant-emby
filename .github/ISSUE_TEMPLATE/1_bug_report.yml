@@ -62,10 +62,11 @@ body:
       label: "Integration Version"
       description: "Which version of the Emby Media integration are you using? (Settings > Devices & Services > Emby Media > 3 dots > Integration info)"
       options:
-        - "0.4.0"
+        - "0.6.0"
+        - "0.5.x"
+        - "0.4.x"
         - "0.3.x"
-        - "0.2.x"
-        - "0.1.x"
+        - "0.2.x or older"
         - "Not listed (please specify in additional context)"
     validations:
       required: true
@@ -76,22 +77,17 @@ body:
       label: "Home Assistant Version"
       description: "Which version of Home Assistant are you running? (Settings > About)"
       options:
+        - "2026.3.x"
+        - "2026.2.x"
+        - "2026.1.x"
+        - "2025.12.x"
         - "2025.11.x"
         - "2025.10.x"
         - "2025.9.x"
         - "2025.8.x"
         - "2025.7.x"
         - "2025.6.x"
-        - "2025.5.x"
-        - "2025.4.x"
-        - "2025.3.x"
-        - "2025.2.x"
-        - "2025.1.x"
-        - "2024.12.x"
-        - "2024.11.x"
-        - "2024.10.x"
-        - "2024.9.x"
-        - "2024.8.x or older"
+        - "2025.5.x or older"
         - "Not listed (please specify in additional context)"
     validations:
       required: true
