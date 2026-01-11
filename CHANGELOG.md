@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-01-11
+
+### Fixed
+- **Reinstallation Fails with Duplicate unique_id** (#312)
+  - Added final duplicate check in config flow before entry creation to prevent race conditions (#314)
+  - Config flow now aborts with `already_configured` if entry with same unique_id is created between steps
+  - Verified Home Assistant framework properly handles orphaned entries via SETUP_RETRY state (#316)
+  - Setup cancellation now handled gracefully by HA framework (#315)
+
+### Added
+- **Comprehensive Reinstallation Tests** (#317)
+  - Full install-unload-remove-reinstall cycle tests
+  - Concurrent configuration attempt handling
+  - Partial unload recovery scenarios
+  - Multiple server reinstallation tests
+  - Edge case tests for rapid install/uninstall cycles
+
+### Technical
+- 1888 tests with 100% code coverage
+- Improved config flow robustness for HA 2026.3+ compatibility
+
 ## [0.5.1] - 2026-01-10
 
 ### Fixed
@@ -265,7 +286,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Browse cache with LRU + TTL for performance
 - Graceful degradation on partial failures
 
-[Unreleased]: https://github.com/troykelly/homeassistant-emby/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/troykelly/homeassistant-emby/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/troykelly/homeassistant-emby/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/troykelly/homeassistant-emby/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/troykelly/homeassistant-emby/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/troykelly/homeassistant-emby/compare/v0.4.0...v0.4.1
