@@ -446,6 +446,21 @@ class EmbyConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_id:
             data[CONF_USER_ID] = user_id
 
+        # Final duplicate check before creating entry (race condition guard)
+        # This catches entries created between the initial unique_id check in step 1
+        # and entry creation here in the final step.
+        # Related: Issue #314 - Prevent duplicate unique_id config entry creation
+        if self.unique_id:
+            existing_entry = await self.async_set_unique_id(self.unique_id)
+            if existing_entry is not None:
+                # Another entry with this unique_id was created during the flow
+                _LOGGER.warning(
+                    "Aborting config flow: entry with unique_id %s already exists "
+                    "(created during multi-step flow)",
+                    self.unique_id,
+                )
+                return self.async_abort(reason="already_configured")
+
         return self.async_create_entry(
             title=server_name,
             data=data,
