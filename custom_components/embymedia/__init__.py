@@ -135,6 +135,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
           api_key: !secret emby_api_key
           ssl: true
           port: 443
+
+    Related: Issue #316 - Add cleanup mechanism for orphaned entries
     """
     if DOMAIN not in config:
         return True
