@@ -439,8 +439,18 @@ class TestAdditionalCoverage:
         self, hass: HomeAssistant, mock_client: MagicMock, mock_config_entry: MagicMock
     ) -> None:
         """Test that the health check loop actually runs and calls health check."""
-        import asyncio
+        from typing import Any
         from unittest.mock import patch
+
+        # Capture the coroutine passed to async_create_background_task
+        captured_coro = None
+
+        def capture_background_task(_hass: Any, coro: Any, name: str, **kw: Any) -> MagicMock:
+            nonlocal captured_coro
+            captured_coro = coro
+            return MagicMock()
+
+        mock_config_entry.async_create_background_task = capture_background_task
 
         coordinator = EmbyDataUpdateCoordinator(
             hass=hass,
@@ -464,11 +474,15 @@ class TestAdditionalCoverage:
         # Get to stable state and start the health check loop
         coordinator._polling_disabled = True
 
-        # Patch asyncio.sleep to return immediately
-        with patch("asyncio.sleep", new_callable=AsyncMock):
+        # Patch asyncio.sleep in the coordinator module to return immediately
+        with patch(
+            "custom_components.embymedia.coordinator.asyncio.sleep",
+            new_callable=AsyncMock,
+        ):
             coordinator._schedule_health_check()
-            # Give the task a chance to run
-            await asyncio.sleep(0.01)
+            # Run the captured coroutine directly instead of relying on event loop scheduling
+            assert captured_coro is not None
+            await captured_coro
 
         assert health_check_called is True
 
