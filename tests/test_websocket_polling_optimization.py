@@ -442,6 +442,11 @@ class TestAdditionalCoverage:
         import asyncio
         from unittest.mock import patch
 
+        # Make async_create_background_task actually create real asyncio tasks
+        mock_config_entry.async_create_background_task = lambda _hass, coro, name, **kw: (
+            asyncio.ensure_future(coro)
+        )
+
         coordinator = EmbyDataUpdateCoordinator(
             hass=hass,
             client=mock_client,
