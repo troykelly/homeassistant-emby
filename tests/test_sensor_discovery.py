@@ -33,11 +33,9 @@ def mock_client() -> MagicMock:
     """Create a mock Emby client."""
     client = MagicMock()
     client.get_image_url = MagicMock(
-        side_effect=lambda item_id,
-        image_type="Primary",
-        max_width=None,
-        max_height=None,
-        tag=None: f"https://emby.local/Items/{item_id}/Images/{image_type}"
+        side_effect=lambda item_id, image_type="Primary", max_width=None, max_height=None, tag=None: (
+            f"https://emby.local/Items/{item_id}/Images/{image_type}"
+        )
     )
     return client
 

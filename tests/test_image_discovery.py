@@ -63,11 +63,9 @@ def mock_coordinator_with_data() -> MagicMock:
     coordinator.last_update_success = True
     coordinator.client = MagicMock()
     coordinator.client.get_image_url = MagicMock(
-        side_effect=lambda item_id,
-        image_type="Primary",
-        max_width=None,
-        max_height=None,
-        tag=None: f"https://emby.local/Items/{item_id}/Images/{image_type}?tag={tag}"
+        side_effect=lambda item_id, image_type="Primary", max_width=None, max_height=None, tag=None: (
+            f"https://emby.local/Items/{item_id}/Images/{image_type}?tag={tag}"
+        )
     )
     coordinator.data = EmbyDiscoveryData(
         next_up=[
