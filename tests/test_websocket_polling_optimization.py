@@ -464,11 +464,16 @@ class TestAdditionalCoverage:
         # Get to stable state and start the health check loop
         coordinator._polling_disabled = True
 
-        # Patch asyncio.sleep to return immediately
-        with patch("asyncio.sleep", new_callable=AsyncMock):
+        # Patch asyncio.sleep in the coordinator module to return immediately
+        with patch(
+            "custom_components.embymedia.coordinator.asyncio.sleep",
+            new_callable=AsyncMock,
+        ):
             coordinator._schedule_health_check()
-            # Give the task a chance to run
-            await asyncio.sleep(0.01)
+            # Give the background task a chance to run through event loop iterations
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
+            await asyncio.sleep(0)
 
         assert health_check_called is True
 
