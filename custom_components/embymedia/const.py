@@ -327,6 +327,7 @@ class EmbyNowPlayingItem(TypedDict):
     BackdropImageTags: NotRequired[list[str]]
     ParentBackdropImageTags: NotRequired[list[str]]
     MediaType: NotRequired[str]  # "Video", "Audio"
+    MediaStreams: NotRequired[list[dict[str, object]]]  # Codec, DisplayTitle, etc.
 
 
 class EmbyPlayState(TypedDict):

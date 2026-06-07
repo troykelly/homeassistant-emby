@@ -696,3 +696,406 @@ class TestQueueDataInSession:
         session = parse_session(data)
         assert session.queue_item_ids == ("item1", "item2")
         assert session.queue_position == 0  # Default to 0 when not found
+
+
+class TestEmbyMediaStream:
+    """Test EmbyMediaStream dataclass."""
+
+    def test_creation_minimal(self) -> None:
+        """Test creating EmbyMediaStream with only type."""
+        from custom_components.embymedia.models import EmbyMediaStream
+
+        stream = EmbyMediaStream(type="Video")
+        assert stream.type == "Video"
+        assert stream.codec is None
+        assert stream.channel_layout is None
+        assert stream.display_title is None
+
+    def test_creation_full(self) -> None:
+        """Test creating EmbyMediaStream with all fields."""
+        from custom_components.embymedia.models import EmbyMediaStream
+
+        stream = EmbyMediaStream(
+            type="Audio",
+            codec="ac3",
+            channel_layout="5.1",
+            display_title="Dolby Digital 5.1",
+        )
+        assert stream.type == "Audio"
+        assert stream.codec == "ac3"
+        assert stream.channel_layout == "5.1"
+        assert stream.display_title == "Dolby Digital 5.1"
+
+    def test_frozen(self) -> None:
+        """Test EmbyMediaStream is immutable."""
+        from custom_components.embymedia.models import EmbyMediaStream
+
+        stream = EmbyMediaStream(type="Video")
+        with pytest.raises(AttributeError):
+            stream.type = "Audio"  # type: ignore[misc]
+
+    def test_default_codec_none(self) -> None:
+        """Test codec defaults to None."""
+        from custom_components.embymedia.models import EmbyMediaStream
+
+        stream = EmbyMediaStream(type="Video")
+        assert stream.codec is None
+
+    def test_default_channel_layout_none(self) -> None:
+        """Test channel_layout defaults to None."""
+        from custom_components.embymedia.models import EmbyMediaStream
+
+        stream = EmbyMediaStream(type="Video")
+        assert stream.channel_layout is None
+
+    def test_default_display_title_none(self) -> None:
+        """Test display_title defaults to None."""
+        from custom_components.embymedia.models import EmbyMediaStream
+
+        stream = EmbyMediaStream(type="Video")
+        assert stream.display_title is None
+
+
+class TestEmbyMediaItemStreamProperties:
+    """Test EmbyMediaItem media stream properties."""
+
+    def test_media_type_raw_movie(self) -> None:
+        """Test media_type_raw returns Movie string."""
+        from custom_components.embymedia.models import EmbyMediaItem, MediaType
+
+        item = EmbyMediaItem(item_id="id", name="test", media_type=MediaType.MOVIE)
+        assert item.media_type_raw == "Movie"
+
+    def test_media_type_raw_audio(self) -> None:
+        """Test media_type_raw returns Audio string."""
+        from custom_components.embymedia.models import EmbyMediaItem, MediaType
+
+        item = EmbyMediaItem(item_id="id", name="test", media_type=MediaType.AUDIO)
+        assert item.media_type_raw == "Audio"
+
+    def test_media_type_raw_unknown(self) -> None:
+        """Test media_type_raw returns Unknown string."""
+        from custom_components.embymedia.models import EmbyMediaItem, MediaType
+
+        item = EmbyMediaItem(item_id="id", name="test", media_type=MediaType.UNKNOWN)
+        assert item.media_type_raw == "Unknown"
+
+    def test_video_codec_when_video_stream_exists(self) -> None:
+        """Test video_codec returns codec from first video stream."""
+        from custom_components.embymedia.models import (
+            EmbyMediaItem,
+            EmbyMediaStream,
+            MediaType,
+        )
+
+        item = EmbyMediaItem(
+            item_id="id",
+            name="test",
+            media_type=MediaType.MOVIE,
+            media_streams=(EmbyMediaStream(type="Video", codec="hevc"),),
+        )
+        assert item.video_codec == "hevc"
+
+    def test_video_codec_when_no_video_stream(self) -> None:
+        """Test video_codec returns None when no video stream."""
+        from custom_components.embymedia.models import (
+            EmbyMediaItem,
+            EmbyMediaStream,
+            MediaType,
+        )
+
+        item = EmbyMediaItem(
+            item_id="id",
+            name="test",
+            media_type=MediaType.MOVIE,
+            media_streams=(EmbyMediaStream(type="Audio", codec="aac"),),
+        )
+        assert item.video_codec is None
+
+    def test_video_codec_when_no_streams(self) -> None:
+        """Test video_codec returns None when no media streams."""
+        from custom_components.embymedia.models import EmbyMediaItem, MediaType
+
+        item = EmbyMediaItem(item_id="id", name="test", media_type=MediaType.MOVIE)
+        assert item.video_codec is None
+
+    def test_video_display_title_when_video_stream_exists(self) -> None:
+        """Test video_display_title returns display_title from first video stream."""
+        from custom_components.embymedia.models import (
+            EmbyMediaItem,
+            EmbyMediaStream,
+            MediaType,
+        )
+
+        item = EmbyMediaItem(
+            item_id="id",
+            name="test",
+            media_type=MediaType.MOVIE,
+            media_streams=(
+                EmbyMediaStream(type="Video", display_title="HEVC Main 10 HDR"),
+            ),
+        )
+        assert item.video_display_title == "HEVC Main 10 HDR"
+
+    def test_video_display_title_when_no_video_stream(self) -> None:
+        """Test video_display_title returns None when no video stream."""
+        from custom_components.embymedia.models import (
+            EmbyMediaItem,
+            MediaType,
+        )
+
+        item = EmbyMediaItem(
+            item_id="id",
+            name="test",
+            media_type=MediaType.MOVIE,
+            media_streams=(),
+        )
+        assert item.video_display_title is None
+
+    def test_audio_codec_when_audio_stream_exists(self) -> None:
+        """Test audio_codec returns codec from first audio stream."""
+        from custom_components.embymedia.models import (
+            EmbyMediaItem,
+            EmbyMediaStream,
+            MediaType,
+        )
+
+        item = EmbyMediaItem(
+            item_id="id",
+            name="test",
+            media_type=MediaType.MOVIE,
+            media_streams=(EmbyMediaStream(type="Audio", codec="truehd"),),
+        )
+        assert item.audio_codec == "truehd"
+
+    def test_audio_codec_when_no_audio_stream(self) -> None:
+        """Test audio_codec returns None when no audio stream."""
+        from custom_components.embymedia.models import (
+            EmbyMediaItem,
+            EmbyMediaStream,
+            MediaType,
+        )
+
+        item = EmbyMediaItem(
+            item_id="id",
+            name="test",
+            media_type=MediaType.MOVIE,
+            media_streams=(EmbyMediaStream(type="Video", codec="hevc"),),
+        )
+        assert item.audio_codec is None
+
+    def test_audio_channel_layout_when_audio_stream_exists(self) -> None:
+        """Test audio_channel_layout returns layout from first audio stream."""
+        from custom_components.embymedia.models import (
+            EmbyMediaItem,
+            EmbyMediaStream,
+            MediaType,
+        )
+
+        item = EmbyMediaItem(
+            item_id="id",
+            name="test",
+            media_type=MediaType.MOVIE,
+            media_streams=(EmbyMediaStream(type="Audio", channel_layout="7.1"),),
+        )
+        assert item.audio_channel_layout == "7.1"
+
+    def test_audio_channel_layout_when_no_audio_stream(self) -> None:
+        """Test audio_channel_layout returns None when no audio stream."""
+        from custom_components.embymedia.models import (
+            EmbyMediaItem,
+            MediaType,
+        )
+
+        item = EmbyMediaItem(
+            item_id="id",
+            name="test",
+            media_type=MediaType.MOVIE,
+            media_streams=(),
+        )
+        assert item.audio_channel_layout is None
+
+    def test_audio_display_title_when_audio_stream_exists(self) -> None:
+        """Test audio_display_title returns display_title from first audio stream."""
+        from custom_components.embymedia.models import (
+            EmbyMediaItem,
+            EmbyMediaStream,
+            MediaType,
+        )
+
+        item = EmbyMediaItem(
+            item_id="id",
+            name="test",
+            media_type=MediaType.MOVIE,
+            media_streams=(
+                EmbyMediaStream(type="Audio", display_title="Dolby TrueHD 7.1"),
+            ),
+        )
+        assert item.audio_display_title == "Dolby TrueHD 7.1"
+
+    def test_audio_display_title_when_no_audio_stream(self) -> None:
+        """Test audio_display_title returns None when no audio stream."""
+        from custom_components.embymedia.models import (
+            EmbyMediaItem,
+            MediaType,
+        )
+
+        item = EmbyMediaItem(
+            item_id="id",
+            name="test",
+            media_type=MediaType.MOVIE,
+            media_streams=(),
+        )
+        assert item.audio_display_title is None
+
+    def test_video_stream_returns_first_video(self) -> None:
+        """Test video_stream returns the first video-type EmbyMediaStream."""
+        from custom_components.embymedia.models import (
+            EmbyMediaItem,
+            EmbyMediaStream,
+            MediaType,
+        )
+
+        video1 = EmbyMediaStream(type="Video", codec="h264")
+        video2 = EmbyMediaStream(type="Video", codec="hevc")
+        item = EmbyMediaItem(
+            item_id="id",
+            name="test",
+            media_type=MediaType.MOVIE,
+            media_streams=(video1, video2),
+        )
+        assert item.video_stream is video1
+
+    def test_video_stream_when_no_video(self) -> None:
+        """Test video_stream returns None when no video streams."""
+        from custom_components.embymedia.models import (
+            EmbyMediaItem,
+            EmbyMediaStream,
+            MediaType,
+        )
+
+        item = EmbyMediaItem(
+            item_id="id",
+            name="test",
+            media_type=MediaType.AUDIO,
+            media_streams=(EmbyMediaStream(type="Audio", codec="aac"),),
+        )
+        assert item.video_stream is None
+
+    def test_audio_stream_returns_first_audio(self) -> None:
+        """Test audio_stream returns the first audio-type EmbyMediaStream."""
+        from custom_components.embymedia.models import (
+            EmbyMediaItem,
+            EmbyMediaStream,
+            MediaType,
+        )
+
+        audio1 = EmbyMediaStream(type="Audio", codec="ac3")
+        audio2 = EmbyMediaStream(type="Audio", codec="truehd")
+        item = EmbyMediaItem(
+            item_id="id",
+            name="test",
+            media_type=MediaType.MOVIE,
+            media_streams=(audio1, audio2),
+        )
+        assert item.audio_stream is audio1
+
+    def test_audio_stream_when_no_audio(self) -> None:
+        """Test audio_stream returns None when no audio streams."""
+        from custom_components.embymedia.models import (
+            EmbyMediaItem,
+            EmbyMediaStream,
+            MediaType,
+        )
+
+        item = EmbyMediaItem(
+            item_id="id",
+            name="test",
+            media_type=MediaType.MOVIE,
+            media_streams=(EmbyMediaStream(type="Video", codec="hevc"),),
+        )
+        assert item.audio_stream is None
+
+
+class TestParseMediaItemMediaStreams:
+    """Test parse_media_item with MediaStreams."""
+
+    def test_parse_with_media_streams(self) -> None:
+        """Test parsing item with MediaStreams array."""
+        from custom_components.embymedia.const import EmbyNowPlayingItem
+        from custom_components.embymedia.models import parse_media_item
+
+        data: EmbyNowPlayingItem = {
+            "Id": "item-123",
+            "Name": "Test Movie",
+            "Type": "Movie",
+            "MediaStreams": [
+                {
+                    "Type": "Video",
+                    "Codec": "hevc",
+                    "DisplayTitle": "HEVC Main 10 HDR",
+                },
+                {
+                    "Type": "Audio",
+                    "Codec": "truehd",
+                    "ChannelLayout": "7.1",
+                    "DisplayTitle": "Dolby TrueHD 7.1",
+                },
+            ],
+        }
+        item = parse_media_item(data)
+        assert len(item.media_streams) == 2
+        assert item.media_streams[0].type == "Video"
+        assert item.media_streams[0].codec == "hevc"
+        assert item.media_streams[0].display_title == "HEVC Main 10 HDR"
+        assert item.media_streams[1].type == "Audio"
+        assert item.media_streams[1].codec == "truehd"
+        assert item.media_streams[1].channel_layout == "7.1"
+        assert item.media_streams[1].display_title == "Dolby TrueHD 7.1"
+
+    def test_parse_without_media_streams(self) -> None:
+        """Test parsing item without MediaStreams returns empty tuple."""
+        from custom_components.embymedia.const import EmbyNowPlayingItem
+        from custom_components.embymedia.models import parse_media_item
+
+        data: EmbyNowPlayingItem = {
+            "Id": "item-123",
+            "Name": "Test Movie",
+            "Type": "Movie",
+        }
+        item = parse_media_item(data)
+        assert item.media_streams == ()
+
+    def test_parse_with_empty_media_streams(self) -> None:
+        """Test parsing item with empty MediaStreams array."""
+        from custom_components.embymedia.const import EmbyNowPlayingItem
+        from custom_components.embymedia.models import parse_media_item
+
+        data: EmbyNowPlayingItem = {
+            "Id": "item-123",
+            "Name": "Test Audio",
+            "Type": "Audio",
+            "MediaStreams": [],
+        }
+        item = parse_media_item(data)
+        assert item.media_streams == ()
+
+    def test_parse_with_partial_stream_data(self) -> None:
+        """Test parsing MediaStreams with minimal fields."""
+        from custom_components.embymedia.const import EmbyNowPlayingItem
+        from custom_components.embymedia.models import parse_media_item
+
+        data: EmbyNowPlayingItem = {
+            "Id": "item-123",
+            "Name": "Test Movie",
+            "Type": "Movie",
+            "MediaStreams": [
+                {"Type": "Video"},
+            ],
+        }
+        item = parse_media_item(data)
+        assert len(item.media_streams) == 1
+        assert item.media_streams[0].type == "Video"
+        assert item.media_streams[0].codec is None
+        assert item.media_streams[0].display_title is None
+        assert item.media_streams[0].channel_layout is None

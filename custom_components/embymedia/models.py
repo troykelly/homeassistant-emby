@@ -30,6 +30,26 @@ class MediaType(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class EmbyMediaStream:
+    """A single media stream within a playing item.
+
+    Represents a video, audio, or subtitle stream from the Emby
+    MediaStreams array in the NowPlayingItem session data.
+
+    Attributes:
+        type: Stream type ("Video", "Audio", "Subtitle").
+        codec: Codec name (e.g. "hevc", "truehd", "aac"), or None.
+        channel_layout: Audio channel layout (e.g. "5.1", "7.1"), or None.
+        display_title: Human-readable display title from Emby, or None.
+    """
+
+    type: str
+    codec: str | None = None
+    channel_layout: str | None = None
+    display_title: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class EmbyMediaItem:
     """Currently playing media item.
 
@@ -55,6 +75,7 @@ class EmbyMediaItem:
         season_id: ID of the parent season (for episodes) for image fallback.
         album_id: ID of the parent album (for audio) for image fallback.
         parent_backdrop_image_tags: Tuple of backdrop image tags from parent.
+        media_streams: Tuple of EmbyMediaStream instances parsed from API.
     """
 
     item_id: str
@@ -75,6 +96,90 @@ class EmbyMediaItem:
     season_id: str | None = None
     album_id: str | None = None
     parent_backdrop_image_tags: tuple[str, ...] = field(default_factory=tuple)
+    media_streams: tuple[EmbyMediaStream, ...] = field(default_factory=tuple)
+
+    @property
+    def media_type_raw(self) -> str:
+        """Return the raw Emby media type string.
+
+        Returns:
+            The string value of the media_type enum (e.g. "Movie", "Audio").
+        """
+        return self.media_type.value
+
+    @property
+    def video_stream(self) -> EmbyMediaStream | None:
+        """Return the first video stream, or None if not found.
+
+        Returns:
+            The first EmbyMediaStream with type "Video", or None.
+        """
+        for stream in self.media_streams:
+            if stream.type == "Video":
+                return stream
+        return None
+
+    @property
+    def audio_stream(self) -> EmbyMediaStream | None:
+        """Return the first audio stream, or None if not found.
+
+        Returns:
+            The first EmbyMediaStream with type "Audio", or None.
+        """
+        for stream in self.media_streams:
+            if stream.type == "Audio":
+                return stream
+        return None
+
+    @property
+    def video_codec(self) -> str | None:
+        """Return the video codec from the first video stream.
+
+        Returns:
+            Codec string or None if no video stream.
+        """
+        stream = self.video_stream
+        return stream.codec if stream else None
+
+    @property
+    def video_display_title(self) -> str | None:
+        """Return the video display title from the first video stream.
+
+        Returns:
+            Display title string or None if no video stream.
+        """
+        stream = self.video_stream
+        return stream.display_title if stream else None
+
+    @property
+    def audio_codec(self) -> str | None:
+        """Return the audio codec from the first audio stream.
+
+        Returns:
+            Codec string or None if no audio stream.
+        """
+        stream = self.audio_stream
+        return stream.codec if stream else None
+
+    @property
+    def audio_channel_layout(self) -> str | None:
+        """Return the audio channel layout from the first audio stream.
+
+        Returns:
+            Channel layout string or None if no audio stream.
+        """
+        stream = self.audio_stream
+        return stream.channel_layout if stream else None
+
+    @property
+    def audio_display_title(self) -> str | None:
+        """Return the audio display title from the first audio stream.
+
+        Returns:
+            Display title string or None if no audio stream.
+        """
+        stream = self.audio_stream
+        return stream.display_title if stream else None
 
 
 @dataclass(frozen=True, slots=True)
@@ -210,6 +315,27 @@ def parse_media_item(data: EmbyNowPlayingItem) -> EmbyMediaItem:
 
     parent_backdrop_tags = data.get("ParentBackdropImageTags", [])
 
+    media_streams_data = data.get("MediaStreams", [])
+    media_streams: tuple[EmbyMediaStream, ...] = ()
+    if media_streams_data:
+        parsed_streams: list[EmbyMediaStream] = []
+        for stream in media_streams_data:
+            raw_type = stream.get("Type")
+            if not isinstance(raw_type, str):
+                continue
+            raw_codec = stream.get("Codec")
+            raw_layout = stream.get("ChannelLayout")
+            raw_title = stream.get("DisplayTitle")
+            parsed_streams.append(
+                EmbyMediaStream(
+                    type=raw_type,
+                    codec=str(raw_codec) if isinstance(raw_codec, str) else None,
+                    channel_layout=str(raw_layout) if isinstance(raw_layout, str) else None,
+                    display_title=str(raw_title) if isinstance(raw_title, str) else None,
+                )
+            )
+        media_streams = tuple(parsed_streams)
+
     return EmbyMediaItem(
         item_id=data["Id"],
         name=data["Name"],
@@ -229,6 +355,7 @@ def parse_media_item(data: EmbyNowPlayingItem) -> EmbyMediaItem:
         season_id=data.get("SeasonId"),
         album_id=data.get("AlbumId"),
         parent_backdrop_image_tags=tuple(parent_backdrop_tags),
+        media_streams=media_streams,
     )
 
 
@@ -307,6 +434,7 @@ def parse_session(data: EmbySessionResponse) -> EmbySession:
 
 __all__ = [
     "EmbyMediaItem",
+    "EmbyMediaStream",
     "EmbyPlaybackState",
     "EmbySession",
     "MediaType",

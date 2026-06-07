@@ -430,6 +430,78 @@ class EmbyMediaPlayer(EmbyEntity, MediaPlayerEntity):
         return session.play_state.is_muted
 
     @property
+    def media_type_raw(self) -> str | None:
+        """Return the raw Emby media type (e.g. "Movie", "Audio").
+
+        Returns:
+            Raw type string or None if not playing.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        return session.now_playing.media_type_raw
+
+    @property
+    def video_codec(self) -> str | None:
+        """Return the video codec from the currently playing item.
+
+        Returns:
+            Codec string or None if not playing or no video stream.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        return session.now_playing.video_codec
+
+    @property
+    def video_display_title(self) -> str | None:
+        """Return the video display title from the currently playing item.
+
+        Returns:
+            Display title string or None if not playing or no video stream.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        return session.now_playing.video_display_title
+
+    @property
+    def audio_codec(self) -> str | None:
+        """Return the audio codec from the currently playing item.
+
+        Returns:
+            Codec string or None if not playing or no audio stream.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        return session.now_playing.audio_codec
+
+    @property
+    def audio_channel_layout(self) -> str | None:
+        """Return the audio channel layout from the currently playing item.
+
+        Returns:
+            Channel layout string or None if not playing or no audio stream.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        return session.now_playing.audio_channel_layout
+
+    @property
+    def audio_display_title(self) -> str | None:
+        """Return the audio display title from the currently playing item.
+
+        Returns:
+            Display title string or None if not playing or no audio stream.
+        """
+        session = self.session
+        if session is None or session.now_playing is None:
+            return None
+        return session.now_playing.audio_display_title
+
+    @property
     def extra_state_attributes(self) -> dict[str, object]:
         """Return entity specific state attributes.
 
