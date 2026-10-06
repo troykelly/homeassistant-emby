@@ -287,7 +287,10 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
                 if self._polling_disabled:
                     await self.async_health_check()
 
-        self._health_check_task = self.hass.async_create_task(_health_check_loop())
+        # PATCH: run as background task so HA startup does not wait on this endless loop
+        self._health_check_task = self.config_entry.async_create_background_task(
+            self.hass, _health_check_loop(), name="embymedia_health_check"
+        )
 
     async def async_health_check(self) -> None:
         """Perform a lightweight health check.
@@ -674,8 +677,11 @@ class EmbyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, EmbySession]]):
             # Notify library coordinator to extend its polling interval (#289)
             self._update_library_coordinator_websocket_status(True)
             # Start receive loop in background and store task for cleanup
-            self._websocket_receive_task = self.hass.async_create_task(
-                self._async_websocket_receive_loop()
+            # PATCH: run as background task so HA startup does not wait on this endless loop
+            self._websocket_receive_task = self.config_entry.async_create_background_task(
+                self.hass,
+                self._async_websocket_receive_loop(),
+                name="embymedia_websocket_receive",
             )
         except aiohttp.ClientError as err:
             _LOGGER.warning(

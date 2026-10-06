@@ -14,6 +14,16 @@ if TYPE_CHECKING:
     pass
 
 
+@pytest.fixture(autouse=True)
+def mock_server_device_id(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """Resolve the Emby server device to a fixed device id."""
+    from homeassistant.helpers import device_registry as dr
+
+    lookup = MagicMock(return_value="server-device-id")
+    monkeypatch.setattr(dr, "async_get_device_id_by_identifier", lookup, raising=False)
+    return lookup
+
+
 @pytest.fixture
 def mock_session() -> MagicMock:
     """Create a mock EmbySession."""
@@ -188,7 +198,8 @@ class TestEmbyEntityDeviceInfo:
         assert device_info["manufacturer"] == "Emby"
         assert device_info["model"] == "Emby Theater"
         assert device_info["sw_version"] == "4.9.2.0"
-        assert device_info["via_device"] == (DOMAIN, "server-123")
+        assert device_info["via_device_id"] == "server-device-id"
+        assert "via_device" not in device_info
 
     def test_device_info_with_session_and_prefix_disabled(
         self,
@@ -216,7 +227,8 @@ class TestEmbyEntityDeviceInfo:
         assert device_info["manufacturer"] == "Emby"
         assert device_info["model"] == "Emby Theater"
         assert device_info["sw_version"] == "4.9.2.0"
-        assert device_info["via_device"] == (DOMAIN, "server-123")
+        assert device_info["via_device_id"] == "server-device-id"
+        assert "via_device" not in device_info
 
     def test_device_info_without_session(
         self,
@@ -242,7 +254,27 @@ class TestEmbyEntityDeviceInfo:
         assert device_info["manufacturer"] == "Emby"
         assert "model" not in device_info
         assert "sw_version" not in device_info
-        assert device_info["via_device"] == (DOMAIN, "server-123")
+        assert device_info["via_device_id"] == "server-device-id"
+        assert "via_device" not in device_info
+
+
+def test_device_info_without_server_device(
+    hass: HomeAssistant,
+    mock_coordinator: MagicMock,
+    mock_server_device_id: MagicMock,
+) -> None:
+    """Test device info omits the via link when the server device is missing."""
+    from custom_components.embymedia.entity import EmbyEntity
+
+    mock_server_device_id.side_effect = ValueError("no device")
+    mock_coordinator.get_session.return_value = None
+
+    entity = EmbyEntity(coordinator=mock_coordinator, device_id="device-abc-123")
+
+    device_info = entity.device_info
+
+    assert "via_device_id" not in device_info
+    assert "via_device" not in device_info
 
 
 class TestEmbyEntityUniqueId:

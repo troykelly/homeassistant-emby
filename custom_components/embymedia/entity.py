@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -91,7 +92,7 @@ class EmbyEntity(CoordinatorEntity["EmbyDataUpdateCoordinator"]):
                 identifiers={(DOMAIN, self._device_id)},
                 name=device_name,
                 manufacturer="Emby",
-                via_device=(DOMAIN, self.coordinator.server_id),
+                **self._via_server_device(),
             )
 
         return DeviceInfo(
@@ -100,8 +101,31 @@ class EmbyEntity(CoordinatorEntity["EmbyDataUpdateCoordinator"]):
             manufacturer="Emby",
             model=session.client_name,
             sw_version=session.app_version,
-            via_device=(DOMAIN, self.coordinator.server_id),
+            **self._via_server_device(),
         )
+
+    def _via_server_device(self) -> dict[str, Any]:
+        """Link the client device to the Emby server device.
+
+        Home Assistant 2026.8 deprecates ``via_device`` (removed in 2027.8) in favor
+        of ``via_device_id``. The server device is registered in ``async_setup_entry``
+        before the platforms are forwarded, so its id can be looked up here. Home
+        Assistant versions without the lookup helper keep using ``via_device``.
+        """
+        server_identifier = (DOMAIN, self.coordinator.server_id)
+        get_device_id = getattr(dr, "async_get_device_id_by_identifier", None)
+        if get_device_id is None:
+            return {"via_device": server_identifier}
+        try:
+            return {
+                "via_device_id": get_device_id(
+                    self.coordinator.hass,
+                    server_identifier,
+                    config_entry_id=self.coordinator.config_entry.entry_id,
+                )
+            }
+        except ValueError:
+            return {}
 
     @property
     def unique_id(self) -> str:
